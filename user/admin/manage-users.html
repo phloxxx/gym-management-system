@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Users | Gymaster</title>
+    <!-- Add Google Fonts - Poppins with multiple weights -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../styles.css">
+    <script>
+        // JavaScript code for user management functionality
+    </script>
+    <style>
+        /* Modern, professional sidebar styling */
+        .sidebar-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #5C6C90 0%, #081738 100%);
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        /* Refined, subtle animation pattern */
+        .sidebar-background::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at top right, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+            opacity: 0.6;
+            animation: gentle-fade 12s infinite alternate ease-in-out;
+        }
+        
+        .sidebar-background::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.2;
+        }
+        
+        @keyframes gentle-fade {
+            0% { opacity: 0.2; }
+            100% { opacity: 0.6; }
+        }
+        
+        /* Consistent sidebar menu styling */
+        .sidebar-menu-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease-in-out;
+            margin-bottom: 0.25rem;
+        }
+        
+        .sidebar-menu-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+        }
+        
+        .sidebar-menu-item.active {
+            background-color: rgba(8, 23, 56, 0.7);
+        }
+        
+        .sidebar-menu-item i, 
+        .sidebar-menu-item svg {
+            width: 1.25rem;
+            height: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-menu-item:hover i,
+        .sidebar-menu-item:hover svg {
+            transform: scale(1.15);
+        }
+        
+        /* Dropdown styling */
+        .sidebar-dropdown-item {
+            display: flex;
+            align-items: center;
+            padding: 0.6rem 0.75rem 0.6rem 3rem;
+            border-radius: 0.5rem;
+            transition: all 0.15s ease-in-out;
+            position: relative;
+            margin-bottom: 0.125rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .sidebar-dropdown-item:before {
+            content: "";
+            position: absolute;
+            left: 1.75rem;
+            top: 50%;
+            width: 0.25rem;
+            height: 0.25rem;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-50%);
+        }
+        
+        .sidebar-dropdown-item:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: white;
+        }
+        
+        /* Fixed height sidebar content */
+        .sidebar-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        /* Prevent dropdown from causing scrollbars */
+        .sidebar-content::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .sidebar-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        /* Main content styling */
+        .main-content {
+            background-color: #f0f4f8;
+            background-image: 
+                linear-gradient(rgba(165, 179, 201, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(165, 179, 201, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        .main-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: linear-gradient(180deg, rgba(8, 23, 56, 0.03) 0%, rgba(8, 23, 56, 0) 100%);
+            pointer-events: none;
+        }
+        
+        /* Header styling */
+        .admin-header {
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.95);
+            border: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            border-radius: 0;
+            margin-bottom: 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            width: 100%;
+        }
+        
+        /* Form input styling */
+        .form-input:focus {
+            border-color: #5C6C90;
+            box-shadow: 0 0 0 3px rgba(92, 108, 144, 0.2);
+        }
+        
+        /* Modal animations */
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+        
+        .modal-content {
+            transition: transform 0.25s ease;
+        }
+        
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+        
+        /* User status toggle styling */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #5C6C90;
+        }
+        
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #5C6C90;
+        }
+        
+        /* Header and profile styling */
+        .profile-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 220px;
+            margin-top: 0.5rem;
+            z-index: 50;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(229, 231, 235, 0.8);
+            background-color: white;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: #EF4444;
+            color: white;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            border: 2px solid white;
+        }
+        
+        .header-icon-button {
+            position: relative;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: all 0.15s ease;
+            color: #6B7280;
+            cursor: pointer;
+        }
+        
+        .header-icon-button:hover {
+            background-color: #F3F4F6;
+            color: #374151;
+        }
+    </style>
+</head>
+<body class="font-poppins bg-gray-50">
+    <!-- Mobile menu button -->
+    <button data-drawer-target="sidebar-gymaster" data-drawer-toggle="sidebar-gymaster" aria-controls="sidebar-gymaster" type="button" class="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200">
+        <span class="sr-only">Open sidebar</span>
+        <svg class="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
+        </svg>
+    </button>
+    
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar-gymaster" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0" aria-label="Sidebar">
+        <div class="h-full px-3 py-4 overflow-hidden text-white relative flex flex-col sidebar-content">
+            <!-- Animated background -->
+            <div class="sidebar-background"></div>
+            
+            <!-- Logo Section - Centered and Enlarged -->
+            <div class="flex items-center justify-center mb-3 pb-4 border-b border-white/10 relative">
+                <img src="../../src/images/gymaster-logo.png" alt="Gymaster Logo" class="h-20 w-auto filter brightness-0 invert">
+            </div>
+            
+            <nav class="flex-grow relative">
+                <ul class="space-y-1 font-medium">
+                    <!-- Dashboard -->
+                    <li>
+                        <a href="admin-dashboard.html" class="sidebar-menu-item">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    
+                    <!-- Management Dropdown -->
+                    <li class="mt-2">
+                        <button type="button" class="sidebar-menu-item active w-full justify-between" aria-controls="dropdown-management" data-collapse-toggle="dropdown-management">
+                            <div class="flex items-center">
+                                <i class="fas fa-th-large"></i>
+                                <span>Management</span>
+                            </div>
+                            <i class="fas fa-chevron-down text-xs transition-transform duration-200 rotate-180" id="management-chevron"></i>
+                        </button>
+                        <div id="dropdown-management" class="overflow-hidden transition-all duration-300 ease-in-out">
+                            <ul class="pt-1 pb-1">
+                                <li>
+                                    <a href="manage-users.html" class="sidebar-dropdown-item bg-white/10">User</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="sidebar-dropdown-item">Member</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="sidebar-dropdown-item">Program & Coach</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="sidebar-dropdown-item">Comorbidities</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="sidebar-dropdown-item">Subscription</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="sidebar-dropdown-item">Payment</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    
+                    <!-- Transaction -->
+                    <li class="mt-2">
+                        <a href="#" class="sidebar-menu-item">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Transaction</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <!-- Logout placed at the very bottom -->
+            <div class="mt-auto border-t border-white/10 relative">
+                <a href="../../login.html" class="sidebar-menu-item text-white/90 hover:text-white mt-3">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main content -->
+    <div class="p-0 sm:ml-64 main-content">
+        <!-- Top Header -->
+        <header class="admin-header shadow-sm mb-3">
+            <div class="max-w-full px-6">
+                <div class="flex justify-between items-center h-16">
+                    <!-- Page Title -->
+                    <h1 class="text-xl font-semibold text-primary-dark">Manage Users</h1>
+                    
+                    <!-- Right Section - User Profile and Notifications -->
+                    <div class="flex items-center space-x-3">
+                        <!-- Notification Bell -->
+                        <div class="header-icon-button">
+                            <i class="fas fa-bell text-lg"></i>
+                            <span class="notification-badge">3</span>
+                        </div>
+                        
+                        <!-- Divider -->
+                        <div class="h-8 w-px bg-gray-200 mx-2"></div>
+                        
+                        <!-- User Profile - Direct link to edit profile -->
+                        <a href="edit-profile.html" class="flex items-center space-x-3 pr-2 cursor-pointer">
+                            <div class="text-right hidden sm:block">
+                                <p class="text-sm font-medium text-gray-700">John Doe</p>
+                                <p class="text-xs text-gray-500">Administrator</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-white">
+                                <i class="fas fa-user text-lg"></i>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main content container -->
+        <div class="container mx-auto px-4 py-4">
+            <!-- Action bar -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-xl font-semibold text-primary-dark">User Management</h2>
+                        <p class="text-gray-600 text-sm">Add, edit, and manage system users</p>
+                    </div>
+                    
+                    <!-- Action buttons -->
+                    <div class="flex gap-2">
+                        <div class="relative">
+                            <input type="text" id="searchUsers" placeholder="Search users..." 
+                                class="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-primary-light">
+                            <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                <i class="fas fa-search"></i>
+                            </div>
+                        </div>
+                        
+                        <button id="addUserBtn" class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors flex items-center">
+                            <i class="fas fa-plus mr-2"></i> Add User
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Users Table -->
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200" id="usersTable">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Type</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="userTableBody">
+                            <!-- User rows will be inserted here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Empty state -->
+                <div id="emptyState" class="py-8 text-center hidden">
+                    <i class="fas fa-users text-gray-300 text-5xl mb-3"></i>
+                    <h3 class="text-lg font-medium text-gray-600">No users found</h3>
+                    <p class="text-gray-500 mb-4">Add users to get started or try a different search term.</p>
+                    <button id="emptyStateAddBtn" class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors">
+                        <i class="fas fa-plus mr-2"></i> Add New User
+                    </button>
+                </div>
+                
+                <!-- Loading state -->
+                <div id="loadingState" class="py-8 text-center">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-light"></div>
+                    <p class="mt-2 text-gray-600">Loading users...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add/Edit User Modal -->
+        <div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden modal">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 modal-content transform scale-95">
+                <!-- Modal Header -->
+                <div class="border-b px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <h3 id="modalTitle" class="text-lg font-semibold text-primary-dark">Add New User</h3>
+                        <button id="closeModal" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Modal Body -->
+                <div class="p-6">
+                    <form id="userForm" class="space-y-4">
+                        <input type="hidden" id="userId" name="userId" value="">
+                        
+                        <!-- First Name -->
+                        <div>
+                            <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                            <input type="text" id="firstName" name="USER_FNAME" 
+                                class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" required>
+                        </div>
+                        
+                        <!-- Last Name -->
+                        <div>
+                            <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                            <input type="text" id="lastName" name="USER_LNAME" 
+                                class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" required>
+                        </div>
+                        
+                        <!-- Username -->
+                        <div>
+                            <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                            <input type="text" id="username" name="USERNAME" 
+                                class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" required>
+                            <p class="text-xs text-gray-500 mt-1">Username must be unique and between 5-20 characters.</p>
+                        </div>
+                        
+                        <!-- Password (shown only for new users) -->
+                        <div id="passwordContainer">
+                            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <div class="relative">
+                                <input type="password" id="password" name="PASSWORD" 
+                                    class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" required
+                                    minlength="8" maxlength="15">
+                                <button type="button" class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Password must be 8-15 characters long.</p>
+                        </div>
+                        
+                        <!-- Change Password Checkbox (shown only for editing) -->
+                        <div id="changePasswordContainer" class="hidden">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="changePassword" class="rounded text-primary-dark focus:ring-primary-light mr-2">
+                                <label for="changePassword" class="text-sm font-medium text-gray-700">Change Password</label>
+                            </div>
+                        </div>
+                        
+                        <!-- New Password (shown when checkbox is checked) -->
+                        <div id="newPasswordContainer" class="hidden">
+                            <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                            <div class="relative">
+                                <input type="password" id="newPassword" name="newPassword" 
+                                    class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none"
+                                    minlength="8" maxlength="15">
+                                <button type="button" class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Password must be 8-15 characters long.</p>
+                        </div>
+                        
+                        <!-- User Type -->
+                        <div>
+                            <label for="userType" class="block text-sm font-medium text-gray-700 mb-1">User Type</label>
+                            <select id="userType" name="USER_TYPE" 
+                                class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" required>
+                                <option value="">Select User Type</option>
+                                <option value="admin">Administrator</option>
+                                <option value="staff">Staff</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Active Status -->
+                        <div id="statusContainer">
+                            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                            <div class="flex items-center">
+                                <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                    <input type="checkbox" name="IS_ACTIVE" id="status" checked
+                                        class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer">
+                                    <label for="status" 
+                                        class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                                </div>
+                                <span id="statusLabel" class="text-sm text-green-600 font-medium">Active</span>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Modal Footer -->
+                <div class="border-t px-6 py-4 flex justify-end gap-2">
+                    <button id="cancelButton" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none">
+                        Cancel
+                    </button>
+                    <button id="saveUserButton" class="px-4 py-2 bg-primary-dark text-white rounded-md hover:bg-opacity-90 focus:outline-none">
+                        Save User
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Delete Confirmation Modal -->
+        <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden modal">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 modal-content transform scale-95">
+                <div class="p-6">
+                    <div class="flex items-center justify-center mb-4 text-red-600">
+                        <i class="fas fa-exclamation-triangle text-4xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-center mb-2">Confirm Delete</h3>
+                    <p class="text-gray-600 text-center mb-6">Are you sure you want to delete this user? This action cannot be undone.</p>
+                    
+                    <div class="flex justify-center gap-3">
+                        <button id="cancelDeleteButton" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none">
+                            Cancel
+                        </button>
+                        <button id="confirmDeleteButton" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none">
+                            Delete User
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notification Toast -->
+        <div id="toast" class="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg z-50 transform translate-x-full opacity-0 transition-all duration-300 flex items-center">
+            <i id="toastIcon" class="fas fa-check-circle mr-2"></i>
+            <span id="toastMessage">Operation successful!</span>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sample data for demonstration
+            const sampleUsers = [
+                { id: 1, firstName: 'John', lastName: 'Doe', username: 'admin', userType: 'admin', isActive: 1 },
+                { id: 2, firstName: 'Jane', lastName: 'Smith', username: 'jsmith', userType: 'staff', isActive: 1 },
+                { id: 3, firstName: 'Robert', lastName: 'Johnson', username: 'rjohnson', userType: 'staff', isActive: 0 },
+                { id: 4, firstName: 'Emily', lastName: 'Wilson', username: 'ewilson', userType: 'admin', isActive: 1 },
+                { id: 5, firstName: 'Michael', lastName: 'Brown', username: 'mbrown', userType: 'staff', isActive: 1 }
+            ];
+            
+            // DOM elements
+            const userTableBody = document.getElementById('userTableBody');
+            const loadingState = document.getElementById('loadingState');
+            const emptyState = document.getElementById('emptyState');
+            const userModal = document.getElementById('userModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const userForm = document.getElementById('userForm');
+            const addUserBtn = document.getElementById('addUserBtn');
+            const emptyStateAddBtn = document.getElementById('emptyStateAddBtn');
+            const closeModal = document.getElementById('closeModal');
+            const cancelButton = document.getElementById('cancelButton');
+            const saveUserButton = document.getElementById('saveUserButton');
+            const deleteModal = document.getElementById('deleteModal');
+            const cancelDeleteButton = document.getElementById('cancelDeleteButton');
+            const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+            const searchUsers = document.getElementById('searchUsers');
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+            const statusCheckbox = document.getElementById('status');
+            const statusLabel = document.getElementById('statusLabel');
+            const changePasswordCheckbox = document.getElementById('changePassword');
+            const passwordContainer = document.getElementById('passwordContainer');
+            const changePasswordContainer = document.getElementById('changePasswordContainer');
+            const newPasswordContainer = document.getElementById('newPasswordContainer');
+            
+            // Current selected user ID for editing/deleting
+            let currentUserId = null;
+            
+            // Initialize the page
+            initializePage();
+            
+            // Initialize sidebar dropdown toggle functionality
+            initializeSidebar();
+            
+            // Add event listeners for UI interactions
+            addEventListeners();
+            
+            // Initialize password visibility toggles
+            initializePasswordToggles();
+            
+            function initializePage() {
+                // Simulate loading
+                setTimeout(() => {
+                    loadingState.classList.add('hidden');
+                    displayUsers(sampleUsers);
+                }, 500);
+            }
+            
+            function displayUsers(users) {
+                // Clear any existing rows
+                userTableBody.innerHTML = '';
+                
+                if (users.length === 0) {
+                    // Show empty state
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+                
+                // Hide empty state
+                emptyState.classList.add('hidden');
+                
+                // Add rows for each user
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white text-xs">
+                                    ${user.firstName.charAt(0)}${user.lastName.charAt(0)}
+                                </div>
+                                <div class="ml-3">
+                                    <div class="text-sm font-medium text-gray-900">${user.firstName} ${user.lastName}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.username}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                ${user.userType === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">
+                                ${user.userType === 'admin' ? 'Administrator' : 'Staff'}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer status-toggle" data-id="${user.id}" 
+                                    ${user.isActive ? 'checked' : ''}>
+                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 
+                                    peer-focus:ring-primary-light rounded-full peer 
+                                    peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
+                                    peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
+                                    after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
+                                    after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-light"></div>
+                            </label>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button class="text-primary-dark hover:text-primary-light mr-3 edit-button" data-id="${user.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800 delete-button" data-id="${user.id}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    `;
+                    userTableBody.appendChild(row);
+                });
+                
+                // Add event listeners to the newly created toggle buttons
+                document.querySelectorAll('.status-toggle').forEach(toggle => {
+                    toggle.addEventListener('change', function() {
+                        const userId = this.getAttribute('data-id');
+                        const isActive = this.checked;
+                        updateUserStatus(userId, isActive);
+                    });
+                });
+                
+                // Add event listeners to edit buttons
+                document.querySelectorAll('.edit-button').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const userId = this.getAttribute('data-id');
+                        openEditModal(userId);
+                    });
+                });
+                
+                // Add event listeners to delete buttons
+                document.querySelectorAll('.delete-button').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const userId = this.getAttribute('data-id');
+                        openDeleteModal(userId);
+                    });
+                });
+            }
+            
+            function addEventListeners() {
+                // Add User button
+                addUserBtn.addEventListener('click', openAddModal);
+                emptyStateAddBtn.addEventListener('click', openAddModal);
+                
+                // Close modal buttons
+                closeModal.addEventListener('click', closeUserModal);
+                cancelButton.addEventListener('click', closeUserModal);
+                
+                // Save user button
+                saveUserButton.addEventListener('click', saveUser);
+                
+                // Delete modal buttons
+                cancelDeleteButton.addEventListener('click', closeDeleteModal);
+                confirmDeleteButton.addEventListener('click', deleteUser);
+                
+                // Search functionality
+                searchUsers.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const filteredUsers = sampleUsers.filter(user => 
+                        user.firstName.toLowerCase().includes(searchTerm) || 
+                        user.lastName.toLowerCase().includes(searchTerm) || 
+                        user.username.toLowerCase().includes(searchTerm) ||
+                        user.userType.toLowerCase().includes(searchTerm)
+                    );
+                    displayUsers(filteredUsers);
+                });
+                
+                // Toggle status label
+                statusCheckbox.addEventListener('change', function() {
+                    statusLabel.textContent = this.checked ? 'Active' : 'Inactive';
+                    statusLabel.className = this.checked 
+                        ? 'text-sm text-green-600 font-medium' 
+                        : 'text-sm text-red-600 font-medium';
+                });
+                
+                // Change password checkbox
+                changePasswordCheckbox.addEventListener('change', function() {
+                    newPasswordContainer.classList.toggle('hidden', !this.checked);
+                    document.getElementById('newPassword').required = this.checked;
+                });
+            }
+            
+            function initializePasswordToggles() {
+                document.querySelectorAll('.toggle-password').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const input = this.parentElement.querySelector('input');
+                        const icon = this.querySelector('i');
+                        
+                        if (input.type === 'password') {
+                            input.type = 'text';
+                            icon.classList.remove('fa-eye');
+                            icon.classList.add('fa-eye-slash');
+                        } else {
+                            input.type = 'password';
+                            icon.classList.remove('fa-eye-slash');
+                            icon.classList.add('fa-eye');
+                        }
+                    });
+                });
+            }
+            
+            function initializeSidebar() {
+                // Keep the Management dropdown open and rotate the chevron
+                const managementDropdown = document.getElementById('dropdown-management');
+                const managementChevron = document.getElementById('management-chevron');
+                
+                if (managementDropdown) {
+                    managementDropdown.classList.remove('hidden');
+                    managementDropdown.style.maxHeight = managementDropdown.scrollHeight + 'px';
+                }
+                
+                if (managementChevron) {
+                    managementChevron.style.transform = 'rotate(180deg)';
+                }
+                
+                // Add event listeners for dropdown toggles
+                const dropdownButtons = document.querySelectorAll('[data-collapse-toggle]');
+                
+                dropdownButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const targetId = this.getAttribute('data-collapse-toggle');
+                        const targetElement = document.getElementById(targetId);
+                        const chevronIcon = document.getElementById(targetId.replace('dropdown-', '') + '-chevron');
+                        
+                        if (targetElement) {
+                            if (targetElement.classList.contains('hidden')) {
+                                // Show dropdown
+                                targetElement.classList.remove('hidden');
+                                targetElement.style.maxHeight = targetElement.scrollHeight + 'px';
+                                if (chevronIcon) {
+                                    chevronIcon.style.transform = 'rotate(180deg)';
+                                }
+                            } else {
+                                // Hide dropdown
+                                targetElement.style.maxHeight = '0px';
+                                if (chevronIcon) {
+                                    chevronIcon.style.transform = 'rotate(0deg)';
+                                }
+                                setTimeout(() => {
+                                    targetElement.classList.add('hidden');
+                                }, 300);
+                            }
+                        }
+                    });
+                });
+            }
+            
+            function openAddModal() {
+                // Reset form
+                userForm.reset();
+                
+                // Set modal title
+                modalTitle.textContent = 'Add New User';
+                
+                // Show password field, hide change password option
+                passwordContainer.classList.remove('hidden');
+                changePasswordContainer.classList.add('hidden');
+                newPasswordContainer.classList.add('hidden');
+                
+                // Reset user ID
+                currentUserId = null;
+                document.getElementById('userId').value = '';
+                
+                // Show status container
+                document.getElementById('statusContainer').classList.remove('hidden');
+                
+                // Show modal
+                userModal.classList.remove('hidden');
+                userModal.classList.add('active');
+            }
+            
+            function openEditModal(userId) {
+                // Set current user ID
+                currentUserId = userId;
+                document.getElementById('userId').value = userId;
+                
+                // Find user data
+                const user = sampleUsers.find(u => u.id.toString() === userId.toString());
+                
+                if (user) {
+                    // Set modal title
+                    modalTitle.textContent = 'Edit User';
+                    
+                    // Populate form fields
+                    document.getElementById('firstName').value = user.firstName;
+                    document.getElementById('lastName').value = user.lastName;
+                    document.getElementById('username').value = user.username;
+                    document.getElementById('userType').value = user.userType;
+                    document.getElementById('status').checked = user.isActive === 1;
+                    
+                    // Update status label
+                    statusLabel.textContent = user.isActive === 1 ? 'Active' : 'Inactive';
+                    statusLabel.className = user.isActive === 1
+                        ? 'text-sm text-green-600 font-medium'
+                        : 'text-sm text-red-600 font-medium';
+                    
+                    // Hide password field, show change password option
+                    passwordContainer.classList.add('hidden');
+                    changePasswordContainer.classList.remove('hidden');
+                    newPasswordContainer.classList.add('hidden');
+                    
+                    // Reset change password checkbox
+                    document.getElementById('changePassword').checked = false;
+                    document.getElementById('newPassword').required = false;
+                    
+                    // Show modal
+                    userModal.classList.remove('hidden');
+                    userModal.classList.add('active');
+                } else {
+                    showToast('User not found.', 'error');
+                }
+            }
+            
+            function closeUserModal() {
+                userModal.classList.remove('active');
+                setTimeout(() => {
+                    userModal.classList.add('hidden');
+                }, 200);
+            }
+            
+            function openDeleteModal(userId) {
+                // Set current user ID
+                currentUserId = userId;
+                
+                // Show delete modal
+                deleteModal.classList.remove('hidden');
+                deleteModal.classList.add('active');
+            }
+            
+            function closeDeleteModal() {
+                deleteModal.classList.remove('active');
+                setTimeout(() => {
+                    deleteModal.classList.add('hidden');
+                }, 200);
+            }
+            
+            function saveUser() {
+                // Form validation
+                if (!userForm.checkValidity()) {
+                    userForm.reportValidity();
+                    return;
+                }
+                
+                const formData = new FormData(userForm);
+                const userData = {};
+                
+                formData.forEach((value, key) => {
+                    userData[key] = value;
+                });
+                
+                // Convert active status to number
+                userData.IS_ACTIVE = userData.IS_ACTIVE ? 1 : 0;
+                
+                if (currentUserId) {
+                    // Editing existing user
+                    const userIndex = sampleUsers.findIndex(u => u.id.toString() === currentUserId.toString());
+                    
+                    if (userIndex !== -1) {
+                        const updatedUser = {
+                            ...sampleUsers[userIndex],
+                            firstName: userData.USER_FNAME,
+                            lastName: userData.USER_LNAME,
+                            username: userData.USERNAME,
+                            userType: userData.USER_TYPE,
+                            isActive: userData.IS_ACTIVE
+                        };
+                        
+                        // Check if password should be updated
+                        if (formData.get('changePassword') && userData.newPassword) {
+                            // In a real app, this would update the password
+                            console.log('Password updated to:', userData.newPassword);
+                        }
+                        
+                        // Update the sample users array
+                        sampleUsers[userIndex] = updatedUser;
+                        
+                        showToast('User updated successfully!');
+                    }
+                } else {
+                    // Adding new user
+                    const newUser = {
+                        id: sampleUsers.length + 1,
+                        firstName: userData.USER_FNAME,
+                        lastName: userData.USER_LNAME,
+                        username: userData.USERNAME,
+                        userType: userData.USER_TYPE,
+                        isActive: userData.IS_ACTIVE
+                    };
+                    
+                    // Add to sample users array
+                    sampleUsers.push(newUser);
+                    
+                    showToast('User added successfully!');
+                }
+                
+                // Close modal
+                closeUserModal();
+                
+                // Refresh the user table
+                displayUsers(sampleUsers);
+            }
+            
+            function deleteUser() {
+                if (currentUserId) {
+                    // Find user index
+                    const userIndex = sampleUsers.findIndex(u => u.id.toString() === currentUserId.toString());
+                    
+                    if (userIndex !== -1) {
+                        // Remove user from array
+                        sampleUsers.splice(userIndex, 1);
+                        
+                        // Close modal
+                        closeDeleteModal();
+                        
+                        // Refresh the user table
+                        displayUsers(sampleUsers);
+                        
+                        showToast('User deleted successfully!', 'warning');
+                    }
+                }
+            }
+            
+            function updateUserStatus(userId, isActive) {
+                // Find user
+                const userIndex = sampleUsers.findIndex(u => u.id.toString() === userId.toString());
+                
+                if (userIndex !== -1) {
+                    // Update status
+                    sampleUsers[userIndex].isActive = isActive ? 1 : 0;
+                    
+                    const status = isActive ? 'activated' : 'deactivated';
+                    showToast(`User ${status} successfully!`, isActive ? 'success' : 'warning');
+                }
+            }
+            
+            function showToast(message, type = 'success') {
+                // Set icon and color based on type
+                if (type === 'error') {
+                    toast.classList.remove('bg-green-600', 'bg-yellow-600');
+                    toast.classList.add('bg-red-600');
+                    toastIcon.classList.remove('fa-check-circle', 'fa-exclamation-circle');
+                    toastIcon.classList.add('fa-times-circle');
+                } else if (type === 'warning') {
+                    toast.classList.remove('bg-green-600', 'bg-red-600');
+                    toast.classList.add('bg-yellow-600');
+                    toastIcon.classList.remove('fa-check-circle', 'fa-times-circle');
+                    toastIcon.classList.add('fa-exclamation-circle');
+                } else {
+                    toast.classList.remove('bg-red-600', 'bg-yellow-600');
+                    toast.classList.add('bg-green-600');
+                    toastIcon.classList.remove('fa-times-circle', 'fa-exclamation-circle');
+                    toastIcon.classList.add('fa-check-circle');
+                }
+                
+                // Set message
+                toastMessage.textContent = message;
+                
+                // Clear any existing timeout
+                if (window.toastTimeout) {
+                    clearTimeout(window.toastTimeout);
+                }
+                
+                // Show toast
+                toast.classList.remove('translate-x-full', 'opacity-0');
+                
+                // Hide after 3 seconds
+                window.toastTimeout = setTimeout(() => {
+                    hideToast();
+                }, 3000);
+            }
+            
+            // Add function to hide toast
+            function hideToast() {
+                const toast = document.getElementById('toast');
+                toast.classList.add('translate-x-full', 'opacity-0');
+            }
+            
+            // Add click event to dismiss toast
+            document.getElementById('toast').addEventListener('click', hideToast);
+        });
+    </script>
+</body>
+</html>
