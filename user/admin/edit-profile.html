@@ -107,7 +107,7 @@
             <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
                 <div class="mb-6">
                     <h2 class="text-xl font-semibold text-primary-dark mb-1">Personal Information</h2>
-                    <p class="text-gray-500 text-sm">Update your personal information and account credentials</p>
+                    <p class="text-gray-500 text-sm">Update your personal information and account credentials.</p>
                 </div>
                 
                 <form id="profileForm" class="space-y-6">
@@ -155,13 +155,13 @@
                     
                     <!-- Password Section -->
                     <div>
-                        <h3 class="text-lg font-medium text-primary-dark mb-4">Change Password</h3>
+                        <h3 class="text-lg font-medium text-primary-dark mb-4">Change Password <span class="text-sm font-normal text-gray-500">(optional)</span></h3>
                         <div class="space-y-4">
                             <!-- Current Password -->
                             <div>
                                 <label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
                                 <div class="relative">
-                                    <input type="password" id="currentPassword" name="currentPassword" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" required>
+                                    <input type="password" id="currentPassword" name="currentPassword" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none">
                                     <button type="button" class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                                         <i class="fas fa-eye"></i>
                                     </button>
@@ -172,7 +172,7 @@
                             <div>
                                 <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
                                 <div class="relative">
-                                    <input type="password" id="newPassword" name="PASSWORD" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" minlength="8" maxlength="15" required>
+                                    <input type="password" id="newPassword" name="PASSWORD" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" minlength="8" maxlength="15">
                                     <button type="button" class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                                         <i class="fas fa-eye"></i>
                                     </button>
@@ -184,7 +184,7 @@
                             <div>
                                 <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
                                 <div class="relative">
-                                    <input type="password" id="confirmPassword" name="confirmPassword" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" required>
+                                    <input type="password" id="confirmPassword" name="confirmPassword" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none">
                                     <button type="button" class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                                         <i class="fas fa-eye"></i>
                                     </button>
@@ -195,7 +195,7 @@
                     
                     <!-- Form Actions -->
                     <div class="flex justify-end space-x-3 pt-6">
-                        <button type="button" onclick="window.history.back()" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 focus:outline-none">
+                        <button type="button" id="cancelButton" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 focus:outline-none">
                             Cancel
                         </button>
                         <button type="submit" class="px-6 py-2 bg-primary-dark text-white rounded-md hover:bg-opacity-90 focus:outline-none">
@@ -229,19 +229,37 @@
                 });
             });
             
+            // Handle cancel button with confirmation
+            const cancelButton = document.getElementById('cancelButton');
+            cancelButton.addEventListener('click', function() {
+                if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+                    window.history.back();
+                }
+            });
+            
             // Form submission handling
             const profileForm = document.getElementById('profileForm');
             
             profileForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
-                // Validate passwords match
+                const currentPassword = document.getElementById('currentPassword').value;
                 const newPassword = document.getElementById('newPassword').value;
                 const confirmPassword = document.getElementById('confirmPassword').value;
                 
-                if (newPassword !== confirmPassword) {
-                    alert('New passwords do not match!');
-                    return;
+                // Only validate passwords if user is trying to change password
+                if (currentPassword || newPassword || confirmPassword) {
+                    // Check if all password fields are filled
+                    if (!currentPassword || !newPassword || !confirmPassword) {
+                        alert('Please fill all password fields to change your password.');
+                        return;
+                    }
+                    
+                    // Check if new passwords match
+                    if (newPassword !== confirmPassword) {
+                        alert('New passwords do not match!');
+                        return;
+                    }
                 }
                 
                 // In a real application, you would send this to the server

@@ -10,252 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../../styles.css">
-    <script>
-        // JavaScript code for user management functionality
-    </script>
-    <style>
-        /* Modern, professional sidebar styling */
-        .sidebar-background {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, #5C6C90 0%, #081738 100%);
-            z-index: -1;
-            overflow: hidden;
-        }
-        
-        /* Refined, subtle animation pattern */
-        .sidebar-background::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(ellipse at top right, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
-            opacity: 0.6;
-            animation: gentle-fade 12s infinite alternate ease-in-out;
-        }
-        
-        .sidebar-background::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(0deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 20px 20px;
-            opacity: 0.2;
-        }
-        
-        @keyframes gentle-fade {
-            0% { opacity: 0.2; }
-            100% { opacity: 0.6; }
-        }
-        
-        /* Consistent sidebar menu styling */
-        .sidebar-menu-item {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            transition: all 0.2s ease-in-out;
-            margin-bottom: 0.25rem;
-        }
-        
-        .sidebar-menu-item:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            transform: translateX(4px);
-        }
-        
-        .sidebar-menu-item.active {
-            background-color: rgba(8, 23, 56, 0.7);
-        }
-        
-        .sidebar-menu-item i, 
-        .sidebar-menu-item svg {
-            width: 1.25rem;
-            height: 1.25rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 0.75rem;
-            transition: all 0.2s ease;
-        }
-        
-        .sidebar-menu-item:hover i,
-        .sidebar-menu-item:hover svg {
-            transform: scale(1.15);
-        }
-        
-        /* Dropdown styling */
-        .sidebar-dropdown-item {
-            display: flex;
-            align-items: center;
-            padding: 0.6rem 0.75rem 0.6rem 3rem;
-            border-radius: 0.5rem;
-            transition: all 0.15s ease-in-out;
-            position: relative;
-            margin-bottom: 0.125rem;
-            color: rgba(255, 255, 255, 0.8);
-        }
-        
-        .sidebar-dropdown-item:before {
-            content: "";
-            position: absolute;
-            left: 1.75rem;
-            top: 50%;
-            width: 0.25rem;
-            height: 0.25rem;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.5);
-            transform: translateY(-50%);
-        }
-        
-        .sidebar-dropdown-item:hover {
-            background-color: rgba(255, 255, 255, 0.08);
-            color: white;
-        }
-        
-        /* Fixed height sidebar content */
-        .sidebar-content {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-        
-        /* Prevent dropdown from causing scrollbars */
-        .sidebar-content::-webkit-scrollbar {
-            width: 4px;
-        }
-        
-        .sidebar-content::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        
-        .sidebar-content::-webkit-scrollbar-thumb {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-        }
-        
-        /* Main content styling */
-        .main-content {
-            background-color: #f0f4f8;
-            background-image: 
-                linear-gradient(rgba(165, 179, 201, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(165, 179, 201, 0.05) 1px, transparent 1px);
-            background-size: 30px 30px;
-            min-height: 100vh;
-            position: relative;
-        }
-        
-        .main-content::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 200px;
-            background: linear-gradient(180deg, rgba(8, 23, 56, 0.03) 0%, rgba(8, 23, 56, 0) 100%);
-            pointer-events: none;
-        }
-        
-        /* Header styling */
-        .admin-header {
-            backdrop-filter: blur(10px);
-            background-color: rgba(255, 255, 255, 0.95);
-            border: none;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-            border-radius: 0;
-            margin-bottom: 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            width: 100%;
-        }
-        
-        /* Form input styling */
-        .form-input:focus {
-            border-color: #5C6C90;
-            box-shadow: 0 0 0 3px rgba(92, 108, 144, 0.2);
-        }
-        
-        /* Modal animations */
-        .modal {
-            transition: opacity 0.25s ease;
-        }
-        
-        .modal-content {
-            transition: transform 0.25s ease;
-        }
-        
-        .modal.active .modal-content {
-            transform: scale(1);
-        }
-        
-        /* User status toggle styling */
-        .toggle-checkbox:checked {
-            right: 0;
-            border-color: #5C6C90;
-        }
-        
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #5C6C90;
-        }
-        
-        /* Header and profile styling */
-        .profile-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            width: 220px;
-            margin-top: 0.5rem;
-            z-index: 50;
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(229, 231, 235, 0.8);
-            background-color: white;
-        }
-        
-        .notification-badge {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background-color: #EF4444;
-            color: white;
-            font-size: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            border: 2px solid white;
-        }
-        
-        .header-icon-button {
-            position: relative;
-            padding: 0.5rem;
-            border-radius: 0.375rem;
-            transition: all 0.15s ease;
-            color: #6B7280;
-            cursor: pointer;
-        }
-        
-        .header-icon-button:hover {
-            background-color: #F3F4F6;
-            color: #374151;
-        }
-    </style>
+    <link rel="stylesheet" href="../../styles/admin-styles.css">
 </head>
 <body class="font-poppins bg-gray-50">
     <!-- Mobile menu button -->
@@ -302,19 +57,19 @@
                                     <a href="manage-users.html" class="sidebar-dropdown-item bg-white/10">User</a>
                                 </li>
                                 <li>
-                                    <a href="#" class="sidebar-dropdown-item">Member</a>
+                                    <a href="manage-members.html" class="sidebar-dropdown-item">Member</a>
                                 </li>
                                 <li>
-                                    <a href="#" class="sidebar-dropdown-item">Program & Coach</a>
+                                    <a href="manage-programs-coaches.html" class="sidebar-dropdown-item">Program & Coach</a>
                                 </li>
                                 <li>
-                                    <a href="#" class="sidebar-dropdown-item">Comorbidities</a>
+                                    <a href="manage-comorbidities.html" class="sidebar-dropdown-item">Comorbidities</a>
                                 </li>
                                 <li>
-                                    <a href="#" class="sidebar-dropdown-item">Subscription</a>
+                                    <a href="manage-subscription.html" class="sidebar-dropdown-item">Subscription</a>
                                 </li>
                                 <li>
-                                    <a href="#" class="sidebar-dropdown-item">Payment</a>
+                                    <a href="manage-payment.html" class="sidebar-dropdown-item">Payment</a>
                                 </li>
                             </ul>
                         </div>
@@ -395,6 +150,18 @@
                             </div>
                         </div>
                         
+                        <!-- User Type Filter Dropdown -->
+                        <div class="relative">
+                            <select id="userTypeFilter" class="pl-4 pr-8 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-primary-light appearance-none">
+                                <option value="">All User Types</option>
+                                <option value="admin">Administrator</option>
+                                <option value="staff">Staff</option>
+                            </select>
+                            <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        
                         <button id="addUserBtn" class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors flex items-center">
                             <i class="fas fa-plus mr-2"></i> Add User
                         </button>
@@ -412,7 +179,7 @@
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Type</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200" id="userTableBody">
@@ -425,7 +192,7 @@
                 <div id="emptyState" class="py-8 text-center hidden">
                     <i class="fas fa-users text-gray-300 text-5xl mb-3"></i>
                     <h3 class="text-lg font-medium text-gray-600">No users found</h3>
-                    <p class="text-gray-500 mb-4">Add users to get started or try a different search term.</p>
+                    <p class="text-gray-500 mb-4" id="emptyStateMessage">Add users to get started or try a different search term.</p>
                     <button id="emptyStateAddBtn" class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors">
                         <i class="fas fa-plus mr-2"></i> Add New User
                     </button>
@@ -440,136 +207,242 @@
         </div>
         
         <!-- Add/Edit User Modal -->
-        <div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden modal">
-            <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 modal-content transform scale-95">
-                <!-- Modal Header -->
-                <div class="border-b px-6 py-4">
-                    <div class="flex items-center justify-between">
-                        <h3 id="modalTitle" class="text-lg font-semibold text-primary-dark">Add New User</h3>
-                        <button id="closeModal" class="text-gray-400 hover:text-gray-600 focus:outline-none">
-                            <i class="fas fa-times"></i>
-                        </button>
+        <div id="userModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center hidden modal backdrop-blur-sm">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 modal-content transform scale-95 overflow-hidden">
+                <!-- Modal Title Banner (now serves as main header) -->
+                <div id="modalBanner" class="px-6 py-4 flex items-center justify-between bg-gradient-to-r from-blue-900 to-blue-800 relative overflow-hidden">
+                    <div class="flex items-center z-10">
+                        <div class="mr-4 h-10 w-10 rounded-full bg-white/25 flex items-center justify-center text-white shadow-sm">
+                            <i id="modalIcon" class="fas fa-user-plus text-xl"></i>
+                        </div>
+                        <div>
+                            <h2 id="modalTitle" class="text-lg font-medium text-white leading-tight">Add New User</h2>
+                            <p class="text-xs text-white/90">Enter the required information below</p>
+                        </div>
                     </div>
+                    <button type="button" id="closeModal" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 focus:outline-none transition-all duration-300 hover:rotate-90 z-20 cursor-pointer">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    
+                    <!-- Decorative background elements -->
+                    <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-white/10 rounded-full"></div>
+                    <div class="absolute -top-6 -left-6 w-24 h-24 bg-white/5 rounded-full"></div>
                 </div>
                 
                 <!-- Modal Body -->
-                <div class="p-6">
-                    <form id="userForm" class="space-y-4">
+                <div class="p-6 pt-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                    <form id="userForm" class="space-y-3">
                         <input type="hidden" id="userId" name="userId" value="">
                         
-                        <!-- First Name -->
-                        <div>
-                            <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                            <input type="text" id="firstName" name="USER_FNAME" 
-                                class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" required>
+                        <!-- Personal Information Section - Adjusted to be more compact -->
+                        <div class="mb-1">
+                            <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                                <i class="fas fa-id-card text-primary-light mr-2"></i>
+                                <span>Personal Information</span>
+                            </h4>
+                            <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
                         </div>
                         
-                        <!-- Last Name -->
-                        <div>
-                            <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                            <input type="text" id="lastName" name="USER_LNAME" 
-                                class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" required>
+                        <!-- First Name and Last Name in a flex container -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- First Name -->
+                            <div>
+                                <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                                <div class="relative rounded-md shadow-sm">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <input type="text" id="firstName" name="USER_FNAME" 
+                                        class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" required>
+                                </div>
+                            </div>
+                            <!-- Last Name -->
+                            <div>
+                                <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                <div class="relative rounded-md shadow-sm">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <input type="text" id="lastName" name="USER_LNAME" 
+                                        class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Account Information Section -->
+                        <div class="mt-8 mb-3">
+                            <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                                <i class="fas fa-user-shield text-primary-light mr-2"></i>
+                                <span>Account Information</span>
+                            </h4>
+                            <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mt-1"></div>
                         </div>
                         
                         <!-- Username -->
                         <div>
                             <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                            <input type="text" id="username" name="USERNAME" 
-                                class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" required>
-                            <p class="text-xs text-gray-500 mt-1">Username must be unique and between 5-20 characters.</p>
+                            <div class="relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                    <i class="fas fa-at"></i>
+                                </div>
+                                <input type="text" id="username" name="USERNAME" 
+                                    class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" required>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1.5 ml-1">Username must be unique and between 5-20 characters.</p>
                         </div>
                         
                         <!-- Password (shown only for new users) -->
-                        <div id="passwordContainer">
+                        <div id="passwordContainer" class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
                             <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                            <div class="relative">
+                            <div class="relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                    <i class="fas fa-lock"></i>
+                                </div>
                                 <input type="password" id="password" name="PASSWORD" 
-                                    class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" required
+                                    class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" required
                                     minlength="8" maxlength="15">
-                                <button type="button" class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                                    <i class="fas fa-eye"></i>
-                                </button>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                                    <button type="button" class="toggle-password text-gray-400 hover:text-gray-600 focus:outline-none transition-colors w-5">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <p class="text-xs text-gray-500 mt-1">Password must be 8-15 characters long.</p>
+                            <p class="text-xs text-gray-500 mt-1.5 ml-1 flex items-center">
+                                <i class="fas fa-info-circle mr-1"></i> Password must be 8-15 characters long.
+                            </p>
                         </div>
                         
                         <!-- Change Password Checkbox (shown only for editing) -->
                         <div id="changePasswordContainer" class="hidden">
-                            <div class="flex items-center">
-                                <input type="checkbox" id="changePassword" class="rounded text-primary-dark focus:ring-primary-light mr-2">
+                            <div class="flex items-center bg-gray-50 p-4 rounded-lg border border-gray-200 gap-2 shadow-sm">
+                                <input type="checkbox" id="changePassword" class="h-4 w-4 rounded text-primary-dark focus:ring-primary-light">
                                 <label for="changePassword" class="text-sm font-medium text-gray-700">Change Password</label>
                             </div>
                         </div>
                         
                         <!-- New Password (shown when checkbox is checked) -->
-                        <div id="newPasswordContainer" class="hidden">
+                        <div id="newPasswordContainer" class="hidden bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
                             <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                            <div class="relative">
+                            <div class="relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                    <i class="fas fa-lock"></i>
+                                </div>
                                 <input type="password" id="newPassword" name="newPassword" 
-                                    class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none"
+                                    class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200"
                                     minlength="8" maxlength="15">
-                                <button type="button" class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                                    <i class="fas fa-eye"></i>
-                                </button>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                                    <button type="button" class="toggle-password text-gray-400 hover:text-gray-600 focus:outline-none transition-colors w-5">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <p class="text-xs text-gray-500 mt-1">Password must be 8-15 characters long.</p>
+                            <p class="text-xs text-gray-500 mt-1.5 ml-1 flex items-center">
+                                <i class="fas fa-info-circle mr-1"></i> Password must be 8-15 characters long.
+                            </p>
+                        </div>
+                        
+                        <!-- Role Information Section -->
+                        <div class="mt-8 mb-3">
+                            <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                                <i class="fas fa-user-cog text-primary-light mr-2"></i>
+                                <span>Role & Status</span>
+                            </h4>
+                            <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mt-1"></div>
                         </div>
                         
                         <!-- User Type -->
                         <div>
                             <label for="userType" class="block text-sm font-medium text-gray-700 mb-1">User Type</label>
-                            <select id="userType" name="USER_TYPE" 
-                                class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" required>
-                                <option value="">Select User Type</option>
-                                <option value="admin">Administrator</option>
-                                <option value="staff">Staff</option>
-                            </select>
+                            <div class="relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                    <i class="fas fa-user-shield"></i>
+                                </div>
+                                <select id="userType" name="USER_TYPE" 
+                                    class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white" required>
+                                    <option value="">Select User Type</option>
+                                    <option value="admin">Administrator</option>
+                                    <option value="staff">Staff</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                    <i class="fas fa-chevron-down text-xs"></i>
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Active Status -->
-                        <div id="statusContainer">
+                        <div id="statusContainer" class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
                             <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
                             <div class="flex items-center">
-                                <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                <div class="relative inline-block w-12 mr-3 align-middle select-none transition duration-200 ease-in">
                                     <input type="checkbox" name="IS_ACTIVE" id="status" checked
-                                        class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer">
+                                        class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-2 border-gray-300 appearance-none cursor-pointer transition-transform duration-300 ease-in-out">
                                     <label for="status" 
-                                        class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                                        class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-colors duration-300 ease-in-out"></label>
                                 </div>
-                                <span id="statusLabel" class="text-sm text-green-600 font-medium">Active</span>
+                                <span id="statusLabel" class="text-sm text-green-600 font-medium flex items-center">
+                                    <i class="fas fa-check-circle mr-1.5"></i> Active
+                                </span>
                             </div>
                         </div>
                     </form>
                 </div>
                 
                 <!-- Modal Footer -->
-                <div class="border-t px-6 py-4 flex justify-end gap-2">
-                    <button id="cancelButton" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none">
+                <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
+                    <button type="button" id="cancelButton" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none transition-colors duration-300 shadow-sm font-medium cursor-pointer relative z-10">
                         Cancel
                     </button>
-                    <button id="saveUserButton" class="px-4 py-2 bg-primary-dark text-white rounded-md hover:bg-opacity-90 focus:outline-none">
-                        Save User
+                    <button type="button" id="saveUserButton" class="px-5 py-2.5 bg-primary-dark text-white rounded-lg hover:bg-opacity-90 focus:outline-none transition-all duration-300 shadow-md font-medium flex items-center justify-center cursor-pointer relative z-10">
+                        <i class="fas fa-save mr-2"></i> Save User
                     </button>
                 </div>
             </div>
         </div>
         
-        <!-- Delete Confirmation Modal -->
-        <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden modal">
-            <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 modal-content transform scale-95">
-                <div class="p-6">
-                    <div class="flex items-center justify-center mb-4 text-red-600">
-                        <i class="fas fa-exclamation-triangle text-4xl"></i>
+        <!-- Confirmation Dialog -->
+        <div id="confirmDialog" class="fixed inset-0 bg-black bg-opacity-30 z-[60] flex items-center justify-center hidden backdrop-blur-sm">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 transform scale-95 overflow-hidden transition-all duration-200">
+                <div class="p-5">
+                    <div class="flex items-center mb-4">
+                        <div class="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 mr-4">
+                            <i class="fas fa-exclamation-triangle text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Discard Changes</h3>
+                            <p class="text-sm text-gray-600">Are you sure you want to cancel? Any unsaved changes will be lost.</p>
+                        </div>
                     </div>
-                    <h3 class="text-lg font-bold text-center mb-2">Confirm Delete</h3>
-                    <p class="text-gray-600 text-center mb-6">Are you sure you want to delete this user? This action cannot be undone.</p>
-                    
-                    <div class="flex justify-center gap-3">
-                        <button id="cancelDeleteButton" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none">
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button id="cancelDiscard" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">
+                            Continue Editing
+                        </button>
+                        <button id="confirmDiscard" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                            Discard Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Logout Confirmation Dialog -->
+        <div id="logoutConfirmDialog" class="fixed inset-0 bg-black bg-opacity-30 z-[60] flex items-center justify-center hidden backdrop-blur-sm">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 transform scale-95 overflow-hidden transition-all duration-200">
+                <div class="p-5">
+                    <div class="flex items-center mb-4">
+                        <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
+                            <i class="fas fa-sign-out-alt text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Logout Confirmation</h3>
+                            <p class="text-sm text-gray-600">Are you sure you want to log out of your account?</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button id="cancelLogout" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">
                             Cancel
                         </button>
-                        <button id="confirmDeleteButton" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none">
-                            Delete User
+                        <button id="confirmLogout" class="px-4 py-2 bg-primary-dark text-white rounded-md hover:bg-opacity-90 transition-colors">
+                            Logout
                         </button>
                     </div>
                 </div>
@@ -577,14 +450,32 @@
         </div>
         
         <!-- Notification Toast -->
-        <div id="toast" class="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg z-50 transform translate-x-full opacity-0 transition-all duration-300 flex items-center">
+        <div id="toast" class="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg z-50 transform translate-x-full opacity-0 transition-all duration-300 flex items-center" style="display: none;">
             <i id="toastIcon" class="fas fa-check-circle mr-2"></i>
             <span id="toastMessage">Operation successful!</span>
+            <button class="ml-3 text-white focus:outline-none" onclick="hideToast()">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
     </div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
     <script>
+        // Define hideToast as a global function first
+        function hideToast() {
+            const toast = document.getElementById('toast');
+            // Add the transition classes
+            toast.classList.add('translate-x-full', 'opacity-0');
+            // Force immediate hiding after a short delay
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 300);
+            // Clear any existing timeout
+            if (window.toastTimeout) {
+                clearTimeout(window.toastTimeout);
+                window.toastTimeout = null;
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             // Sample data for demonstration
             const sampleUsers = [
@@ -592,7 +483,7 @@
                 { id: 2, firstName: 'Jane', lastName: 'Smith', username: 'jsmith', userType: 'staff', isActive: 1 },
                 { id: 3, firstName: 'Robert', lastName: 'Johnson', username: 'rjohnson', userType: 'staff', isActive: 0 },
                 { id: 4, firstName: 'Emily', lastName: 'Wilson', username: 'ewilson', userType: 'admin', isActive: 1 },
-                { id: 5, firstName: 'Michael', lastName: 'Brown', username: 'mbrown', userType: 'staff', isActive: 1 }
+                { id: 5, firstName: 'Michael', lastName: 'Brown', username: 'mbrown', userType: 'staff', isActive: 1 },
             ];
             
             // DOM elements
@@ -601,15 +492,13 @@
             const emptyState = document.getElementById('emptyState');
             const userModal = document.getElementById('userModal');
             const modalTitle = document.getElementById('modalTitle');
+            const modalIcon = document.getElementById('modalIcon');
             const userForm = document.getElementById('userForm');
             const addUserBtn = document.getElementById('addUserBtn');
             const emptyStateAddBtn = document.getElementById('emptyStateAddBtn');
             const closeModal = document.getElementById('closeModal');
             const cancelButton = document.getElementById('cancelButton');
             const saveUserButton = document.getElementById('saveUserButton');
-            const deleteModal = document.getElementById('deleteModal');
-            const cancelDeleteButton = document.getElementById('cancelDeleteButton');
-            const confirmDeleteButton = document.getElementById('confirmDeleteButton');
             const searchUsers = document.getElementById('searchUsers');
             const toast = document.getElementById('toast');
             const toastMessage = document.getElementById('toastMessage');
@@ -620,6 +509,13 @@
             const passwordContainer = document.getElementById('passwordContainer');
             const changePasswordContainer = document.getElementById('changePasswordContainer');
             const newPasswordContainer = document.getElementById('newPasswordContainer');
+            const confirmDialog = document.getElementById('confirmDialog');
+            const cancelDiscard = document.getElementById('cancelDiscard');
+            const confirmDiscard = document.getElementById('confirmDiscard');
+            const logoutConfirmDialog = document.getElementById('logoutConfirmDialog');
+            const cancelLogout = document.getElementById('cancelLogout');
+            const confirmLogout = document.getElementById('confirmLogout');
+            const logoutButton = document.querySelector('a[href="../../login.html"]');
             
             // Current selected user ID for editing/deleting
             let currentUserId = null;
@@ -636,6 +532,9 @@
             // Initialize password visibility toggles
             initializePasswordToggles();
             
+            // Make the hideToast function globally available
+            window.hideToast = hideToast;
+            
             function initializePage() {
                 // Simulate loading
                 setTimeout(() => {
@@ -651,6 +550,21 @@
                 if (users.length === 0) {
                     // Show empty state
                     emptyState.classList.remove('hidden');
+                    
+                    // Check if this is from a search or initial empty state
+                    const searchTerm = document.getElementById('searchUsers').value;
+                    const filterType = document.getElementById('userTypeFilter').value;
+                    
+                    if (searchTerm || filterType) {
+                        // Hide add button if it's a search with no results
+                        document.getElementById('emptyStateAddBtn').classList.add('hidden');
+                        document.getElementById('emptyStateMessage').textContent = 'No users match your search criteria. Please try a different search.';
+                    } else {
+                        // Show add button if it's just an empty list
+                        document.getElementById('emptyStateAddBtn').classList.remove('hidden');
+                        document.getElementById('emptyStateMessage').textContent = 'Add users to get started or try a different search term.';
+                    }
+                    
                     return;
                 }
                 
@@ -683,19 +597,15 @@
                                 <input type="checkbox" class="sr-only peer status-toggle" data-id="${user.id}" 
                                     ${user.isActive ? 'checked' : ''}>
                                 <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 
-                                    peer-focus:ring-primary-light rounded-full peer 
-                                    peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
+                                    peer-focus:ring-primary-light rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
                                     peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
                                     after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
                                     after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-light"></div>
                             </label>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button class="text-primary-dark hover:text-primary-light mr-3 edit-button" data-id="${user.id}">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="text-red-600 hover:text-red-800 delete-button" data-id="${user.id}">
-                                <i class="fas fa-trash-alt"></i>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <button class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${user.id}">
+                                <i class="fas fa-edit text-lg"></i>
                             </button>
                         </td>
                     `;
@@ -718,14 +628,6 @@
                         openEditModal(userId);
                     });
                 });
-                
-                // Add event listeners to delete buttons
-                document.querySelectorAll('.delete-button').forEach(button => {
-                    button.addEventListener('click', function() {
-                        const userId = this.getAttribute('data-id');
-                        openDeleteModal(userId);
-                    });
-                });
             }
             
             function addEventListeners() {
@@ -733,48 +635,189 @@
                 addUserBtn.addEventListener('click', openAddModal);
                 emptyStateAddBtn.addEventListener('click', openAddModal);
                 
-                // Close modal buttons
-                closeModal.addEventListener('click', closeUserModal);
-                cancelButton.addEventListener('click', closeUserModal);
+                // Close modal buttons with improved behavior
+                closeModal.addEventListener('click', function() {
+                    console.log("Close button clicked"); // Debug log
+                    
+                    // Check if there are any actual modifications to the form
+                    const hasChanges = checkForActualChanges();
+                    
+                    if (hasChanges) {
+                        // Show confirmation dialog if there are changes
+                        showConfirmDialog(); 
+                    } else {
+                        // Close directly if there are no changes
+                        userModal.style.display = 'none';
+                        userModal.classList.add('hidden');
+                        userModal.classList.remove('active');
+                    }
+                });
+                
+                // Cancel button behavior
+                cancelButton.addEventListener('click', function() {
+                    console.log("Cancel button clicked"); // Debug log
+                    
+                    // Check if there are any actual modifications to the form
+                    const hasChanges = checkForActualChanges();
+                    
+                    if (hasChanges) {
+                        // Show confirmation dialog if there are changes
+                        showConfirmDialog();
+                    } else {
+                        // Close directly if there are no changes
+                        userModal.style.display = 'none';
+                        userModal.classList.add('hidden');
+                        userModal.classList.remove('active');
+                    }
+                });
+                
+                // Confirmation dialog buttons
+                cancelDiscard.addEventListener('click', hideConfirmDialog);
+                confirmDiscard.addEventListener('click', function() {
+                    hideConfirmDialog();
+                    userModal.style.display = 'none';
+                    userModal.classList.add('hidden');
+                    userModal.classList.remove('active');
+                });
                 
                 // Save user button
                 saveUserButton.addEventListener('click', saveUser);
                 
-                // Delete modal buttons
-                cancelDeleteButton.addEventListener('click', closeDeleteModal);
-                confirmDeleteButton.addEventListener('click', deleteUser);
+                // Add escape key event listener to close modal
+                document.addEventListener('keydown', function(event) {
+                    if (event.key === 'Escape' && userModal.style.display === 'flex') {
+                        // Show confirmation if needed
+                        if (hasFormBeenModified()) {
+                            showConfirmDialog();
+                        } else {
+                            userModal.style.display = 'none';
+                        }
+                    }
+                });
                 
                 // Search functionality
-                searchUsers.addEventListener('input', function() {
-                    const searchTerm = this.value.toLowerCase();
-                    const filteredUsers = sampleUsers.filter(user => 
-                        user.firstName.toLowerCase().includes(searchTerm) || 
-                        user.lastName.toLowerCase().includes(searchTerm) || 
-                        user.username.toLowerCase().includes(searchTerm) ||
-                        user.userType.toLowerCase().includes(searchTerm)
-                    );
+                const userTypeFilter = document.getElementById('userTypeFilter');
+                
+                // Function to filter users based on search and user type
+                function filterUsers() {
+                    const searchTerm = searchUsers.value.toLowerCase();
+                    const selectedUserType = userTypeFilter.value;
+                    
+                    const filteredUsers = sampleUsers.filter(user => {
+                        // Check if user matches search term
+                        const matchesSearch = 
+                            user.firstName.toLowerCase().includes(searchTerm) || 
+                            user.lastName.toLowerCase().includes(searchTerm) || 
+                            user.username.toLowerCase().includes(searchTerm) ||
+                            user.userType.toLowerCase().includes(searchTerm);
+                        
+                        // Check if user matches selected user type
+                        const matchesUserType = selectedUserType === '' || user.userType === selectedUserType;
+                            
+                        // User must match both conditions
+                        return matchesSearch && matchesUserType;
+                    });
+                    
                     displayUsers(filteredUsers);
-                });
+                }
+                
+                // Add event listeners for filtering
+                searchUsers.addEventListener('input', filterUsers);
+                userTypeFilter.addEventListener('change', filterUsers);
                 
                 // Toggle status label
                 statusCheckbox.addEventListener('change', function() {
                     statusLabel.textContent = this.checked ? 'Active' : 'Inactive';
                     statusLabel.className = this.checked 
-                        ? 'text-sm text-green-600 font-medium' 
-                        : 'text-sm text-red-600 font-medium';
+                        ? 'text-sm text-green-600 font-medium flex items-center' 
+                        : 'text-sm text-red-600 font-medium flex items-center';
+                    
+                    // Update icon based on status
+                    const icon = statusLabel.querySelector('i') || document.createElement('i');
+                    icon.className = this.checked ? 'fas fa-check-circle mr-1.5' : 'fas fa-times-circle mr-1.5';
+                    if (!statusLabel.querySelector('i')) {
+                        statusLabel.prepend(icon);
+                    }
                 });
                 
                 // Change password checkbox
                 changePasswordCheckbox.addEventListener('change', function() {
                     newPasswordContainer.classList.toggle('hidden', !this.checked);
                     document.getElementById('newPassword').required = this.checked;
+                    
+                    // Focus on password field when checkbox is checked
+                    if (this.checked) {
+                        setTimeout(() => {
+                            document.getElementById('newPassword').focus();
+                        }, 100);
+                    }
                 });
+                
+                // Add logout confirmation functionality
+                if (logoutButton) {
+                    logoutButton.addEventListener('click', function(e) {
+                        e.preventDefault(); // Prevent immediate navigation
+                        showLogoutConfirmDialog();
+                    });
+                }
+                
+                // Cancel logout button
+                if (cancelLogout) {
+                    cancelLogout.addEventListener('click', hideLogoutConfirmDialog);
+                }
+                
+                // Confirm logout button
+                if (confirmLogout) {
+                    confirmLogout.addEventListener('click', function() {
+                        // Navigate to login page
+                        window.location.href = "../../login.html";
+                    });
+                }
+            }
+            
+            // New function to check for actual changes rather than always returning true
+            function checkForActualChanges() {
+                // If we're adding a new user, check if any required field has content
+                if (!currentUserId) {
+                    const firstName = document.getElementById('firstName').value.trim();
+                    const lastName = document.getElementById('lastName').value.trim();
+                    const username = document.getElementById('username').value.trim();
+                    
+                    // If any of the main fields have content, consider it modified
+                    return firstName !== '' || lastName !== '' || username !== '';
+                } else {
+                    // If editing, find the original user
+                    const user = sampleUsers.find(u => u.id.toString() === currentUserId.toString());
+                    if (user) {
+                        // Check if any fields differ from original values
+                        const firstNameChanged = document.getElementById('firstName').value !== user.firstName;
+                        const lastNameChanged = document.getElementById('lastName').value !== user.lastName;
+                        const usernameChanged = document.getElementById('username').value !== user.username;
+                        const userTypeChanged = document.getElementById('userType').value !== user.userType;
+                        const statusChanged = document.getElementById('status').checked !== (user.isActive === 1);
+                        
+                        // Check if password change was requested
+                        const passwordChangeRequested = document.getElementById('changePassword') && 
+                                                      document.getElementById('changePassword').checked;
+                        
+                        return firstNameChanged || lastNameChanged || usernameChanged || 
+                               userTypeChanged || statusChanged || passwordChangeRequested;
+                    }
+                }
+                
+                // Default fallback
+                return false;
+            }
+            
+            // Replace the hasFormBeenModified function with our more detailed function
+            function hasFormBeenModified() {
+                return checkForActualChanges();
             }
             
             function initializePasswordToggles() {
                 document.querySelectorAll('.toggle-password').forEach(button => {
                     button.addEventListener('click', function() {
-                        const input = this.parentElement.querySelector('input');
+                        const input = this.closest('.relative').querySelector('input');
                         const icon = this.querySelector('i');
                         
                         if (input.type === 'password') {
@@ -830,7 +873,7 @@
                                 setTimeout(() => {
                                     targetElement.classList.add('hidden');
                                 }, 300);
-                            }
+                            }   
                         }
                     });
                 });
@@ -839,12 +882,14 @@
             function openAddModal() {
                 // Reset form
                 userForm.reset();
-                
+                document.getElementById('userId').value = '';
                 // Set modal title
                 modalTitle.textContent = 'Add New User';
+                modalIcon.className = 'fas fa-user-plus text-xl';
                 
                 // Show password field, hide change password option
                 passwordContainer.classList.remove('hidden');
+                document.getElementById('password').required = true;
                 changePasswordContainer.classList.add('hidden');
                 newPasswordContainer.classList.add('hidden');
                 
@@ -855,7 +900,8 @@
                 // Show status container
                 document.getElementById('statusContainer').classList.remove('hidden');
                 
-                // Show modal
+                // Show modal - ensure it's visible
+                userModal.style.display = 'flex';
                 userModal.classList.remove('hidden');
                 userModal.classList.add('active');
             }
@@ -871,6 +917,7 @@
                 if (user) {
                     // Set modal title
                     modalTitle.textContent = 'Edit User';
+                    modalIcon.className = 'fas fa-user-edit text-xl';
                     
                     // Populate form fields
                     document.getElementById('firstName').value = user.firstName;
@@ -882,11 +929,19 @@
                     // Update status label
                     statusLabel.textContent = user.isActive === 1 ? 'Active' : 'Inactive';
                     statusLabel.className = user.isActive === 1
-                        ? 'text-sm text-green-600 font-medium'
-                        : 'text-sm text-red-600 font-medium';
+                        ? 'text-sm text-green-600 font-medium flex items-center'
+                        : 'text-sm text-red-600 font-medium flex items-center';
                     
-                    // Hide password field, show change password option
+                    // Update the status icon
+                    const icon = statusLabel.querySelector('i') || document.createElement('i');
+                    icon.className = user.isActive === 1 ? 'fas fa-check-circle mr-1.5' : 'fas fa-times-circle mr-1.5';
+                    if (!statusLabel.querySelector('i')) {
+                        statusLabel.prepend(icon);
+                    }
+                    
+                    // Hide regular password field, show change password option
                     passwordContainer.classList.add('hidden');
+                    document.getElementById('password').required = false;
                     changePasswordContainer.classList.remove('hidden');
                     newPasswordContainer.classList.add('hidden');
                     
@@ -894,7 +949,8 @@
                     document.getElementById('changePassword').checked = false;
                     document.getElementById('newPassword').required = false;
                     
-                    // Show modal
+                    // Show modal - ensure it's visible and properly styled
+                    userModal.style.display = 'flex';
                     userModal.classList.remove('hidden');
                     userModal.classList.add('active');
                 } else {
@@ -903,25 +959,27 @@
             }
             
             function closeUserModal() {
+                // Ensure the modal is properly hidden using both CSS classes and style
                 userModal.classList.remove('active');
                 setTimeout(() => {
                     userModal.classList.add('hidden');
+                    userModal.style.display = 'none';
                 }, 200);
             }
             
-            function openDeleteModal(userId) {
-                // Set current user ID
-                currentUserId = userId;
-                
-                // Show delete modal
-                deleteModal.classList.remove('hidden');
-                deleteModal.classList.add('active');
+            function showConfirmDialog() {
+                confirmDialog.classList.remove('hidden');
+                setTimeout(() => {
+                    confirmDialog.querySelector('div').classList.remove('scale-95');
+                    confirmDialog.querySelector('div').classList.add('scale-100');
+                }, 10);
             }
             
-            function closeDeleteModal() {
-                deleteModal.classList.remove('active');
+            function hideConfirmDialog() {
+                confirmDialog.querySelector('div').classList.remove('scale-100');
+                confirmDialog.querySelector('div').classList.add('scale-95');
                 setTimeout(() => {
-                    deleteModal.classList.add('hidden');
+                    confirmDialog.classList.add('hidden');
                 }, 200);
             }
             
@@ -957,8 +1015,9 @@
                         };
                         
                         // Check if password should be updated
-                        if (formData.get('changePassword') && userData.newPassword) {
-                            // In a real app, this would update the password
+                        const changePassword = formData.has('changePassword');
+                        if (changePassword && userData.newPassword) {
+                            // In a real app, this would hash and update the password
                             console.log('Password updated to:', userData.newPassword);
                         }
                         
@@ -969,14 +1028,23 @@
                     }
                 } else {
                     // Adding new user
+                    if (!userData.PASSWORD) {
+                        userForm.reportValidity();
+                        showToast('Password is required for new users', 'error');
+                        return;
+                    }
+                    
                     const newUser = {
                         id: sampleUsers.length + 1,
                         firstName: userData.USER_FNAME,
                         lastName: userData.USER_LNAME,
                         username: userData.USERNAME,
                         userType: userData.USER_TYPE,
-                        isActive: userData.IS_ACTIVE
+                        isActive: userData.IS_ACTIVE,
                     };
+                    
+                    // In a real app, this would hash the password before storing
+                    console.log('New user password:', userData.PASSWORD);
                     
                     // Add to sample users array
                     sampleUsers.push(newUser);
@@ -984,31 +1052,17 @@
                     showToast('User added successfully!');
                 }
                 
-                // Close modal
-                closeUserModal();
+                // Close modal with explicit display settings
+                userModal.style.display = 'none';
+                userModal.classList.add('hidden');
+                userModal.classList.remove('active');
+                
+                // Reset the form and current user ID
+                userForm.reset();
+                currentUserId = null;
                 
                 // Refresh the user table
                 displayUsers(sampleUsers);
-            }
-            
-            function deleteUser() {
-                if (currentUserId) {
-                    // Find user index
-                    const userIndex = sampleUsers.findIndex(u => u.id.toString() === currentUserId.toString());
-                    
-                    if (userIndex !== -1) {
-                        // Remove user from array
-                        sampleUsers.splice(userIndex, 1);
-                        
-                        // Close modal
-                        closeDeleteModal();
-                        
-                        // Refresh the user table
-                        displayUsers(sampleUsers);
-                        
-                        showToast('User deleted successfully!', 'warning');
-                    }
-                }
             }
             
             function updateUserStatus(userId, isActive) {
@@ -1018,7 +1072,6 @@
                 if (userIndex !== -1) {
                     // Update status
                     sampleUsers[userIndex].isActive = isActive ? 1 : 0;
-                    
                     const status = isActive ? 'activated' : 'deactivated';
                     showToast(`User ${status} successfully!`, isActive ? 'success' : 'warning');
                 }
@@ -1051,7 +1104,16 @@
                     clearTimeout(window.toastTimeout);
                 }
                 
-                // Show toast
+                // Reset the classes before showing
+                toast.classList.add('translate-x-full', 'opacity-0');
+                
+                // Make sure toast is visible in the DOM
+                toast.style.display = 'flex';
+                
+                // Trigger reflow to ensure transition works properly
+                void toast.offsetWidth;
+                
+                // Show toast by removing the transform classes
                 toast.classList.remove('translate-x-full', 'opacity-0');
                 
                 // Hide after 3 seconds
@@ -1060,14 +1122,39 @@
                 }, 3000);
             }
             
-            // Add function to hide toast
-            function hideToast() {
-                const toast = document.getElementById('toast');
-                toast.classList.add('translate-x-full', 'opacity-0');
+            // Handle modal close action - extracted to avoid duplicate code
+            function handleModalClose() {
+                // Always directly close the modal without confirm dialog
+                // This fixes the non-functional cancel and X buttons
+                closeUserModal();
             }
             
-            // Add click event to dismiss toast
-            document.getElementById('toast').addEventListener('click', hideToast);
+            // Helper function to check if form has been modified - now used for confirmation
+            function hasFormBeenModified() {
+                return checkForActualChanges();
+            }
+            
+            function showLogoutConfirmDialog() {
+                logoutConfirmDialog.classList.remove('hidden');
+                setTimeout(() => {
+                    const dialogContent = logoutConfirmDialog.querySelector('.transform');
+                    if (dialogContent) {
+                        dialogContent.classList.remove('scale-95');
+                        dialogContent.classList.add('scale-100');
+                    }
+                }, 10);
+            }
+            
+            function hideLogoutConfirmDialog() {
+                const dialogContent = logoutConfirmDialog.querySelector('.transform');
+                if (dialogContent) {
+                    dialogContent.classList.remove('scale-100');
+                    dialogContent.classList.add('scale-95');
+                }
+                setTimeout(() => {
+                    logoutConfirmDialog.classList.add('hidden');
+                }, 200);
+            }
         });
     </script>
 </body>
