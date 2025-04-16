@@ -171,7 +171,7 @@
                         
                         <!-- Program Filter Dropdown -->
                         <div class="relative">
-                            <select id="programFilter" class="pl-4 pr-8 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-primary-light appearance-none">
+                            <select id="programFilter" class="pl-4 pr-8 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-primary-light appearance-none text-primary">
                                 <option value="">All Programs</option>
                                 <option value="1">Strength Training</option>
                                 <option value="2">Cardio</option>
@@ -182,10 +182,8 @@
                                 <i class="fas fa-chevron-down"></i>
                             </div>
                         </div>
-
-                        <!-- Removed Status Filter Dropdown -->
                         
-                        <button id="addMemberBtn" class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors flex items-center">
+                        <button id="addMemberBtn" class="bg-primary-dark hover:bg-black text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors flex items-center">
                             <i class="fas fa-plus mr-2"></i> Add Member
                         </button>
                     </div>
@@ -229,14 +227,10 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" class="sr-only peer status-toggle" data-id="1" checked>
-                                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 
-                                            peer-focus:ring-primary-light rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
-                                            peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
-                                            after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
-                                            after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-light"></div>
-                                    </label>
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        bg-green-100 text-green-800">
+                                        Active
+                                    </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <div class="flex space-x-2 justify-center">
@@ -271,14 +265,10 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" class="sr-only peer status-toggle" data-id="2" checked>
-                                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 
-                                            peer-focus:ring-primary-light rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
-                                            peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
-                                            after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
-                                            after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-light"></div>
-                                    </label>
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        bg-green-100 text-green-800">
+                                        Active
+                                    </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <div class="flex space-x-2 justify-center">
@@ -583,9 +573,6 @@
                                     <option value="4">Asthma</option>
                                     <option value="5">Arthritis</option>
                                 </select>
-                                <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
-                                    <i class="fas fa-chevron-down text-xs"></i>
-                                </div>
                             </div>
                             <p class="text-xs text-gray-500 mt-1.5 ml-1">Hold Ctrl (or Command on Mac) to select multiple options</p>
                         </div>

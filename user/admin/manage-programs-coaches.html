@@ -161,20 +161,26 @@
                     
                     <!-- Action buttons -->
                     <div class="flex gap-2 flex-wrap">
+                        <!-- Search field - Updated to match members page style with increased width -->
+                        <div class="relative">
+                            <input type="text" id="globalSearch" placeholder="Search programs or coaches..." 
+                                class="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-primary-light w-72 md:w-80">
+                            <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                <i class="fas fa-search"></i>
+                            </div>
+                        </div>
+                        
                         <button id="addProgramBtn" class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors flex items-center">
                             <i class="fas fa-plus mr-2"></i> Add Program
                         </button>
                         <button id="addCoachBtn" class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors flex items-center">
                             <i class="fas fa-plus mr-2"></i> Add Coach
                         </button>
-                        <button id="addAssignmentBtn" class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors flex items-center">
-                            <i class="fas fa-plus mr-2"></i> Assign Coach
-                        </button>
                     </div>
                 </div>
             </div>
             
-            <!-- Tabs -->
+            <!-- Tabs - Keep only Programs and Coaches tabs -->
             <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                 <div class="border-b border-gray-200">
                     <nav class="flex space-x-4" aria-label="Tabs">
@@ -183,9 +189,6 @@
                         </button>
                         <button id="coaches-tab" role="tab" aria-selected="false" class="px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-primary-dark hover:border-primary-light">
                             Coaches
-                        </button>
-                        <button id="assignments-tab" role="tab" aria-selected="false" class="px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-primary-dark hover:border-primary-light">
-                            Assignments
                         </button>
                     </nav>
                 </div>
@@ -208,14 +211,9 @@
                                         <div class="text-sm font-medium text-gray-900">Strength Training</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" class="sr-only peer status-toggle" data-id="1" checked>
-                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 
-                                                peer-focus:ring-primary-light rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
-                                                peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
-                                                after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
-                                                after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-light"></div>
-                                        </label>
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1.5"></i>Active
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         <div class="flex space-x-2 justify-center">
@@ -230,14 +228,9 @@
                                         <div class="text-sm font-medium text-gray-900">Cardio</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" class="sr-only peer status-toggle" data-id="2" checked>
-                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 
-                                                peer-focus:ring-primary-light rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
-                                                peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
-                                                after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
-                                                after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-light"></div>
-                                        </label>
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1.5"></i>Active
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         <div class="flex space-x-2 justify-center">
@@ -252,14 +245,9 @@
                                         <div class="text-sm font-medium text-gray-900">Yoga</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" class="sr-only peer status-toggle" data-id="3" checked>
-                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 
-                                                peer-focus:ring-primary-light rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
-                                                peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
-                                                after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
-                                                after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-light"></div>
-                                        </label>
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1.5"></i>Active
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         <div class="flex space-x-2 justify-center">
@@ -274,14 +262,9 @@
                                         <div class="text-sm font-medium text-gray-900">CrossFit</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" class="sr-only peer status-toggle" data-id="4">
-                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 
-                                                peer-focus:ring-primary-light rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
-                                                peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
-                                                after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
-                                                after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-light"></div>
-                                        </label>
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-times-circle mr-1.5"></i>Inactive
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         <div class="flex space-x-2 justify-center">
@@ -295,7 +278,6 @@
                         </table>
                     </div>
                 </div>
-                
                 <div id="coaches" role="tabpanel" class="p-6 hidden">
                     <!-- Coaches Table -->
                     <div class="overflow-x-auto">
@@ -317,17 +299,18 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex flex-wrap gap-1">
                                             <!-- Program badges are dynamically generated based on coach's program assignments -->
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                <i class="fas fa-dumbbell mr-1"></i>Strength Training
+                                            </span>
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                <i class="fas fa-running mr-1"></i>CrossFit
+                                            </span>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" class="sr-only peer status-toggle" data-id="1" checked>
-                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 
-                                                peer-focus:ring-primary-light rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
-                                                peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
-                                                after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
-                                                after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-light"></div>
-                                        </label>
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1.5"></i>Active
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         <div class="flex space-x-2 justify-center">
@@ -345,17 +328,15 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex flex-wrap gap-1">
                                             <!-- Program badges are dynamically generated based on coach's program assignments -->
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                <i class="fas fa-spa mr-1"></i>Yoga
+                                            </span>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" class="sr-only peer status-toggle" data-id="2" checked>
-                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 
-                                                peer-focus:ring-primary-light rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
-                                                peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
-                                                after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
-                                                after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-light"></div>
-                                        </label>
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1.5"></i>Active
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         <div class="flex space-x-2 justify-center">
@@ -373,84 +354,20 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex flex-wrap gap-1">
                                             <!-- Program badges are dynamically generated based on coach's program assignments -->
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                <i class="fas fa-running mr-1"></i>CrossFit
+                                            </span>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" class="sr-only peer status-toggle" data-id="3">
-                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 
-                                                peer-focus:ring-primary-light rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
-                                                peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
-                                                after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
-                                                after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-light"></div>
-                                        </label>
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-times-circle mr-1.5"></i>Inactive
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         <div class="flex space-x-2 justify-center">
                                             <button class="text-primary-dark hover:text-primary-light edit-coach-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="3">
                                                 <i class="fas fa-edit text-lg"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <div id="assignments" role="tabpanel" class="p-6 hidden">
-                    <!-- Assignments Table -->
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200" id="assignmentsTable">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Coach</th>
-                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">Strength Training</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">Mike Johnson</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                                        <div class="flex space-x-2 justify-center">
-                                            <button class="text-red-600 hover:text-red-800 delete-assignment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="1">
-                                                <i class="fas fa-trash-alt text-lg"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">Cardio</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">Sarah Williams</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                                        <div class="flex space-x-2 justify-center">
-                                            <button class="text-red-600 hover:text-red-800 delete-assignment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="2">
-                                                <i class="fas fa-trash-alt text-lg"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">Yoga</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">David Rodriguez</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                                        <div class="flex space-x-2 justify-center">
-                                            <button class="text-red-600 hover:text-red-800 delete-assignment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="3">
-                                                <i class="fas fa-trash-alt text-lg"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -480,17 +397,16 @@
                 <button type="button" id="closeProgramModal" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 focus:outline-none transition-all duration-300 hover:rotate-90 z-20 cursor-pointer">
                     <i class="fas fa-times"></i>
                 </button>
-                
                 <!-- Decorative background elements -->
                 <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-white/10 rounded-full"></div>
                 <div class="absolute -top-6 -left-6 w-24 h-24 bg-white/5 rounded-full"></div>
             </div>
-            
+
             <!-- Modal Body -->
             <div class="p-6 pt-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
                 <form id="programForm" class="space-y-3">
                     <input type="hidden" id="programId" name="programId">
-                    
+
                     <!-- Program Information Section -->
                     <div class="mb-1">
                         <h4 class="text-base font-semibold text-gray-800 flex items-center">
@@ -499,7 +415,6 @@
                         </h4>
                         <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
                     </div>
-                    
                     <div class="mb-4">
                         <label for="programName" class="block text-sm font-medium text-gray-700 mb-1">Program Name</label>
                         <div class="relative rounded-md shadow-sm">
@@ -511,7 +426,7 @@
                                 placeholder="Enter program name" required>
                         </div>
                     </div>
-                    
+
                     <!-- Program Status Section -->
                     <div class="mb-1 mt-6">
                         <h4 class="text-base font-semibold text-gray-800 flex items-center">
@@ -520,23 +435,23 @@
                         </h4>
                         <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
                     </div>
-                    
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                        <div class="flex items-center space-x-4">
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="programStatus" value="1" class="text-primary-light focus:ring-primary-light h-4 w-4" checked>
-                                <span class="ml-2 text-sm text-gray-700">Active</span>
-                            </label>
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="programStatus" value="0" class="text-primary-light focus:ring-primary-light h-4 w-4">
-                                <span class="ml-2 text-sm text-gray-700">Inactive</span>
-                            </label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Program Status</label>
+                        <div class="flex items-center">
+                            <div class="relative inline-block w-12 mr-3 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="programStatus" id="programStatus" checked
+                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-2 border-gray-300 appearance-none cursor-pointer transition-transform duration-300 ease-in-out">
+                                <label for="programStatus" 
+                                    class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-colors duration-300 ease-in-out"></label>
+                            </div>
+                            <span id="programStatusLabel" class="text-sm text-green-600 font-medium flex items-center">
+                                <i class="fas fa-check-circle mr-1.5"></i> Active
+                            </span>
                         </div>
                     </div>
                 </form>
             </div>
-            
+
             <!-- Modal Footer -->
             <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
                 <button type="button" id="cancelProgramBtn" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none transition-colors duration-300 shadow-sm font-medium cursor-pointer relative z-10">
@@ -549,7 +464,7 @@
         </div>
     </div>
 
-    <!-- Add/Edit Coach Modal -->
+    <!-- Add/Edit Coach Modal - Modified to include program assignments -->
     <div id="coachModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center hidden modal backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 modal-content transform scale-95 overflow-hidden">
             <!-- Modal Title Banner -->
@@ -566,17 +481,16 @@
                 <button type="button" id="closeCoachModal" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 focus:outline-none transition-all duration-300 hover:rotate-90 z-20 cursor-pointer">
                     <i class="fas fa-times"></i>
                 </button>
-                
                 <!-- Decorative background elements -->
                 <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-white/10 rounded-full"></div>
                 <div class="absolute -top-6 -left-6 w-24 h-24 bg-white/5 rounded-full"></div>
             </div>
-            
+
             <!-- Modal Body -->
             <div class="p-6 pt-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
                 <form id="coachForm" class="space-y-3">
                     <input type="hidden" id="coachId" name="coachId">
-                    
+
                     <!-- Personal Information Section -->
                     <div class="mb-1">
                         <h4 class="text-base font-semibold text-gray-800 flex items-center">
@@ -585,8 +499,6 @@
                         </h4>
                         <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
                     </div>
-                    
-                    <!-- First Name and Last Name in a grid -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- First Name -->
                         <div>
@@ -613,40 +525,8 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Contact Information Section -->
-                    <div class="mb-1 mt-6">
-                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
-                            <i class="fas fa-address-card text-primary-light mr-2"></i>
-                            <span>Contact Information</span>
-                        </h4>
-                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label for="coachEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <div class="relative rounded-md shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
-                                <i class="fas fa-envelope"></i>
-                            </div>
-                            <input type="email" id="coachEmail" name="EMAIL" 
-                                class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
-                                placeholder="Enter email address" required>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label for="coachPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                        <div class="relative rounded-md shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
-                                <i class="fas fa-phone"></i>
-                            </div>
-                            <input type="tel" id="coachPhone" name="PHONE_NUMBER" 
-                                class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
-                                placeholder="Enter phone number" required>
-                        </div>
-                    </div>
-                    
+
+                    <!-- Gender -->
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
                         <div class="flex items-center space-x-4">
@@ -664,53 +544,76 @@
                             </label>
                         </div>
                     </div>
-                    
-                    <!-- Specialization Section -->
+
+                    <!-- Contact Information Section -->
                     <div class="mb-1 mt-6">
                         <h4 class="text-base font-semibold text-gray-800 flex items-center">
-                            <i class="fas fa-award text-primary-light mr-2"></i>
-                            <span>Specialization</span>
+                            <i class="fas fa-address-card text-primary-light mr-2"></i>
+                            <span>Contact Information</span>
                         </h4>
                         <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
                     </div>
-                    
-                    <!-- Program Specializations -->
-                    <div class="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Program Specializations</label>
-                        <p class="text-xs text-gray-500 mb-3">Select the programs this coach specializes in:</p>
-                        
-                        <div class="grid grid-cols-2 gap-2">
-                            <div class="flex items-center">
-                                <input type="checkbox" id="spec_strength" name="program_specializations[]" value="1" class="h-4 w-4 rounded text-primary-dark focus:ring-primary-light mr-2">
-                                <label for="spec_strength" class="text-sm text-gray-700">Strength Training</label>
-                            </div>
-                            <div class="flex items-center">
-                                <input type="checkbox" id="spec_cardio" name="program_specializations[]" value="2" class="h-4 w-4 rounded text-primary-dark focus:ring-primary-light mr-2">
-                                <label for="spec_cardio" class="text-sm text-gray-700">Cardio</label>
-                            </div>
-                            <div class="flex items-center">
-                                <input type="checkbox" id="spec_yoga" name="program_specializations[]" value="3" class="h-4 w-4 rounded text-primary-dark focus:ring-primary-light mr-2">
-                                <label for="spec_yoga" class="text-sm text-gray-700">Yoga</label>
-                            </div>
-                            <div class="flex items-center">
-                                <input type="checkbox" id="spec_crossfit" name="program_specializations[]" value="4" class="h-4 w-4 rounded text-primary-dark focus:ring-primary-light mr-2">
-                                <label for="spec_crossfit" class="text-sm text-gray-700">CrossFit</label>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <div class="mb-4">
-                        <label for="coachSpecialization" class="block text-sm font-medium text-gray-700 mb-1">Additional Details</label>
+                        <label for="coachEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                         <div class="relative rounded-md shadow-sm">
-                            <div class="absolute top-3 left-3 text-primary-light">
-                                <i class="fas fa-clipboard-list"></i>
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                <i class="fas fa-envelope"></i>
                             </div>
-                            <textarea id="coachSpecialization" name="SPECIALIZATION" rows="3" 
+                            <input type="email" id="coachEmail" name="EMAIL" 
                                 class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
-                                placeholder="Enter additional specialization details"></textarea>
+                                placeholder="Enter email address" required>
                         </div>
                     </div>
-                    
+                    <div class="mb-4">
+                        <label for="coachPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <input type="tel" id="coachPhone" name="PHONE_NUMBER" 
+                                class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
+                                placeholder="Enter phone number" required>
+                        </div>
+                    </div>
+
+                    <!-- Program Assignments Section - Renamed to Specializations -->
+                    <div class="mb-1 mt-6">
+                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-dumbbell text-primary-light mr-2"></i>
+                            <span>Specializations</span>
+                        </h4>
+                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
+                    </div>
+                    <div class="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <p class="text-xs text-gray-500 mb-3">Select the coach's specializations and program assignments:</p>
+                        <div id="programAssignments" class="grid grid-cols-1 gap-2">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="assign_strength" name="program_assignments[]" value="1" class="h-4 w-4 rounded text-primary-dark focus:ring-primary-light mr-2">
+                                <span class="inline-flex items-center px-2 py-1 mr-2 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                    <i class="fas fa-dumbbell mr-1"></i>Strength Training
+                                </span>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="assign_cardio" name="program_assignments[]" value="2" class="h-4 w-4 rounded text-primary-dark focus:ring-primary-light mr-2">
+                                <span class="inline-flex items-center px-2 py-1 mr-2 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                                    <i class="fas fa-heartbeat mr-1"></i>Cardio
+                                </span>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="assign_yoga" name="program_assignments[]" value="3" class="h-4 w-4 rounded text-primary-dark focus:ring-primary-light mr-2">
+                                <span class="inline-flex items-center px-2 py-1 mr-2 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                    <i class="fas fa-spa mr-1"></i>Yoga
+                                </span>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="assign_crossfit" name="program_assignments[]" value="4" class="h-4 w-4 rounded text-primary-dark focus:ring-primary-light mr-2">
+                                <span class="inline-flex items-center px-2 py-1 mr-2 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                                    <i class="fas fa-running mr-1"></i>CrossFit
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Status Section -->
                     <div class="mb-1 mt-6">
                         <h4 class="text-base font-semibold text-gray-800 flex items-center">
@@ -719,7 +622,6 @@
                         </h4>
                         <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
                     </div>
-                    
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Coach Status</label>
                         <div class="flex items-center">
@@ -736,7 +638,7 @@
                     </div>
                 </form>
             </div>
-            
+
             <!-- Modal Footer -->
             <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
                 <button type="button" id="cancelCoachBtn" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none transition-colors duration-300 shadow-sm font-medium cursor-pointer relative z-10">
@@ -749,81 +651,7 @@
         </div>
     </div>
 
-    <!-- Assignment Modal -->
-    <div id="assignmentModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center hidden modal backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 modal-content transform scale-95 overflow-hidden">
-            <!-- Modal Title Banner -->
-            <div class="px-6 py-4 flex items-center justify-between bg-gradient-to-r from-green-800 to-green-700 relative overflow-hidden">
-                <div class="flex items-center z-10">
-                    <div class="mr-4 h-10 w-10 rounded-full bg-white/25 flex items-center justify-center text-white shadow-sm">
-                        <i class="fas fa-link text-xl"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-medium text-white leading-tight">Assign Coach to Program</h2>
-                        <p class="text-xs text-white/90">Create a new coach-program assignment</p>
-                    </div>
-                </div>
-                <button type="button" id="closeAssignmentModal" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 focus:outline-none transition-all duration-300 hover:rotate-90 z-20 cursor-pointer">
-                    <i class="fas fa-times"></i>
-                </button>
-                
-                <!-- Decorative background elements -->
-                <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-white/10 rounded-full"></div>
-                <div class="absolute -top-6 -left-6 w-24 h-24 bg-white/5 rounded-full"></div>
-            </div>
-            
-            <!-- Modal Body -->
-            <div class="p-6 pt-4">
-                <form id="assignmentForm" class="space-y-4">
-                    <div class="mb-4">
-                        <label for="programSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Program</label>
-                        <div class="relative rounded-md shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
-                                <i class="fas fa-dumbbell"></i>
-                            </div>
-                            <select id="programSelect" name="PROGRAM_ID" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white" required>
-                                <option value="">-- Select Program --</option>
-                                <option value="1">Strength Training</option>
-                                <option value="2">Cardio</option>
-                                <option value="3">Yoga</option>
-                                <option value="4">CrossFit</option>
-                            </select>
-                            <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
-                                <i class="fas fa-chevron-down text-xs"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label for="coachSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Coach</label>
-                        <div class="relative rounded-md shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
-                                <i class="fas fa-user-tie"></i>
-                            </div>
-                            <select id="coachSelect" name="COACH_ID" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white" required>
-                                <option value="">-- Select Coach --</option>
-                                <!-- Dynamic options will be populated based on selected program -->
-                            </select>
-                            <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
-                                <i class="fas fa-chevron-down text-xs"></i>
-                            </div>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1.5 ml-1">Only coaches with matching specializations are shown</p>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- Modal Footer -->
-            <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
-                <button type="button" id="cancelAssignmentBtn" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none transition-colors duration-300 shadow-sm font-medium cursor-pointer relative z-10">
-                    Cancel
-                </button>
-                <button type="button" id="createAssignmentButton" class="px-5 py-2.5 bg-green-700 text-white rounded-lg hover:bg-opacity-90 focus:outline-none transition-all duration-300 shadow-md font-medium flex items-center justify-center cursor-pointer relative z-10">
-                    <i class="fas fa-plus mr-2"></i> Create Assignment
-                </button>
-            </div>
-        </div>
-    </div>
+    <!-- Remove the Assignment Modal since we're now handling assignments in the coach modal -->
 
     <!-- Delete Confirmation Dialog -->
     <div id="deleteConfirmDialog" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden backdrop-blur-sm">
@@ -900,7 +728,7 @@
         </div>
     </div>
 
-    <!-- Notification Toast -->
+    <!-- Toast Notification -->
     <div id="toast" class="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg z-50 transform translate-x-full opacity-0 transition-all duration-300 flex items-center" style="display: none;">
         <i id="toastIcon" class="fas fa-check-circle mr-2"></i>
         <span id="toastMessage">Operation successful!</span>
@@ -912,7 +740,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
     <script>
         // ------ Utility Functions ------
-        
         // Toast Notification
         function hideToast() {
             const toast = document.getElementById('toast');
@@ -926,9 +753,9 @@
             const toast = document.getElementById('toast');
             const toastMessage = document.getElementById('toastMessage');
             const toastIcon = document.getElementById('toastIcon');
-            
+            toast.style.display = 'flex';
             toastMessage.textContent = message;
-            
+            toast.classList.remove('translate-x-full', 'opacity-0');
             if (isSuccess) {
                 toast.classList.remove('bg-red-600');
                 toast.classList.add('bg-green-600');
@@ -940,19 +767,12 @@
                 toastIcon.classList.remove('fa-check-circle');
                 toastIcon.classList.add('fa-times-circle');
             }
-            
-            toast.style.display = 'flex';
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full', 'opacity-0');
-            }, 10);
-            
-            // Auto hide after 5 seconds
             setTimeout(hideToast, 5000);
         }
 
         // ------ Tab Navigation ------
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize tabs
+            // Initialize tabs - Remove the assignments tab
             const tabElements = [
                 {
                     id: 'programs-tab',
@@ -963,11 +783,6 @@
                     id: 'coaches-tab',
                     triggerEl: document.getElementById('coaches-tab'),
                     targetEl: document.getElementById('coaches')
-                },
-                {
-                    id: 'assignments-tab',
-                    triggerEl: document.getElementById('assignments-tab'),
-                    targetEl: document.getElementById('assignments')
                 }
             ];
 
@@ -977,61 +792,39 @@
                     document.querySelectorAll('[role="tabpanel"]').forEach(panel => {
                         panel.classList.add('hidden');
                     });
-                    
+
                     // Show target tab
                     tab.targetEl.classList.remove('hidden');
-                    
+
                     // Update active states
                     document.querySelectorAll('[role="tab"]').forEach(tabButton => {
                         tabButton.setAttribute('aria-selected', 'false');
                         tabButton.classList.remove('border-primary-light', 'text-primary-dark');
                         tabButton.classList.add('border-transparent');
                     });
-                    
+
                     tab.triggerEl.setAttribute('aria-selected', 'true');
                     tab.triggerEl.classList.remove('border-transparent');
                     tab.triggerEl.classList.add('border-primary-light', 'text-primary-dark');
                 });
             });
 
-            // ------ Modal Functionality ------
-            
-            // Program Modal
-            initProgramModal();
-            
-            // Coach Modal
-            initCoachModal();
-            
-            // Assignment Modal
-            initAssignmentModal();
-            
-            // Logout Confirmation
-            initLogoutConfirmation();
-            
-            // Status Toggles
-            initStatusToggles();
-            
             // Initialize Management Dropdown
             const dropdownButtons = document.querySelectorAll('[data-collapse-toggle]');
-            
             dropdownButtons.forEach(button => {
                 const targetId = button.getAttribute('data-collapse-toggle');
                 const targetElement = document.getElementById(targetId);
-                
-                // Check if dropdown should be open (if it has an active item)
+                const chevronIcon = document.getElementById(targetId.replace('dropdown-', '') + '-chevron');
+
                 if (targetElement && targetElement.querySelector('.bg-white\\/10')) {
                     targetElement.style.maxHeight = targetElement.scrollHeight + 'px';
                     targetElement.classList.remove('hidden');
-                    const chevronIcon = document.getElementById(targetId.replace('dropdown-', '') + '-chevron');
                     if (chevronIcon) {
                         chevronIcon.style.transform = 'rotate(180deg)';
                     }
                 }
-                
+
                 button.addEventListener('click', function() {
-                    const targetElement = document.getElementById(targetId);
-                    const chevronIcon = document.getElementById(targetId.replace('dropdown-', '') + '-chevron');
-                    
                     if (targetElement) {
                         if (targetElement.classList.contains('hidden')) {
                             // Show dropdown
@@ -1053,6 +846,83 @@
                     }
                 });
             });
+
+            // Mobile search toggle
+            const mobileSearchBtn = document.getElementById('mobileSearchBtn');
+            const mobileSearchPanel = document.getElementById('mobileSearchPanel');
+            if (mobileSearchBtn) {
+                mobileSearchBtn.addEventListener('click', function() {
+                    mobileSearchPanel.classList.toggle('hidden');
+                });
+            }
+
+            // Global search functionality
+            function setupSearch(searchInputId, tableIds) {
+                const searchInput = document.getElementById(searchInputId);
+                if (!searchInput) return;
+
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase().trim();
+                    tableIds.forEach(tableId => {
+                        const table = document.getElementById(tableId);
+                        if (!table) return;
+
+                        const rows = table.querySelectorAll('tbody tr');
+                        rows.forEach(row => {
+                            const rowText = row.textContent.toLowerCase();
+                            if (searchTerm === '' || rowText.includes(searchTerm)) {
+                                row.classList.remove('hidden');
+                            } else {
+                                row.classList.add('hidden');
+                            }
+                        });
+
+                        // Show "no results" message if all rows are hidden
+                        const visibleRows = table.querySelectorAll('tbody tr:not(.hidden)');
+                        const noResultsRow = table.querySelector('.no-results-row');
+                        if (visibleRows.length === 0) {
+                            // Create "no results" row if it doesn't exist
+                            if (!noResultsRow) {
+                                const tbody = table.querySelector('tbody');
+                                const tr = document.createElement('tr');
+                                tr.className = 'no-results-row';
+                                const td = document.createElement('td');
+                                td.setAttribute('colspan', '10'); // Span all columns
+                                td.className = 'px-6 py-4 text-center text-gray-500';
+                                td.textContent = `No matching results found for "${searchTerm}"`;
+                                tr.appendChild(td);
+                                tbody.appendChild(tr);
+                            } else {
+                                noResultsRow.querySelector('td').textContent = `No matching results found for "${searchTerm}"`;
+                                noResultsRow.classList.remove('hidden');
+                            }
+                        } else if (noResultsRow) {
+                            noResultsRow.classList.add('hidden');
+                        }
+                    });
+                });
+            }
+
+            // Initialize search for both inputs (desktop and mobile)
+            setupSearch('globalSearch', ['programsTable', 'coachesTable']);
+            setupSearch('mobileGlobalSearch', ['programsTable', 'coachesTable']);
+
+            // Sync the search boxes (typing in one updates the other)
+            const globalSearch = document.getElementById('globalSearch');
+            const mobileGlobalSearch = document.getElementById('mobileGlobalSearch');
+            if (globalSearch && mobileGlobalSearch) {
+                globalSearch.addEventListener('input', function() {
+                    mobileGlobalSearch.value = this.value;
+                    const event = new Event('input');
+                    mobileGlobalSearch.dispatchEvent(event);
+                });
+
+                mobileGlobalSearch.addEventListener('input', function() {
+                    globalSearch.value = this.value;
+                    const event = new Event('input');
+                    globalSearch.dispatchEvent(event);
+                });
+            }
         });
 
         // ------ Program Modal Functions ------
@@ -1066,9 +936,11 @@
             const discardChangesDialog = document.getElementById('discardChangesDialog');
             const continueEditingBtn = document.getElementById('continueEditingBtn');
             const discardChangesBtn = document.getElementById('discardChangesBtn');
-            
+            const programStatus = document.getElementById('programStatus');
+            const programStatusLabel = document.getElementById('programStatusLabel');
+
             let originalProgramFormData = '';
-            
+
             // Function to check if form has been modified
             function isProgramFormModified() {
                 const currentFormData = new FormData(programForm);
@@ -1076,10 +948,9 @@
                 for (let pair of currentFormData.entries()) {
                     currentDataString += pair[0] + '=' + pair[1] + '&';
                 }
-                
                 return currentDataString !== originalProgramFormData;
             }
-            
+
             // Function to save original form state
             function saveProgramFormState() {
                 const formData = new FormData(programForm);
@@ -1088,41 +959,41 @@
                     originalProgramFormData += pair[0] + '=' + pair[1] + '&';
                 }
             }
-            
+
             // Open modal for adding new program
             addProgramBtn.addEventListener('click', function() {
                 // Reset form
                 programForm.reset();
                 document.getElementById('programId').value = '';
                 document.getElementById('programModalTitle').textContent = 'Add New Program';
-                
-                // Show modal
+                programStatus.checked = true;
+                programStatusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                programStatusLabel.classList.remove('text-red-600');
+                programStatusLabel.classList.add('text-green-600');
                 programModal.classList.remove('hidden');
-                // Save the initial state after reset
                 saveProgramFormState();
             });
-            
+
             // Confirm before closing modal if there are changes
             function confirmCloseModal() {
                 if (isProgramFormModified()) {
                     discardChangesDialog.classList.remove('hidden');
-                    
-                    // Pass the caller context to the discard button
                     discardChangesBtn.setAttribute('data-caller', 'program');
                 } else {
                     programModal.classList.add('hidden');
                 }
             }
-            
-            // Close modal
+
             closeProgramModal.addEventListener('click', confirmCloseModal);
             cancelProgramBtn.addEventListener('click', confirmCloseModal);
-            
+
             // Edit program functionality
             editProgramButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     const programId = this.getAttribute('data-id');
-                    
+                    document.getElementById('programId').value = programId;
+                    document.getElementById('programModalTitle').textContent = 'Edit Program';
+
                     // In a real app, you would fetch program data from the server
                     // For this example, we'll use dummy data based on the table
                     const programs = {
@@ -1131,27 +1002,20 @@
                         '3': { name: 'Yoga', isActive: true },
                         '4': { name: 'CrossFit', isActive: false }
                     };
-                    
+
                     const program = programs[programId];
-                    
-                    // Set form values
-                    document.getElementById('programId').value = programId;
                     document.getElementById('programName').value = program.name;
-                    document.getElementById('programModalTitle').textContent = 'Edit Program';
-                    
-                    // Set active status
-                    const activeRadio = document.querySelector('input[name="programStatus"][value="1"]');
-                    const inactiveRadio = document.querySelector('input[name="programStatus"][value="0"]');
-                    
+                    programStatus.checked = program.isActive;
                     if (program.isActive) {
-                        activeRadio.checked = true;
+                        programStatusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                        programStatusLabel.classList.remove('text-red-600');
+                        programStatusLabel.classList.add('text-green-600');
                     } else {
-                        inactiveRadio.checked = true;
+                        programStatusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                        programStatusLabel.classList.remove('text-green-600');
+                        programStatusLabel.classList.add('text-red-600');
                     }
-                    
-                    // Show modal
                     programModal.classList.remove('hidden');
-                    // Save the state after setting the form values
                     saveProgramFormState();
                 });
             });
@@ -1159,33 +1023,37 @@
             // Update the form submission handling to use the new button
             const saveProgramButton = document.getElementById('saveProgramButton');
             saveProgramButton.addEventListener('click', function() {
-                // Trigger form submission
                 const programForm = document.getElementById('programForm');
-                
-                // Validate the form before submission
                 if (programForm.checkValidity()) {
                     const programId = document.getElementById('programId').value;
                     const programName = document.getElementById('programName').value;
-                    const isActive = document.querySelector('input[name="programStatus"]:checked').value === '1';
-                    
+                    const isActive = programStatus.checked;
                     if (programId) {
-                        // Update existing program
                         showToast(`Program "${programName}" updated successfully!`);
                     } else {
-                        // Add new program
                         showToast(`Program "${programName}" added successfully!`);
                     }
-                    
-                    // Close modal
                     programModal.classList.add('hidden');
                 } else {
-                    // Trigger HTML5 validation
                     programForm.reportValidity();
+                }
+            });
+
+            // Toggle status label based on checkbox state
+            programStatus.addEventListener('change', function() {
+                if (this.checked) {
+                    programStatusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                    programStatusLabel.classList.remove('text-red-600');
+                    programStatusLabel.classList.add('text-green-600');
+                } else {
+                    programStatusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                    programStatusLabel.classList.remove('text-green-600');
+                    programStatusLabel.classList.add('text-red-600');
                 }
             });
         }
 
-        // ------ Coach Modal Functions ------
+        // ------ Coach Modal Functions with integrated assignments ------
         function initCoachModal() {
             const addCoachBtn = document.getElementById('addCoachBtn');
             const coachModal = document.getElementById('coachModal');
@@ -1198,9 +1066,9 @@
             const discardChangesDialog = document.getElementById('discardChangesDialog');
             const continueEditingBtn = document.getElementById('continueEditingBtn');
             const discardChangesBtn = document.getElementById('discardChangesBtn');
-            
+
             let originalCoachFormData = '';
-            
+
             // Function to check if form has been modified
             function isCoachFormModified() {
                 const currentFormData = new FormData(coachForm);
@@ -1208,20 +1076,17 @@
                 for (let pair of currentFormData.entries()) {
                     currentDataString += pair[0] + '=' + pair[1] + '&';
                 }
-                
-                // Special handling for checkboxes (program specializations)
-                const specializationCheckboxes = document.querySelectorAll('input[name="program_specializations[]"]');
-                let specializationsString = '';
-                specializationCheckboxes.forEach(checkbox => {
+                const assignmentCheckboxes = document.querySelectorAll('input[name="program_assignments[]"]');
+                let assignmentsString = '';
+                assignmentCheckboxes.forEach(checkbox => {
                     if (checkbox.checked) {
-                        specializationsString += checkbox.value + ',';
+                        assignmentsString += checkbox.value + ',';
                     }
                 });
-                currentDataString += 'specializations=' + specializationsString;
-                
+                currentDataString += 'assignments=' + assignmentsString;
                 return currentDataString !== originalCoachFormData;
             }
-            
+
             // Function to save original form state
             function saveCoachFormState() {
                 const formData = new FormData(coachForm);
@@ -1229,115 +1094,63 @@
                 for (let pair of formData.entries()) {
                     originalCoachFormData += pair[0] + '=' + pair[1] + '&';
                 }
-                
-                // Special handling for checkboxes (program specializations)
-                const specializationCheckboxes = document.querySelectorAll('input[name="program_specializations[]"]');
-                let specializationsString = '';
-                specializationCheckboxes.forEach(checkbox => {
+                const assignmentCheckboxes = document.querySelectorAll('input[name="program_assignments[]"]');
+                let assignmentsString = '';
+                assignmentCheckboxes.forEach(checkbox => {
                     if (checkbox.checked) {
-                        specializationsString += checkbox.value + ',';
+                        assignmentsString += checkbox.value + ',';
                     }
                 });
-                originalCoachFormData += 'specializations=' + specializationsString;
+                originalCoachFormData += 'assignments=' + assignmentsString;
             }
-            
+
             // Open modal for adding new coach
             addCoachBtn.addEventListener('click', function() {
                 // Reset form
                 coachForm.reset();
                 document.getElementById('coachId').value = '';
                 document.getElementById('coachModalTitle').textContent = 'Add New Coach';
-                
-                // Reset status
                 coachStatus.checked = true;
                 coachStatusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
                 coachStatusLabel.classList.remove('text-red-600');
                 coachStatusLabel.classList.add('text-green-600');
-                
-                // Show modal
                 coachModal.classList.remove('hidden');
-                // Save the initial state after reset
                 saveCoachFormState();
             });
-            
+
             // Confirm before closing modal if there are changes
             function confirmCloseModal() {
                 if (isCoachFormModified()) {
                     discardChangesDialog.classList.remove('hidden');
-                    
-                    // Pass the caller context to the discard button
                     discardChangesBtn.setAttribute('data-caller', 'coach');
                 } else {
                     coachModal.classList.add('hidden');
                 }
             }
-            
-            // Close modal
+
             closeCoachModal.addEventListener('click', confirmCloseModal);
             cancelCoachBtn.addEventListener('click', confirmCloseModal);
-            
+
             // Edit coach functionality
             editCoachButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     const coachId = this.getAttribute('data-id');
-                    
+                    document.getElementById('coachId').value = coachId;
+                    document.getElementById('coachModalTitle').textContent = 'Edit Coach';
+
                     // In a real app, you would fetch coach data from the server
                     // For this example, we'll use dummy data based on the table
                     const coaches = {
-                        '1': { 
-                            firstName: 'Mike', 
-                            lastName: 'Johnson', 
-                            email: 'mike.j@example.com',
-                            phone: '+1 (555) 123-4567',
-                            gender: 'MALE',
-                            isActive: true,
-                            programSpecializations: ['1', '4'] // IDs for Strength Training and CrossFit
-                        },
-                        '2': { 
-                            firstName: 'Sarah', 
-                            lastName: 'Williams', 
-                            email: 'sarah.w@example.com',
-                            phone: '+1 (555) 987-6543',
-                            gender: 'FEMALE',
-                            isActive: true,
-                            programSpecializations: ['3'] // ID for Yoga
-                        },
-                        '3': { 
-                            firstName: 'David', 
-                            lastName: 'Rodriguez', 
-                            email: 'david.r@example.com',
-                            phone: '+1 (555) 456-7890',
-                            gender: 'MALE',
-                            isActive: false,
-                            programSpecializations: ['4'] // ID for CrossFit
-                        }
+                        '1': { firstName: 'Mike', lastName: 'Johnson', email: 'mike.j@example.com', phone: '+1 (555) 123-4567', gender: 'MALE', isActive: true, programAssignments: ['1', '4'] },
+                        '2': { firstName: 'Sarah', lastName: 'Williams', email: 'sarah.w@example.com', phone: '+1 (555) 987-6543', gender: 'FEMALE', isActive: true, programAssignments: ['3'] },
+                        '3': { firstName: 'David', lastName: 'Rodriguez', email: 'david.r@example.com', phone: '+1 (555) 456-7890', gender: 'MALE', isActive: false, programAssignments: ['4'] }
                     };
-                    
+
                     const coach = coaches[coachId];
-                    
-                    // Set form values
-                    document.getElementById('coachId').value = coachId;
                     document.getElementById('coachFname').value = coach.firstName;
                     document.getElementById('coachLname').value = coach.lastName;
                     document.getElementById('coachEmail').value = coach.email;
                     document.getElementById('coachPhone').value = coach.phone;
-                    document.getElementById('coachModalTitle').textContent = 'Edit Coach';
-                    
-                    // Set program specializations checkboxes
-                    const specializationCheckboxes = document.querySelectorAll('input[name="program_specializations[]"]');
-                    specializationCheckboxes.forEach(checkbox => {
-                        checkbox.checked = coach.programSpecializations.includes(checkbox.value);
-                    });
-                    
-                    // Set gender
-                    const genderRadios = document.querySelectorAll('input[name="GENDER"]');
-                    genderRadios.forEach(radio => {
-                        if (radio.value === coach.gender) {
-                            radio.checked = true;
-                        }
-                    });
-                    
-                    // Set active status
                     coachStatus.checked = coach.isActive;
                     if (coach.isActive) {
                         coachStatusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
@@ -1348,285 +1161,72 @@
                         coachStatusLabel.classList.remove('text-green-600');
                         coachStatusLabel.classList.add('text-red-600');
                     }
-                    
-                    // Show modal
+
+                    // Set program assignments checkboxes
+                    const assignmentCheckboxes = document.querySelectorAll('input[name="program_assignments[]"]');
+                    assignmentCheckboxes.forEach(checkbox => {
+                        checkbox.checked = coach.programAssignments.includes(checkbox.value);
+                    });
+
+                    // Set gender
+                    const genderRadios = document.querySelectorAll('input[name="GENDER"]');
+                    genderRadios.forEach(radio => {
+                        if (radio.value === coach.gender) {
+                            radio.checked = true;
+                        }
+                    });
+
                     coachModal.classList.remove('hidden');
-                    // Save the state after setting the form values
                     saveCoachFormState();
                 });
             });
 
-            // Update the form submission handling to use the new button
+            // Update the form submission handling to use the new button and handle assignments
             const saveCoachButton = document.getElementById('saveCoachButton');
             saveCoachButton.addEventListener('click', function() {
-                // Trigger form submission
                 const coachForm = document.getElementById('coachForm');
-                
-                // Validate the form before submission
                 if (coachForm.checkValidity()) {
                     const coachId = document.getElementById('coachId').value;
                     const firstName = document.getElementById('coachFname').value;
                     const lastName = document.getElementById('coachLname').value;
-                    
+                    const assignedPrograms = [];
+                    document.querySelectorAll('input[name="program_assignments[]"]:checked').forEach(checkbox => {
+                        assignedPrograms.push(checkbox.value);
+                    });
                     if (coachId) {
-                        // Update existing coach
-                        showToast(`Coach "${firstName} ${lastName}" updated successfully!`);
+                        showToast(`Coach "${firstName} ${lastName}" updated with ${assignedPrograms.length} program assignments!`);
                     } else {
-                        // Add new coach
-                        showToast(`Coach "${firstName} ${lastName}" added successfully!`);
+                        showToast(`Coach "${firstName} ${lastName}" added with ${assignedPrograms.length} program assignments!`);
                     }
-                    
-                    // Close modal
                     coachModal.classList.add('hidden');
                 } else {
-                    // Trigger HTML5 validation
                     coachForm.reportValidity();
                 }
             });
-        }
 
-        // ------ Assignment Modal Functions ------
-        function initAssignmentModal() {
-            const addAssignmentBtn = document.getElementById('addAssignmentBtn');
-            const assignmentModal = document.getElementById('assignmentModal');
-            const closeAssignmentModal = document.getElementById('closeAssignmentModal');
-            const cancelAssignmentBtn = document.getElementById('cancelAssignmentBtn');
-            const assignmentForm = document.getElementById('assignmentForm');
-            const deleteAssignmentButtons = document.querySelectorAll('.delete-assignment');
-            const deleteConfirmDialog = document.getElementById('deleteConfirmDialog');
-            const cancelDelete = document.getElementById('cancelDelete');
-            const confirmDelete = document.getElementById('confirmDelete');
-            const programSelect = document.getElementById('programSelect');
-            const coachSelect = document.getElementById('coachSelect');
-            const discardChangesDialog = document.getElementById('discardChangesDialog');
-            const continueEditingBtn = document.getElementById('continueEditingBtn');
-            const discardChangesBtn = document.getElementById('discardChangesBtn');
-            
-            let originalAssignmentFormData = '';
-            
-            // Function to check if form has been modified
-            function isAssignmentFormModified() {
-                const currentFormData = new FormData(assignmentForm);
-                let currentDataString = '';
-                for (let pair of currentFormData.entries()) {
-                    currentDataString += pair[0] + '=' + pair[1] + '&';
-                }
-                
-                return currentDataString !== originalAssignmentFormData;
-            }
-            
-            // Function to save original form state
-            function saveAssignmentFormState() {
-                const formData = new FormData(assignmentForm);
-                originalAssignmentFormData = '';
-                for (let pair of formData.entries()) {
-                    originalAssignmentFormData += pair[0] + '=' + pair[1] + '&';
-                }
-            }
-            
-            // Open modal for adding new assignment
-            addAssignmentBtn.addEventListener('click', function() {
-                // Reset form
-                assignmentForm.reset();
-                
-                // Clear coach options
-                coachSelect.innerHTML = '<option value="">-- Select Coach --</option>';
-                
-                // Show modal
-                assignmentModal.classList.remove('hidden');
-                // Save the initial state after reset
-                saveAssignmentFormState();
-            });
-            
-            // Confirm before closing modal if there are changes
-            function confirmCloseModal() {
-                if (isAssignmentFormModified()) {
-                    discardChangesDialog.classList.remove('hidden');
-                    
-                    // Pass the caller context to the discard button
-                    discardChangesBtn.setAttribute('data-caller', 'assignment');
+            // Toggle status label based on checkbox state
+            coachStatus.addEventListener('change', function() {
+                if (this.checked) {
+                    coachStatusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                    coachStatusLabel.classList.remove('text-red-600');
+                    coachStatusLabel.classList.add('text-green-600');
                 } else {
-                    assignmentModal.classList.add('hidden');
-                }
-            }
-            
-            // Close modal
-            closeAssignmentModal.addEventListener('click', confirmCloseModal);
-            cancelAssignmentBtn.addEventListener('click', confirmCloseModal);
-            
-            // Coach data for demo purposes
-            const coaches = {
-                '1': { 
-                    id: '1',
-                    name: 'Mike Johnson',
-                    email: 'mike.j@example.com',
-                    specializations: ['1', '4'] // Strength Training, CrossFit
-                },
-                '2': { 
-                    id: '2',
-                    name: 'Sarah Williams',
-                    email: 'sarah.w@example.com',
-                    specializations: ['3'] // Yoga
-                },
-                '3': { 
-                    id: '3',
-                    name: 'David Rodriguez',
-                    email: 'david.r@example.com',
-                    specializations: ['4'] // CrossFit
-                }
-            };
-            
-            // Program data with coach assignment validation
-            const programs = {
-                '1': { name: 'Strength Training', description: 'Weight lifting and resistance training' },
-                '2': { name: 'Cardio', description: 'Aerobic exercises and endurance training' },
-                '3': { name: 'Yoga', description: 'Flexibility and mindfulness training' },
-                '4': { name: 'CrossFit', description: 'High-intensity functional training' }
-            };
-            
-            // When program changes, update available coaches based on specialization
-            programSelect.addEventListener('change', function() {
-                const selectedProgramId = this.value;
-                
-                // Clear current options
-                coachSelect.innerHTML = '<option value="">-- Select Coach --</option>';
-                
-                if (!selectedProgramId) return;
-                
-                // Filter coaches by program specialization
-                const eligibleCoaches = Object.values(coaches).filter(coach => 
-                    coach.specializations.includes(selectedProgramId));
-                
-                // Add coaches for the selected program
-                eligibleCoaches.forEach(coach => {
-                    const option = document.createElement('option');
-                    option.value = coach.id;
-                    option.textContent = coach.name;
-                    coachSelect.appendChild(option);
-                });
-                
-                // Show message if no coaches are available
-                if (eligibleCoaches.length === 0) {
-                    const option = document.createElement('option');
-                    option.disabled = true;
-                    option.textContent = 'No coaches specialized in this program';
-                    coachSelect.appendChild(option);
-                }
-            });
-            
-            // Open modal for adding new assignment
-            addAssignmentBtn.addEventListener('click', function() {
-                // Reset form
-                assignmentForm.reset();
-                
-                // Show modal
-                assignmentModal.classList.remove('hidden');
-            });
-            
-            // Close modal
-            closeAssignmentModal.addEventListener('click', confirmCloseModal);
-            cancelAssignmentBtn.addEventListener('click', confirmCloseModal);
-            
-            // Submit form
-            assignmentForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const programId = programSelect.value;
-                const coachId = coachSelect.value;
-                
-                if (!programId || !coachId) {
-                    showToast('Please select both a program and a coach', false);
-                    return;
-                }
-                
-                const programName = programSelect.options[programSelect.selectedIndex].text;
-                const coachName = coachSelect.options[coachSelect.selectedIndex].text;
-                
-                // Add new assignment
-                showToast(`Coach "${coachName}" assigned to "${programName}" successfully!`);
-                
-                // Close modal
-                assignmentModal.classList.add('hidden');
-            });
-            
-            // Delete assignment functionality
-            deleteAssignmentButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const assignmentId = this.getAttribute('data-id');
-                    
-                    // Set up confirmation dialog
-                    document.getElementById('deleteConfirmTitle').textContent = 'Remove Assignment';
-                    document.getElementById('deleteConfirmText').textContent = 'Are you sure you want to remove this coach-program assignment?';
-                    
-                    // Store the assignment ID to be deleted
-                    confirmDelete.setAttribute('data-id', assignmentId);
-                    
-                    // Show confirmation dialog
-                    deleteConfirmDialog.classList.remove('hidden');
-                });
-            });
-            
-            // Cancel delete
-            cancelDelete.addEventListener('click', function() {
-                deleteConfirmDialog.classList.add('hidden');
-            });
-            
-            // Confirm delete
-            confirmDelete.addEventListener('click', function() {
-                const assignmentId = this.getAttribute('data-id');
-                
-                // In a real app, you would send a delete request to the server
-                showToast('Assignment removed successfully!');
-                
-                // Close confirmation dialog
-                deleteConfirmDialog.classList.add('hidden');
-            });
-
-            // Update the form submission handling to use the new button
-            const createAssignmentButton = document.getElementById('createAssignmentButton');
-            createAssignmentButton.addEventListener('click', function() {
-                // Trigger form submission
-                const assignmentForm = document.getElementById('assignmentForm');
-                
-                // Validate the form before submission
-                if (assignmentForm.checkValidity()) {
-                    const programId = document.getElementById('programSelect').value;
-                    const coachId = document.getElementById('coachSelect').value;
-                    
-                    if (!programId || !coachId) {
-                        showToast('Please select both a program and a coach', false);
-                        return;
-                    }
-                    
-                    const programName = document.getElementById('programSelect').options[document.getElementById('programSelect').selectedIndex].text;
-                    const coachName = document.getElementById('coachSelect').options[document.getElementById('coachSelect').selectedIndex].text;
-                    
-                    // Add new assignment
-                    showToast(`Coach "${coachName}" assigned to "${programName}" successfully!`);
-                    
-                    // Close modal
-                    assignmentModal.classList.add('hidden');
-                } else {
-                    // Trigger HTML5 validation
-                    assignmentForm.reportValidity();
+                    coachStatusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                    coachStatusLabel.classList.remove('text-green-600');
+                    coachStatusLabel.classList.add('text-red-600');
                 }
             });
         }
 
         // ------ Status Toggle Functions ------
         function initStatusToggles() {
-            // Status toggles for programs and coaches
             const statusToggles = document.querySelectorAll('.status-toggle');
-            
             statusToggles.forEach(toggle => {
                 toggle.addEventListener('change', function() {
                     const id = this.getAttribute('data-id');
                     const isActive = this.checked;
                     const type = this.closest('table').id === 'programsTable' ? 'Program' : 'Coach';
-                    
-                    // Show confirmation toast
                     showToast(`${type} ${isActive ? 'activated' : 'deactivated'} successfully!`, true);
-                    
                     // In a real implementation, you would make an API call here
                     console.log(`${type} ${id} status changed to ${isActive ? 'active' : 'inactive'}`);
                 });
@@ -1639,159 +1239,32 @@
             const logoutConfirmDialog = document.getElementById('logoutConfirmDialog');
             const cancelLogout = document.getElementById('cancelLogout');
             const confirmLogout = document.getElementById('confirmLogout');
-            
-            // Change logout link behavior to show confirmation
+
             if (logoutButton) {
                 logoutButton.addEventListener('click', function(e) {
-                    e.preventDefault(); // Prevent immediate navigation
+                    e.preventDefault();
                     logoutConfirmDialog.classList.remove('hidden');
                 });
             }
-            
-            // Cancel logout button
+
             if (cancelLogout) {
                 cancelLogout.addEventListener('click', function() {
                     logoutConfirmDialog.classList.add('hidden');
                 });
             }
-            
-            // Confirm logout button
+
             if (confirmLogout) {
                 confirmLogout.addEventListener('click', function() {
-                    // Navigate to login page
                     window.location.href = "../../login.html";
                 });
             }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // ...existing code...
-            
-            // Program data - used across the application
-            const programData = {
-                '1': { 
-                    id: '1',
-                    name: 'Strength Training', 
-                    isActive: true,
-                    color: 'blue',
-                    icon: 'dumbbell'
-                },
-                '2': { 
-                    id: '2',
-                    name: 'Cardio', 
-                    isActive: true,
-                    color: 'red',
-                    icon: 'heartbeat'
-                },
-                '3': { 
-                    id: '3',
-                    name: 'Yoga', 
-                    isActive: true,
-                    color: 'green',
-                    icon: 'spa'
-                },
-                '4': { 
-                    id: '4',
-                    name: 'CrossFit', 
-                    isActive: false,
-                    color: 'purple',
-                    icon: 'running'
-                }
-            };
-            
-            // Coach assignments data
-            const coachAssignments = {
-                '1': ['1', '4'], // Mike assigned to Strength Training and CrossFit
-                '2': ['3'],      // Sarah assigned to Yoga
-                '3': ['4']       // David assigned to CrossFit
-            };
-            
-            // Render coach specialization badges
-            function renderCoachSpecializationBadges() {
-                const coachRows = document.querySelectorAll('#coachesTable tbody tr');
-                
-                coachRows.forEach(row => {
-                    const coachId = row.querySelector('.edit-coach-button').getAttribute('data-id');
-                    const badgesContainer = row.querySelector('.flex.flex-wrap.gap-1');
-                    
-                    if (badgesContainer) {
-                        badgesContainer.innerHTML = ''; // Clear existing badges
-                        
-                        // Get program assignments for this coach
-                        const assignedPrograms = coachAssignments[coachId] || [];
-                        
-                        if (assignedPrograms.length === 0) {
-                            badgesContainer.innerHTML = '<span class="text-sm text-gray-500">No specializations</span>';
-                        } else {
-                            // Create a badge for each assigned program
-                            assignedPrograms.forEach(programId => {
-                                const program = programData[programId];
-                                if (program) {
-                                    const badge = document.createElement('span');
-                                    badge.className = `px-2 py-1 text-xs rounded-full bg-${program.color}-100 text-${program.color}-800`;
-                                    badge.innerHTML = `<i class="fas fa-${program.icon} mr-1"></i>${program.name}`;
-                                    badgesContainer.appendChild(badge);
-                                }
-                            });
-                        }
-                    }
-                });
-            }
-            
-            // Initialize badges when the page loads
-            renderCoachSpecializationBadges();
-            
-            // Update coach table after assignment changes
-            const assignmentForm = document.getElementById('assignmentForm');
-            if (assignmentForm) {
-                assignmentForm.addEventListener('submit', function(e) {
-                    // After handling the form submission, refresh the specialization badges
-                    setTimeout(renderCoachSpecializationBadges, 500);
-                });
-            }
-            
-            // Update coach specializations when a program assignment is removed
-            const deleteAssignmentButtons = document.querySelectorAll('.delete-assignment');
-            deleteAssignmentButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    // After confirming deletion, refresh the specialization badges
-                    const confirmDelete = document.getElementById('confirmDelete');
-                    if (confirmDelete) {
-                        const originalClickHandler = confirmDelete.onclick;
-                        confirmDelete.onclick = function(e) {
-                            if (originalClickHandler) originalClickHandler.call(this, e);
-                            setTimeout(renderCoachSpecializationBadges, 500);
-                        };
-                    }
-                });
-            });
-
-            // Set up discard changes dialog functionality
-            const discardChangesDialog = document.getElementById('discardChangesDialog');
-            const continueEditingBtn = document.getElementById('continueEditingBtn');
-            const discardChangesBtn = document.getElementById('discardChangesBtn');
-            
-            // Continue editing button just closes the dialog
-            continueEditingBtn.addEventListener('click', function() {
-                discardChangesDialog.classList.add('hidden');
-            });
-            
-            // Discard changes button closes both the dialog and the modal
-            discardChangesBtn.addEventListener('click', function() {
-                const caller = this.getAttribute('data-caller');
-                
-                // Close the discard dialog
-                discardChangesDialog.classList.add('hidden');
-                
-                // Close the appropriate modal based on the caller
-                if (caller === 'program') {
-                    document.getElementById('programModal').classList.add('hidden');
-                } else if (caller === 'coach') {
-                    document.getElementById('coachModal').classList.add('hidden');
-                } else if (caller === 'assignment') {
-                    document.getElementById('assignmentModal').classList.add('hidden');
-                }
-            });
+            initProgramModal();
+            initCoachModal();
+            initStatusToggles();
+            initLogoutConfirmation();
         });
     </script>
 </body>

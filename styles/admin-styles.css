@@ -130,20 +130,6 @@
     border-radius: 4px;
 }
 
-/* Header and profile styling */
-.profile-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    width: 220px;
-    margin-top: 0.5rem;
-    z-index: 50;
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(229, 231, 235, 0.8);
-    background-color: white;
-}
-
 .notification-badge {
     position: absolute;
     top: -2px;
@@ -499,6 +485,12 @@ body {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
+/* Add styling for active sidebar items */
+.sidebar-dropdown-item.bg-white\/10 {
+    color: rgba(255, 255, 255, 1); /* Full white for active items */
+    font-weight: 500; /* Make it slightly bolder */
+}
+
 /* Admin header styling */
 .header-icon-button {
     position: relative;
@@ -537,7 +529,8 @@ body {
 /* Theme colors */
 :root {
     --primary-light: #5C6C90;
-    --primary-dark: #3F4E6B;
+    --primary-dark: #081738; /* Change to a darker value to match the appearance */
+    --primary: #4A5A7A;
 }
 
 .bg-primary-light {
@@ -554,4 +547,9 @@ body {
 
 .text-primary-dark {
     color: var(--primary-dark);
+}
+
+/* Add missing text-primary class */
+.text-primary {
+    color: var(--primary);
 }
