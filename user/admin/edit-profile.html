@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../styles/admin-styles.css">
     <script>
         tailwind.config = {
             theme: {
@@ -30,43 +31,53 @@
         }
     </script>
     <style>
-        /* Main content styling */
-        .main-content {
-            background-color: #f0f4f8;
-            background-image: 
-                linear-gradient(rgba(165, 179, 201, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(165, 179, 201, 0.05) 1px, transparent 1px);
-            background-size: 30px 30px;
-            min-height: 100vh;
-            position: relative;
+        /* Dialog animation - these styles are not in admin-styles.css */
+        .modal-transition {
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
         }
         
-        .main-content::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 200px;
-            background: linear-gradient(180deg, rgba(8, 23, 56, 0.03) 0%, rgba(8, 23, 56, 0) 100%);
-            pointer-events: none;
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.95);
         }
         
-        /* Header styling */
-        .admin-header {
-            backdrop-filter: blur(10px);
-            background-color: rgba(255, 255, 255, 0.95);
-            border: none;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-            border-radius: 0;
-            margin-bottom: 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            width: 100%;
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
         }
-
-        /* Form styling */
+        
+        /* Toast notification - these styles are not in admin-styles.css */
+        .toast-notification {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        .toast-exit {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+        
+        /* Form input focus style */
         .form-input:focus {
             border-color: #5C6C90;
             box-shadow: 0 0 0 3px rgba(92, 108, 144, 0.2);
@@ -82,7 +93,7 @@
                 <div class="flex justify-between items-center h-16">
                     <!-- Page Title with back button -->
                     <div class="flex items-center">
-                        <a href="javascript:history.back()" class="mr-3 text-gray-500 hover:text-primary-dark">
+                        <a href="javascript:void(0)" onclick="handleBackButton()" class="mr-3 text-gray-500 hover:text-primary-dark">
                             <i class="fas fa-arrow-left"></i>
                         </a>
                         <h1 class="text-xl font-semibold text-primary-dark">Edit Profile</h1>
@@ -206,9 +217,50 @@
             </div>
         </div>
     </div>
+    
+    <!-- Confirmation Dialog -->
+    <div id="confirmDialog" class="fixed inset-0 bg-black bg-opacity-30 z-[60] flex items-center justify-center hidden backdrop-blur">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 modal-transition modal-enter">
+            <div class="p-5">
+                <div class="flex items-center mb-4">
+                    <div class="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 mr-4">
+                        <i class="fas fa-exclamation-triangle text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">Discard Changes</h3>
+                        <p class="text-sm text-gray-600">Are you sure you want to cancel? Any unsaved changes will be lost.</p>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button id="continueEditing" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">
+                        Continue Editing
+                    </button>
+                    <button id="discardChanges" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                        Discard Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Success Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 max-w-md bg-green-600 text-white px-4 py-3 rounded-md shadow-lg z-50 hidden flex items-center">
+        <i id="toastIcon" class="fas fa-check-circle mr-3"></i>
+        <span id="toastMessage">Profile updated successfully!</span>
+        <button class="ml-auto text-white hover:text-white/80" onclick="hideToast()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Initial form values for change detection
+            const initialFormData = {};
+            const formInputs = document.querySelectorAll('#profileForm input');
+            formInputs.forEach(input => {
+                initialFormData[input.id] = input.value;
+            });
+            
             // Toggle password visibility
             const toggleButtons = document.querySelectorAll('.toggle-password');
             
@@ -229,12 +281,39 @@
                 });
             });
             
-            // Handle cancel button with confirmation
-            const cancelButton = document.getElementById('cancelButton');
-            cancelButton.addEventListener('click', function() {
-                if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+            // Handle back button function - reuse confirm dialog logic
+            window.handleBackButton = function() {
+                if (formHasChanges()) {
+                    // Show confirmation dialog
+                    showConfirmDialog();
+                } else {
+                    // No changes, just go back
                     window.history.back();
                 }
+            };
+            
+            // Handle cancel button with confirmation
+            const cancelButton = document.getElementById('cancelButton');
+            const confirmDialog = document.getElementById('confirmDialog');
+            const continueEditing = document.getElementById('continueEditing');
+            const discardChanges = document.getElementById('discardChanges');
+            
+            cancelButton.addEventListener('click', function() {
+                if (formHasChanges()) {
+                    // Show confirmation dialog
+                    showConfirmDialog();
+                } else {
+                    // No changes, just go back
+                    window.history.back();
+                }
+            });
+            
+            // Dialog control functions
+            continueEditing.addEventListener('click', hideConfirmDialog);
+            
+            discardChanges.addEventListener('click', function() {
+                hideConfirmDialog();
+                window.history.back();
             });
             
             // Form submission handling
@@ -251,24 +330,130 @@
                 if (currentPassword || newPassword || confirmPassword) {
                     // Check if all password fields are filled
                     if (!currentPassword || !newPassword || !confirmPassword) {
-                        alert('Please fill all password fields to change your password.');
+                        showToast('Please fill all password fields to change your password.', 'error');
                         return;
                     }
                     
                     // Check if new passwords match
                     if (newPassword !== confirmPassword) {
-                        alert('New passwords do not match!');
+                        showToast('New passwords do not match!', 'error');
                         return;
                     }
                 }
                 
                 // In a real application, you would send this to the server
-                // For now, just show success
-                alert('Profile updated successfully!');
+                // For now, just show success toast
+                showToast('Profile updated successfully!', 'success');
                 
-                // Redirect back to dashboard or show success message
-                // window.location.href = "admin-dashboard.html";
+                // Reset form data so cancel doesn't trigger confirmation
+                updateInitialFormData();
+                
+                // Automatically redirect after toast closes
+                setTimeout(() => {
+                    window.history.back();
+                }, 2000);
             });
+            
+            // Check if form has changes
+            function formHasChanges() {
+                let hasChanges = false;
+                
+                // Check regular inputs
+                formInputs.forEach(input => {
+                    // Ignore read-only fields
+                    if (!input.readOnly && initialFormData[input.id] !== input.value) {
+                        hasChanges = true;
+                    }
+                });
+                
+                return hasChanges;
+            }
+            
+            // Update initial form data (after successful save)
+            function updateInitialFormData() {
+                formInputs.forEach(input => {
+                    initialFormData[input.id] = input.value;
+                });
+            }
+            
+            // Show confirmation dialog
+            function showConfirmDialog() {
+                confirmDialog.classList.remove('hidden');
+                
+                // Force a reflow so the transition happens
+                void confirmDialog.offsetWidth;
+                
+                // Add active classes for animation
+                const dialogContent = confirmDialog.querySelector('.modal-transition');
+                dialogContent.classList.remove('modal-enter');
+                dialogContent.classList.add('modal-enter-active');
+            }
+            
+            // Hide confirmation dialog
+            function hideConfirmDialog() {
+                const dialogContent = confirmDialog.querySelector('.modal-transition');
+                dialogContent.classList.remove('modal-enter-active');
+                dialogContent.classList.add('modal-enter');
+                
+                // Wait for animation to complete before hiding
+                setTimeout(() => {
+                    confirmDialog.classList.add('hidden');
+                }, 300);
+            }
+            
+            // Toast notification functions
+            function showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                const toastMessage = document.getElementById('toastMessage');
+                const toastIcon = document.getElementById('toastIcon');
+                
+                // Set message
+                toastMessage.textContent = message;
+                
+                // Set color and icon based on type
+                if (type === 'success') {
+                    toast.classList.remove('bg-red-600', 'bg-yellow-600');
+                    toast.classList.add('bg-green-600');
+                    toastIcon.classList.remove('fa-exclamation-circle', 'fa-times-circle');
+                    toastIcon.classList.add('fa-check-circle');
+                } else if (type === 'error') {
+                    toast.classList.remove('bg-green-600', 'bg-yellow-600');
+                    toast.classList.add('bg-red-600');
+                    toastIcon.classList.remove('fa-check-circle', 'fa-exclamation-circle');
+                    toastIcon.classList.add('fa-times-circle');
+                } else if (type === 'warning') {
+                    toast.classList.remove('bg-green-600', 'bg-red-600');
+                    toast.classList.add('bg-yellow-600');
+                    toastIcon.classList.remove('fa-check-circle', 'fa-times-circle');
+                    toastIcon.classList.add('fa-exclamation-circle');
+                }
+                
+                // Show toast
+                toast.classList.remove('hidden');
+                toast.classList.add('toast-notification');
+                
+                // Clear any existing timeout
+                if (window.toastTimeout) {
+                    clearTimeout(window.toastTimeout);
+                }
+                
+                // Auto hide after delay
+                window.toastTimeout = setTimeout(hideToast, 3000);
+            }
+            
+            function hideToast() {
+                const toast = document.getElementById('toast');
+                toast.classList.remove('toast-notification');
+                toast.classList.add('toast-exit');
+                
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                    toast.classList.remove('toast-exit');
+                }, 300);
+            }
+            
+            // Make hideToast function global
+            window.hideToast = hideToast;
         });
     </script>
 </body>
