@@ -36,7 +36,7 @@
                 <ul class="space-y-1 font-medium">
                     <!-- Dashboard -->
                     <li>
-                        <a href="admin-dashboard.html" class="sidebar-menu-item">
+                        <a href="admin-dashboard.php" class="sidebar-menu-item">
                             <i class="fas fa-home"></i>
                             <span>Dashboard</span>
                         </a>
@@ -54,22 +54,22 @@
                         <div id="dropdown-management" class="overflow-hidden transition-all duration-300 ease-in-out">
                             <ul class="pt-1 pb-1">
                                 <li>
-                                    <a href="manage-users.html" class="sidebar-dropdown-item bg-white/10">User</a>
+                                    <a href="manage-users.php" class="sidebar-dropdown-item bg-white/10">User</a>
                                 </li>
                                 <li>
-                                    <a href="manage-members.html" class="sidebar-dropdown-item">Member</a>
+                                    <a href="manage-members.php" class="sidebar-dropdown-item">Member</a>
                                 </li>
                                 <li>
-                                    <a href="manage-programs-coaches.html" class="sidebar-dropdown-item">Program & Coach</a>
+                                    <a href="manage-programs-coaches.php" class="sidebar-dropdown-item">Program & Coach</a>
                                 </li>
                                 <li>
-                                    <a href="manage-comorbidities.html" class="sidebar-dropdown-item">Comorbidities</a>
+                                    <a href="manage-comorbidities.php" class="sidebar-dropdown-item">Comorbidities</a>
                                 </li>
                                 <li>
-                                    <a href="manage-subscription.html" class="sidebar-dropdown-item">Subscription</a>
+                                    <a href="manage-subscription.php" class="sidebar-dropdown-item">Subscription</a>
                                 </li>
                                 <li>
-                                    <a href="manage-payment.html" class="sidebar-dropdown-item">Payment</a>
+                                    <a href="manage-payment.php" class="sidebar-dropdown-item">Payment</a>
                                 </li>
                             </ul>
                         </div>
@@ -88,7 +88,7 @@
             
             <!-- Logout placed at the very bottom -->
             <div class="mt-auto border-t border-white/10 relative">
-                <a href="../../login.html" class="sidebar-menu-item text-white/90 hover:text-white mt-3">
+                <a href="../../login.php" class="sidebar-menu-item text-white/90 hover:text-white mt-3">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Logout</span>
                 </a>
@@ -117,7 +117,7 @@
                         <div class="h-8 w-px bg-gray-200 mx-2"></div>
                         
                         <!-- User Profile - Direct link to edit profile -->
-                        <a href="edit-profile.html" class="flex items-center space-x-3 pr-2 cursor-pointer">
+                        <a href="edit-profile.php" class="flex items-center space-x-3 pr-2 cursor-pointer">
                             <div class="text-right hidden sm:block">
                                 <p class="text-sm font-medium text-gray-700">John Doe</p>
                                 <p class="text-xs text-gray-500">Administrator</p>
@@ -517,7 +517,7 @@
             const logoutConfirmDialog = document.getElementById('logoutConfirmDialog');
             const cancelLogout = document.getElementById('cancelLogout');
             const confirmLogout = document.getElementById('confirmLogout');
-            const logoutButton = document.querySelector('a[href="../../login.html"]');
+            const logoutButton = document.querySelector('a[href="../../login.php"]');
             
             // Current selected user ID for editing/deleting
             let currentUserId = null;
@@ -761,7 +761,7 @@
                 if (confirmLogout) {
                     confirmLogout.addEventListener('click', function() {
                         // Navigate to login page
-                        window.location.href = "../../login.html";
+                        window.location.href = "../../login.php";
                     });
                 }
             }

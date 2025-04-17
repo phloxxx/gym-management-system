@@ -1,3 +1,69 @@
+<?php
+session_start();
+require_once 'config/database.php';
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = trim($_POST['username']);
+    $password = $_POST['password'];
+    $role = $_POST['role'];
+    
+    // Check for static admin credentials
+    if ($username === 'admin' && $password === 'admin123' && $role === 'admin') {
+        $_SESSION['user_id'] = 'ADMIN';
+        $_SESSION['role'] = 'administrator';
+        $_SESSION['name'] = 'Administrator';
+        
+        $response = [
+            'success' => true,
+            'redirect' => 'user/admin/admin-dashboard.php'
+        ];
+        header('Content-Type: application/json');
+        echo json_encode($response);
+        exit;
+    }
+
+    // Convert role to match database enum
+    $userType = ($role === 'admin') ? 'ADMINISTRATOR' : 'STAFF';
+
+    try {
+        $stmt = $conn->prepare("SELECT USER_ID, USERNAME, PASSWORD, USER_TYPE, USER_FNAME 
+                               FROM user 
+                               WHERE USERNAME = ? AND USER_TYPE = ? AND IS_ACTIVE = 1");
+        $stmt->execute([$username, $userType]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user && $password === $user['PASSWORD']) { // Note: Update this to use proper password hashing in production
+            $_SESSION['user_id'] = $user['USER_ID'];
+            $_SESSION['role'] = strtolower($user['USER_TYPE']);
+            $_SESSION['name'] = $user['USER_FNAME'];
+            
+            $response = [
+                'success' => true,
+                'redirect' => $user['USER_TYPE'] === 'ADMINISTRATOR' ? 
+                            'user/admin/admin-dashboard.php' : 
+                            'user/staff/staff-dashboard.php'
+            ];
+        } else {
+            $response = [
+                'success' => false,
+                'message' => 'Invalid username or password'
+            ];
+        }
+        
+        header('Content-Type: application/json');
+        echo json_encode($response);
+        exit;
+    } catch (PDOException $e) {
+        $response = [
+            'success' => false,
+            'message' => 'Database error occurred'
+        ];
+        header('Content-Type: application/json');
+        echo json_encode($response);
+        exit;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -135,7 +201,7 @@
                         <!-- Forgot password -->
                         <div class="flex items-center justify-end pt-1">
                             <div class="text-sm">
-                                <a href="forgot-password.html" class="text-primary-light font-medium hover:text-primary-dark">
+                                <a href="forgot-password.php" class="text-primary-light font-medium hover:text-primary-dark">
                                     Forgot password?
                                 </a>
                             </div>
@@ -162,18 +228,6 @@
     <script>
         // Global variable to track selected role
         let selectedRole = null;
-
-        // Static accounts for demo purposes
-        const accounts = {
-            admin: {
-                username: "admin",
-                password: "admin123"
-            },
-            staff: {
-                username: "staff",
-                password: "staff123"
-            }
-        };
 
         function selectRole(element) {
             // Remove active class from all role cards
@@ -304,67 +358,45 @@
                 notification.remove();
                 // Update paths to match the correct file locations
                 if (dashboardType === 'admin') {
-                    window.location.href = 'user/admin/admin-dashboard.html';
+                    window.location.href = 'user/admin/admin-dashboard.php';
                 } else {
-                    window.location.href = 'user/staff/staff-dashboard.html';
+                    window.location.href = 'user/staff/staff-dashboard.php';
                 }
             }, 2000);
         }
 
+        // Replace the static accounts object with actual AJAX call
         function attemptLogin() {
-            try {
-                if (validateForm()) {
-                    const username = document.getElementById('username').value;
-                    const password = document.getElementById('password').value;
-                    
-                    // Check if credentials match the static accounts based on selected role
-                    if (selectedRole === 'admin' && 
-                        username === accounts.admin.username && 
-                        password === accounts.admin.password) {
-                        showLoginSuccess('admin');
-                    } else if (selectedRole === 'staff' && 
-                              username === accounts.staff.username && 
-                              password === accounts.staff.password) {
-                        showLoginSuccess('staff');
+            if (validateForm()) {
+                const formData = new FormData();
+                formData.append('username', document.getElementById('username').value);
+                formData.append('password', document.getElementById('password').value);
+                formData.append('role', selectedRole);
+
+                fetch('login.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showLoginSuccess(selectedRole);
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 2000);
                     } else {
-                        // Show detailed errors for credential issues
-                        if (selectedRole === 'admin') {
-                            if (username !== accounts.admin.username) {
-                                showError("Admin username not recognized. Please check your spelling.");
-                            } else if (password !== accounts.admin.password) {
-                                showError("Incorrect password for admin account. Please try again.");
-                            } else {
-                                showError("Invalid admin credentials.");
-                            }
-                        } else if (selectedRole === 'staff') {
-                            if (username !== accounts.staff.username) {
-                                showError("Staff username not recognized. Please check your spelling.");
-                            } else if (password !== accounts.staff.password) {
-                                showError("Incorrect password for staff account. Please try again.");
-                            } else {
-                                showError("Invalid staff credentials.");
-                            }
-                        }
-                        
-                        // Shake the form to indicate error
+                        showError(data.message);
                         const loginForm = document.getElementById('login-form');
                         loginForm.classList.add('shake-animation');
                         setTimeout(() => {
                             loginForm.classList.remove('shake-animation');
                         }, 500);
-                        
-                        // Highlight the problematic field based on the error
-                        if (selectedRole === 'admin' && username !== accounts.admin.username ||
-                            selectedRole === 'staff' && username !== accounts.staff.username) {
-                            highlightErrorField('username');
-                        } else {
-                            highlightErrorField('password');
-                        }
                     }
-                }
-            } catch (error) {
-                console.error("Login error:", error);
-                showError("System error: " + (error.message || "Unknown error occurred during login."));
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('An error occurred during login');
+                });
             }
         }
 

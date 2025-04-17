@@ -143,7 +143,7 @@
 
                     <!-- Back to Login link -->
                     <div class="mt-6 text-center">
-                        <a href="login.html" class="text-primary-light font-medium hover:text-primary-dark inline-flex items-center">
+                        <a href="login.php" class="text-primary-light font-medium hover:text-primary-dark inline-flex items-center">
                             <i class="fas fa-arrow-left mr-2 text-xs"></i> Back to Login
                         </a>
                     </div>
@@ -248,44 +248,45 @@
         
         function submitResetRequest() {
             if (validateForm()) {
+                const formData = new FormData();
+                
                 if (verificationStep === 1) {
-                    const username = document.getElementById('username').value.trim();
-                    const employeeId = document.getElementById('employee-id').value.trim();
-                    
-                    // Check if the credentials match our mock data
-                    let validCredentials = false;
-                    
-                    if (selectedRole === 'admin' && 
-                        username === accounts.admin.username && 
-                        employeeId === accounts.admin.employeeId) {
-                        validCredentials = true;
-                    } else if (selectedRole === 'staff' && 
-                             username === accounts.staff.username && 
-                             employeeId === accounts.staff.employeeId) {
-                        validCredentials = true;
-                    }
-                    
-                    if (validCredentials) {
-                        // Show verification code step
-                        showVerificationCodeStep();
+                    formData.append('username', document.getElementById('username').value.trim());
+                    formData.append('employee_id', document.getElementById('employee-id').value.trim());
+                    formData.append('role', selectedRole);
+                    formData.append('step', '1');
+                } else {
+                    formData.append('verification_code', document.getElementById('verification-code').value.trim());
+                    formData.append('step', '2');
+                }
+
+                fetch('process-reset-password.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.step === 2) {
+                            showVerificationCodeStep();
+                        } else {
+                            showSuccessMessage(data.temp_password);
+                        }
                     } else {
-                        // Show invalid credentials error
-                        showError("The information you provided doesn't match our records. Please verify your username and employee ID.");
-                        
-                        // Shake the form to indicate error
+                        showError(data.message);
                         const resetForm = document.getElementById('reset-form');
                         resetForm.classList.add('shake-animation');
                         setTimeout(() => {
                             resetForm.classList.remove('shake-animation');
                         }, 500);
                     }
-                } else if (verificationStep === 2) {
-                    // Show success message for correct verification code
-                    showSuccessMessage();
-                }
+                })
+                .catch(error => {
+                    showError('An error occurred while processing your request');
+                });
             }
         }
-        
+
         function showVerificationCodeStep() {
             verificationStep = 2;
             
@@ -335,11 +336,8 @@
             }, 100);
         }
         
-        function showSuccessMessage() {
-            // Replace the form with success message
+        function showSuccessMessage(tempPassword) {
             const formContainer = document.getElementById('reset-form').parentNode;
-            
-            // Create success content
             const successContent = document.createElement('div');
             successContent.className = 'text-center py-4';
             successContent.innerHTML = `
@@ -348,23 +346,19 @@
                 </div>
                 <h3 class="text-lg font-medium text-primary-dark mb-2">Password Reset Successful</h3>
                 <p class="text-sm text-gray-600 mb-6">
-                    Your password has been reset to: <strong>Temp123!</strong><br>
+                    Your password has been reset to: <strong>${tempPassword}</strong><br>
                     Please change this temporary password after logging in.
                 </p>
-                <a href="login.html" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-dark hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-light">
+                <a href="login.php" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-dark hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-light">
                     Return to Login
                 </a>
             `;
             
-            // Update page header
             document.querySelector('.mb-6 h2').textContent = "Password Reset";
             document.querySelector('.mb-6 p').textContent = "Your password has been successfully reset";
             
-            // Remove form
             const resetForm = document.getElementById('reset-form');
             resetForm.parentNode.replaceChild(successContent, resetForm);
-            
-            // Hide role selection
             document.querySelector('.mb-5').style.display = 'none';
         }
         
