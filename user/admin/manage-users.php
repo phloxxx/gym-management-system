@@ -1,3 +1,79 @@
+<?php
+session_start();
+require_once '../../config/db_functions.php';
+
+// Check if user is logged in and is an admin
+if (!isset($_SESSION['user_id']) || strtolower($_SESSION['role']) !== 'administrator') {
+    header("Location: ../../login.php");
+    exit();
+}
+
+// Add this after the session check but before the AJAX handling
+function getAllUsers() {
+    try {
+        $conn = getConnection();
+        $sql = "SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, USER_TYPE, IS_ACTIVE 
+                FROM user 
+                ORDER BY USER_ID DESC";
+        $result = $conn->query($sql);
+        
+        $users = [];
+        while ($row = $result->fetch_assoc()) {
+            // Format the data to match the frontend expectations
+            $users[] = [
+                'id' => $row['USER_ID'],
+                'firstName' => $row['USER_FNAME'],
+                'lastName' => $row['USER_LNAME'],
+                'username' => $row['USERNAME'],
+                'userType' => strtolower($row['USER_TYPE']) === 'administrator' ? 'admin' : 'staff',
+                'isActive' => (int)$row['IS_ACTIVE']
+            ];
+        }
+        return $users;
+    } catch (Exception $e) {
+        error_log("Error fetching users: " . $e->getMessage());
+        return [];
+    }
+}
+
+// Handle AJAX requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json');
+    
+    switch ($_POST['action']) {
+        case 'getUsers':
+            $users = getAllUsers();
+            echo json_encode(['success' => true, 'users' => $users]);
+            break;
+            
+        case 'add':
+            // Validate required fields
+            $requiredFields = ['USER_FNAME', 'USER_LNAME', 'USERNAME', 'PASSWORD', 'USER_TYPE'];
+            $postData = $_POST;
+            $missingFields = array_filter($requiredFields, function($field) use ($postData) {
+                return !isset($postData[$field]) || trim($postData[$field]) === '';
+            });
+            
+            if (!empty($missingFields)) {
+                echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+                exit;
+            }
+            
+            // Validate password length
+            if (strlen($_POST['PASSWORD']) < 8 || strlen($_POST['PASSWORD']) > 15) {
+                echo json_encode(['success' => false, 'message' => 'Password must be 8-15 characters long']);
+                exit;
+            }
+            
+            $result = addUser($_POST);
+            echo json_encode($result);
+            break;
+        default:
+            echo json_encode(['success' => false, 'message' => 'Invalid action']);
+    }
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -479,15 +555,6 @@
         }
         
         document.addEventListener('DOMContentLoaded', function() {
-            // Sample data for demonstration
-            const sampleUsers = [
-                { id: 1, firstName: 'John', lastName: 'Doe', username: 'admin', userType: 'admin', isActive: 1 },
-                { id: 2, firstName: 'Jane', lastName: 'Smith', username: 'jsmith', userType: 'staff', isActive: 1 },
-                { id: 3, firstName: 'Robert', lastName: 'Johnson', username: 'rjohnson', userType: 'staff', isActive: 0 },
-                { id: 4, firstName: 'Emily', lastName: 'Wilson', username: 'ewilson', userType: 'admin', isActive: 1 },
-                { id: 5, firstName: 'Michael', lastName: 'Brown', username: 'mbrown', userType: 'staff', isActive: 1 },
-            ];
-            
             // DOM elements
             const userTableBody = document.getElementById('userTableBody');
             const loadingState = document.getElementById('loadingState');
@@ -538,11 +605,34 @@
             window.hideToast = hideToast;
             
             function initializePage() {
-                // Simulate loading
-                setTimeout(() => {
+                // Show loading state
+                loadingState.classList.remove('hidden');
+                
+                // Fetch users from the server
+                fetch('?action=getUsers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'action=getUsers'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayUsers(data.users);
+                    } else {
+                        showToast('Failed to load users', 'error');
+                        displayUsers([]);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Failed to load users', 'error');
+                    displayUsers([]);
+                })
+                .finally(() => {
                     loadingState.classList.add('hidden');
-                    displayUsers(sampleUsers);
-                }, 500);
+                });
             }
             
             function displayUsers(users) {
@@ -694,22 +784,37 @@
                     const searchTerm = searchUsers.value.toLowerCase();
                     const selectedUserType = userTypeFilter.value;
                     
-                    const filteredUsers = sampleUsers.filter(user => {
-                        // Check if user matches search term
-                        const matchesSearch = 
-                            user.firstName.toLowerCase().includes(searchTerm) || 
-                            user.lastName.toLowerCase().includes(searchTerm) || 
-                            user.username.toLowerCase().includes(searchTerm) ||
-                            user.userType.toLowerCase().includes(searchTerm);
-                        
-                        // Check if user matches selected user type
-                        const matchesUserType = selectedUserType === '' || user.userType === selectedUserType;
-                            
-                        // User must match both conditions
-                        return matchesSearch && matchesUserType;
-                    });
+                    // Show loading state
+                    loadingState.classList.remove('hidden');
                     
-                    displayUsers(filteredUsers);
+                    // Fetch all users again and filter on the client side
+                    fetch('?action=getUsers', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'action=getUsers'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const filteredUsers = data.users.filter(user => {
+                                const matchesSearch = 
+                                    user.firstName.toLowerCase().includes(searchTerm) || 
+                                    user.lastName.toLowerCase().includes(searchTerm) || 
+                                    user.username.toLowerCase().includes(searchTerm);
+                                
+                                const matchesUserType = selectedUserType === '' || user.userType === selectedUserType;
+                                
+                                return matchesSearch && matchesUserType;
+                            });
+                            
+                            displayUsers(filteredUsers);
+                        }
+                    })
+                    .finally(() => {
+                        loadingState.classList.add('hidden');
+                    });
                 }
                 
                 // Add event listeners for filtering
@@ -980,80 +1085,59 @@
                     userForm.reportValidity();
                     return;
                 }
-                
+
+                // Show loading state
+                const saveButton = document.getElementById('saveUserButton');
+                const originalButtonText = saveButton.innerHTML;
+                saveButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+                saveButton.disabled = true;
+
+                // Get form data
                 const formData = new FormData(userForm);
-                const userData = {};
-                
-                formData.forEach((value, key) => {
-                    userData[key] = value;
+                formData.append('action', 'add');
+
+                // Convert user type value
+                const userType = document.getElementById('userType').value;
+                formData.set('USER_TYPE', userType === 'admin' ? 'ADMINISTRATOR' : 'STAFF');
+
+                // Add status
+                formData.set('IS_ACTIVE', document.getElementById('status').checked ? 1 : 0);
+
+                // Add debugging
+                console.log('Sending form data:', Object.fromEntries(formData));
+
+                fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Server response:', data); // Debug log
+                    if (data.success) {
+                        showToast(data.message);
+                        closeUserModal();
+                        // Refresh the page after a short delay
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showToast(data.message || 'Failed to save user', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('An error occurred while saving the user', 'error');
+                })
+                .finally(() => {
+                    // Reset button state
+                    saveButton.innerHTML = originalButtonText;
+                    saveButton.disabled = false;
                 });
-                
-                // Convert active status to number
-                userData.IS_ACTIVE = userData.IS_ACTIVE ? 1 : 0;
-                
-                if (currentUserId) {
-                    // Editing existing user
-                    const userIndex = sampleUsers.findIndex(u => u.id.toString() === currentUserId.toString());
-                    
-                    if (userIndex !== -1) {
-                        const updatedUser = {
-                            ...sampleUsers[userIndex],
-                            firstName: userData.USER_FNAME,
-                            lastName: userData.USER_LNAME,
-                            username: userData.USERNAME,
-                            userType: userData.USER_TYPE,
-                            isActive: userData.IS_ACTIVE
-                        };
-                        
-                        // Check if password should be updated
-                        const changePassword = formData.has('changePassword');
-                        if (changePassword && userData.newPassword) {
-                            // In a real app, this would hash and update the password
-                            console.log('Password updated to:', userData.newPassword);
-                        }
-                        
-                        // Update the sample users array
-                        sampleUsers[userIndex] = updatedUser;
-                        
-                        showToast('User updated successfully!');
-                    }
-                } else {
-                    // Adding new user
-                    if (!userData.PASSWORD) {
-                        userForm.reportValidity();
-                        showToast('Password is required for new users', 'error');
-                        return;
-                    }
-                    
-                    const newUser = {
-                        id: sampleUsers.length + 1,
-                        firstName: userData.USER_FNAME,
-                        lastName: userData.USER_LNAME,
-                        username: userData.USERNAME,
-                        userType: userData.USER_TYPE,
-                        isActive: userData.IS_ACTIVE,
-                    };
-                    
-                    // In a real app, this would hash the password before storing
-                    console.log('New user password:', userData.PASSWORD);
-                    
-                    // Add to sample users array
-                    sampleUsers.push(newUser);
-                    
-                    showToast('User added successfully!');
-                }
-                
-                // Close modal with explicit display settings
-                userModal.style.display = 'none';
-                userModal.classList.add('hidden');
-                userModal.classList.remove('active');
-                
-                // Reset the form and current user ID
-                userForm.reset();
-                currentUserId = null;
-                
-                // Refresh the user table
-                displayUsers(sampleUsers);
             }
             
             function updateUserStatus(userId, isActive) {

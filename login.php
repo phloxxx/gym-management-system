@@ -34,6 +34,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if ($user && $password === $user['PASSWORD']) { // Note: Update this to use proper password hashing in production
             $_SESSION['user_id'] = $user['USER_ID'];
+            $_SESSION['username'] = $user['USERNAME']; // Add this line
             $_SESSION['role'] = strtolower($user['USER_TYPE']);
             $_SESSION['name'] = $user['USER_FNAME'];
             

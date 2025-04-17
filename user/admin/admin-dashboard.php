@@ -1,3 +1,27 @@
+<?php
+session_start();
+require_once '../../config/analytics_functions.php';
+
+// Check if user is logged in and is an admin
+if (!isset($_SESSION['user_id']) || strtolower($_SESSION['role']) !== 'administrator') {
+    header("Location: ../../login.php");
+    exit();
+}
+
+// Get user data from session - remove the default 'Admin' value to ensure we see the actual session data
+$fullName = $_SESSION['name'];
+$role = ucfirst(strtolower($_SESSION['role']));
+
+// Fetch all required data
+$activeMembers = getActiveMembersCount();
+$monthlyRevenue = getMonthlyRevenue();
+$activePrograms = getActiveProgramsCount();
+$staffCount = getStaffCount();
+$membershipData = getMembershipGrowthData();
+$subscriptionData = getSubscriptionDistribution();
+$recentMembers = getRecentMembers();
+$recentTransactions = getRecentTransactions();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -132,8 +156,8 @@
                         <!-- User Profile - Direct link to edit profile -->
                         <a href="edit-profile.php" class="flex items-center space-x-3 pr-2 cursor-pointer">
                             <div class="text-right hidden sm:block">
-                                <p class="text-sm font-medium text-gray-700">John Doe</p>
-                                <p class="text-xs text-gray-500">Administrator</p>
+                                <p class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($fullName); ?></p>
+                                <p class="text-xs text-gray-500"><?php echo htmlspecialchars($role); ?></p>
                             </div>
                             <div class="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-white">
                                 <i class="fas fa-user text-lg"></i>
@@ -149,13 +173,10 @@
             <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
                 <div class="flex flex-col md:flex-row justify-between md:items-center gap-4">
                     <div>
-                        <h2 class="text-xl font-semibold text-primary-dark">Welcome to Gymaster, Admin!</h2>
+                        <h2 class="text-xl font-semibold text-primary-dark">Welcome to Gymaster, <?php echo htmlspecialchars($fullName); ?>!</h2>
                         <p class="text-gray-600 mt-1">Manage your gym operations efficiently.</p>
                     </div>
                     <div class="flex gap-3">
-                        <button class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors flex items-center">
-                            <i class="fas fa-plus mr-2"></i> <a href="manage-members.php">Add Member</a>
-                        </button>
                         <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors flex items-center">
                             <i class="fas fa-download mr-2"></i> <a href="generate-reports.php">Generate Reports</a>
                         </button>
@@ -174,10 +195,8 @@
                         </span>
                     </div>
                     <div class="flex items-baseline">
-                        <p class="text-2xl font-bold text-gray-800">248</p>
-                        <span class="ml-2 text-sm text-green-600">+12%</span>
+                        <p class="text-2xl font-bold text-gray-800"><?php echo $activeMembers; ?></p>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">Compared to last month</p>
                 </div>
                 
                 <!-- Revenue -->
@@ -189,10 +208,8 @@
                         </span>
                     </div>
                     <div class="flex items-baseline">
-                        <p class="text-2xl font-bold text-gray-800">$12,450</p>
-                        <span class="ml-2 text-sm text-green-600">+8%</span>
+                        <p class="text-2xl font-bold text-gray-800">$<?php echo number_format($monthlyRevenue, 2); ?></p>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">Compared to last month</p>
                 </div>
                 
                 <!-- Programs -->
@@ -204,10 +221,8 @@
                         </span>
                     </div>
                     <div class="flex items-baseline">
-                        <p class="text-2xl font-bold text-gray-800">16</p>
-                        <span class="ml-2 text-sm text-purple-600">+2</span>
+                        <p class="text-2xl font-bold text-gray-800"><?php echo $activePrograms; ?></p>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">New programs this month</p>
                 </div>
                 
                 <!-- Staff -->
@@ -219,9 +234,8 @@
                         </span>
                     </div>
                     <div class="flex items-baseline">
-                        <p class="text-2xl font-bold text-gray-800">12</p>
+                        <p class="text-2xl font-bold text-gray-800"><?php echo $staffCount; ?></p>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">No change from last month</p>
                 </div>
             </div>
 
@@ -264,63 +278,27 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
+                                <?php foreach ($recentMembers as $member): ?>
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
-                                            <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white text-xs">JD</div>
+                                            <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white text-xs"><?php echo strtoupper(substr($member['name'], 0, 2)); ?></div>
                                             <div class="ml-3">
-                                                <div class="text-sm font-medium text-gray-900">John Doe</div>
-                                                <div class="text-xs text-gray-500">john.doe@example.com</div>
+                                                <div class="text-sm font-medium text-gray-900"><?php echo $member['name']; ?></div>
+                                                <div class="text-xs text-gray-500"><?php echo $member['email']; ?></div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Strength Training</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo $member['program']; ?></td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                        <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800"><?php echo $member['status']; ?></span>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">May 12, 2023</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo $member['joined']; ?></td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <a href="#" class="text-primary-light hover:text-primary-dark">View</a>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center">
-                                            <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white text-xs">JS</div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-medium text-gray-900">Jane Smith</div>
-                                                <div class="text-xs text-gray-500">jane.smith@example.com</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Cardio</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">May 10, 2023</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <a href="#" class="text-primary-light hover:text-primary-dark">View</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center">
-                                            <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white text-xs">RJ</div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-medium text-gray-900">Robert Johnson</div>
-                                                <div class="text-xs text-gray-500">robert.j@example.com</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Yoga</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">May 8, 2023</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <a href="#" class="text-primary-light hover:text-primary-dark">View</a>
-                                    </td>
-                                </tr>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
@@ -344,39 +322,19 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
+                            <?php foreach ($recentTransactions as $transaction): ?>
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">John Doe</div>
-                                    <div class="text-xs text-gray-500">Monthly Subscription</div>
+                                    <div class="text-sm font-medium text-gray-900"><?php echo $transaction['description']; ?></div>
+                                    <div class="text-xs text-gray-500"><?php echo $transaction['details']; ?></div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">May 12, 2023</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">+$49.99</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo $transaction['date']; ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600"><?php echo $transaction['amount']; ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Completed</span>
+                                    <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800"><?php echo $transaction['status']; ?></span>
                                 </td>
                             </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">Jane Smith</div>
-                                    <div class="text-xs text-gray-500">Annual Subscription</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">May 10, 2023</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">+$499.99</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Completed</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">Equipment Purchase</div>
-                                    <div class="text-xs text-gray-500">Treadmill</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">May 8, 2023</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">-$1,200.00</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Processed</span>
-                                </td>
-                            </tr>
+                            <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
@@ -452,7 +410,7 @@
                     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
                     datasets: [{
                         label: 'New Members',
-                        data: [18, 25, 22, 30, 35, 28],
+                        data: <?php echo json_encode($membershipData); ?>,
                         borderColor: '#5C6C90',
                         backgroundColor: 'rgba(92, 108, 144, 0.1)',
                         tension: 0.1,
@@ -487,9 +445,9 @@
             const subscriptionChart = new Chart(subscriptionCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Monthly', 'Quarterly', 'Annual', 'Trial'],
+                    labels: <?php echo json_encode(array_keys($subscriptionData)); ?>,
                     datasets: [{
-                        data: [45, 25, 20, 10],
+                        data: <?php echo json_encode(array_values($subscriptionData)); ?>,
                         backgroundColor: [
                             '#5C6C90',
                             '#647590',
