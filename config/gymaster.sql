@@ -176,16 +176,16 @@ CREATE TABLE `transaction_log` (
 --
 
 CREATE TABLE `user` (
-  `USER_ID` smallint(6) NOT NULL,
+  `USER_ID` smallint(6) NOT NULL AUTO_INCREMENT,
   `USER_FNAME` varchar(50) NOT NULL,
   `USER_LNAME` varchar(30) NOT NULL,
   `USERNAME` varchar(20) NOT NULL,
-  `PASSWORD` varchar(15) NOT NULL,
+  `PASSWORD` varchar(255) NOT NULL,
   `USER_TYPE` enum('ADMINISTRATOR','STAFF') NOT NULL,
   `IS_ACTIVE` tinyint(1) NOT NULL DEFAULT 1
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
+
 -- Indexes for dumped tables
 --
 

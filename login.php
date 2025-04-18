@@ -1,64 +1,108 @@
 <?php
 session_start();
-require_once 'config/database.php';
+require_once 'config/db_functions.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
-    $role = $_POST['role'];
+    $role = strtoupper($_POST['role']); // Convert input role to uppercase
     
-    // Check for static admin credentials
-    if ($username === 'admin' && $password === 'admin123' && $role === 'admin') {
-        $_SESSION['user_id'] = 'ADMIN';
-        $_SESSION['role'] = 'administrator';
-        $_SESSION['name'] = 'Administrator';
-        
-        $response = [
-            'success' => true,
-            'redirect' => 'user/admin/admin-dashboard.php'
-        ];
-        header('Content-Type: application/json');
-        echo json_encode($response);
-        exit;
-    }
-
-    // Convert role to match database enum
-    $userType = ($role === 'admin') ? 'ADMINISTRATOR' : 'STAFF';
-
     try {
-        $stmt = $conn->prepare("SELECT USER_ID, USERNAME, PASSWORD, USER_TYPE, USER_FNAME 
+        $conn = getConnection();
+        
+        // Find user by username
+        $stmt = $conn->prepare("SELECT USER_ID, USERNAME, PASSWORD, UPPER(USER_TYPE) as USER_TYPE, USER_FNAME, IS_ACTIVE 
                                FROM user 
-                               WHERE USERNAME = ? AND USER_TYPE = ? AND IS_ACTIVE = 1");
-        $stmt->execute([$username, $userType]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                               WHERE USERNAME = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
 
-        if ($user && $password === $user['PASSWORD']) { // Note: Update this to use proper password hashing in production
-            $_SESSION['user_id'] = $user['USER_ID'];
-            $_SESSION['username'] = $user['USERNAME']; // Add this line
-            $_SESSION['role'] = strtolower($user['USER_TYPE']);
-            $_SESSION['name'] = $user['USER_FNAME'];
+        // Enhanced debug logging
+        error_log("Login attempt - Username: $username, Requested Role: $role");
+        if ($user) {
+            error_log("Found user - DB Role: {$user['USER_TYPE']}, Active: {$user['IS_ACTIVE']}");
+            error_log("Stored password hash: {$user['PASSWORD']}");
+            error_log("Verifying password...");
+        }
+
+        // First check if it's the default admin
+        if ($username === 'admin' && $password === 'admin123' && $role === 'ADMINISTRATOR') {
+            $_SESSION['user_id'] = 'ADMIN';
+            $_SESSION['username'] = 'admin';
+            $_SESSION['role'] = 'administrator';
+            $_SESSION['name'] = 'Administrator';
             
             $response = [
                 'success' => true,
-                'redirect' => $user['USER_TYPE'] === 'ADMINISTRATOR' ? 
-                            'user/admin/admin-dashboard.php' : 
-                            'user/staff/staff-dashboard.php'
+                'redirect' => 'user/admin/admin-dashboard.php'
             ];
+            header('Content-Type: application/json');
+            echo json_encode($response);
+            exit;
+        }
+        
+        // Then check for regular users
+        if (!$user) {
+            $response = ['success' => false, 'message' => 'Invalid username or password'];
+        } elseif ($user['IS_ACTIVE'] != 1) {
+            $response = ['success' => false, 'message' => 'Account is inactive'];
         } else {
-            $response = [
-                'success' => false,
-                'message' => 'Invalid username or password'
-            ];
+            // Make sure roles match (case-insensitive)
+            if ($role !== $user['USER_TYPE']) {
+                error_log("Role mismatch - Requested: $role, User Type: {$user['USER_TYPE']}");
+                $response = ['success' => false, 'message' => 'Invalid role for this user'];
+            } else {
+                // Check if password is already hashed
+                if (strlen($user['PASSWORD']) < 60) {  // Not hashed yet
+                    $stored_password = $user['PASSWORD'];
+                    $verified = ($password === $stored_password);
+                    error_log("Using plain text comparison for legacy password");
+                } else {
+                    $verified = password_verify($password, $user['PASSWORD']);
+                    error_log("Using password_verify() for hashed password");
+                }
+
+                error_log("Password verification result: " . ($verified ? "success" : "failed"));
+
+                if ($verified) {
+                    // Password matches, create session
+                    $_SESSION['user_id'] = $user['USER_ID'];
+                    $_SESSION['username'] = $user['USERNAME'];
+                    $_SESSION['role'] = strtolower($user['USER_TYPE']);
+                    $_SESSION['name'] = $user['USER_FNAME'];
+                    
+                    $redirect = ($user['USER_TYPE'] === 'ADMINISTRATOR') ? 
+                               'user/admin/admin-dashboard.php' : 
+                               'user/staff/staff-dashboard.php';
+                    
+                    $response = [
+                        'success' => true,
+                        'redirect' => $redirect
+                    ];
+
+                    // If password wasn't hashed, update it
+                    if (strlen($user['PASSWORD']) < 60) {
+                        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                        $update_stmt = $conn->prepare("UPDATE user SET PASSWORD = ? WHERE USER_ID = ?");
+                        $update_stmt->bind_param("si", $hashed_password, $user['USER_ID']);
+                        $update_stmt->execute();
+                        error_log("Updated password hash for user: {$user['USERNAME']}");
+                    }
+                } else {
+                    $response = ['success' => false, 'message' => 'Invalid username or password'];
+                }
+            }
         }
         
         header('Content-Type: application/json');
         echo json_encode($response);
         exit;
-    } catch (PDOException $e) {
-        $response = [
-            'success' => false,
-            'message' => 'Database error occurred'
-        ];
+        
+    } catch (Exception $e) {
+        error_log("Login error: " . $e->getMessage());
+        $response = ['success' => false, 'message' => 'Database error occurred'];
         header('Content-Type: application/json');
         echo json_encode($response);
         exit;
@@ -138,23 +182,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <div class="mb-5">
                         <h3 class="text-sm font-medium uppercase text-primary-dark tracking-wide mb-2">Select Your Role</h3>
                         <div class="grid grid-cols-2 gap-3">
-                            <!-- Admin Role -->
+                            <!-- Admin Role (Updated data-role) -->
                             <div class="role-card cursor-pointer bg-white border-2 border-tertiary/30 rounded-lg py-3 px-4 hover:border-primary-light transition-all duration-300 shadow-sm" 
-                                 data-role="admin" 
+                                 data-role="ADMINISTRATOR" 
                                  onclick="selectRole(this)">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 bg-tertiary/10 p-2 rounded-full">
                                         <i class="fas fa-user-shield text-base text-primary-dark"></i>
                                     </div>
                                     <div class="ml-3">
-                                        <p class="font-medium text-primary-dark text-sm">Admin</p>
+                                        <p class="font-medium text-primary-dark text-sm">Administrator</p>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Staff Role -->
                             <div class="role-card cursor-pointer bg-white border-2 border-tertiary/30 rounded-lg py-3 px-4 hover:border-primary-light transition-all duration-300 shadow-sm" 
-                                 data-role="staff" 
+                                 data-role="STAFF" 
                                  onclick="selectRole(this)">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 bg-tertiary/10 p-2 rounded-full">
@@ -240,12 +284,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Add active class to selected card
             element.classList.remove('border-tertiary/30');
             element.classList.add('border-primary-light', 'bg-tertiary/20');
-            
-            // Update selected role
+
+            // Update selected role - use the exact value from data-role
             selectedRole = element.getAttribute('data-role');
-            
-            // Hide role error if it was displayed
-            document.getElementById('role-error').classList.add('hidden');
+            console.log('Selected role:', selectedRole); // Debug log
         }
 
         function togglePasswordVisibility() {
@@ -374,6 +416,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 formData.append('password', document.getElementById('password').value);
                 formData.append('role', selectedRole);
 
+                console.log('Login attempt - Role:', selectedRole); // Debug log
+
                 fetch('login.php', {
                     method: 'POST',
                     body: formData
@@ -381,7 +425,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        showLoginSuccess(selectedRole);
+                        // Update success message to show proper role name
+                        const roleDisplay = selectedRole.toLowerCase() === 'administrator' ? 'administrator' : 'staff';
+                        showLoginSuccess(roleDisplay);
                         setTimeout(() => {
                             window.location.href = data.redirect;
                         }, 2000);

@@ -3,17 +3,16 @@ require_once 'database.php';
 
 function getConnection() {
     try {
-        // Define database connection variables
-        $servername = 'localhost'; // Replace with your server name
-        $username = 'root';        // Replace with your database username
-        $password = '';            // Replace with your database password
-        $dbname = 'gymaster';      // Replace with your database name
-
-        $conn = new mysqli($servername, $username, $password, $dbname);
-        
-        if ($conn->connect_error) {
-            throw new Exception("Connection failed: " . $conn->connect_error);
-        }
+    $host = "localhost";
+    $username = "root";
+    $password = "";
+    $database = "gymaster";  // make sure this matches your database name
+    
+    $conn = new mysqli($host, $username, $password, $database);
+    
+    if ($conn->connect_error) {
+        throw new Exception("Connection failed: " . $conn->connect_error);
+    }
         
         // Check for 'user' table instead of 'users'
         $tableCheck = $conn->query("SHOW TABLES LIKE 'user'");
@@ -48,51 +47,46 @@ function addUser($data) {
         $conn = getConnection();
         
         // Check if username already exists
-        $stmt = $conn->prepare("SELECT COUNT(*) FROM user WHERE USERNAME = ?");
+        $stmt = $conn->prepare("SELECT USER_ID FROM user WHERE USERNAME = ?");
         $stmt->bind_param("s", $data['USERNAME']);
         $stmt->execute();
         $result = $stmt->get_result();
-        if ($result->fetch_row()[0] > 0) {
+        
+        if ($result->num_rows > 0) {
             return ['success' => false, 'message' => 'Username already exists'];
         }
         
-        // Convert user type to uppercase and standardize
+        // Convert user type to match database enum
         $userType = strtoupper($data['USER_TYPE']);
-        if (!in_array($userType, ['ADMINISTRATOR', 'STAFF'])) {
-            return ['success' => false, 'message' => 'Invalid user type'];
+        if ($userType === 'ADMIN') {
+            $userType = 'ADMINISTRATOR';
         }
         
-        // Hash the password
+        // Hash password before storing
         $hashedPassword = password_hash($data['PASSWORD'], PASSWORD_DEFAULT);
         
-        // Prepare the SQL statement with correct column order
-        $stmt = $conn->prepare("INSERT INTO user (USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE, IS_ACTIVE) VALUES (?, ?, ?, ?, ?, ?)");
-        
-        // Convert IS_ACTIVE to integer
-        $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
-        
+        // Insert new user
+        $stmt = $conn->prepare("INSERT INTO user (USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE, IS_ACTIVE) 
+                               VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("sssssi", 
             $data['USER_FNAME'],
             $data['USER_LNAME'],
             $data['USERNAME'],
             $hashedPassword,
             $userType,
-            $isActive
+            $data['IS_ACTIVE']
         );
         
-        if ($stmt->execute()) {
-            return [
-                'success' => true, 
-                'message' => 'User added successfully',
-                'userId' => $conn->insert_id
-            ];
+        $success = $stmt->execute();
+        
+        if ($success) {
+            return ['success' => true, 'message' => 'User added successfully'];
         } else {
-            error_log("SQL Error: " . $stmt->error);
-            return ['success' => false, 'message' => 'Failed to add user: ' . $stmt->error];
+            return ['success' => false, 'message' => 'Failed to add user'];
         }
     } catch (Exception $e) {
-        error_log("Database error in addUser: " . $e->getMessage());
-        return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
+        error_log("Error adding user: " . $e->getMessage());
+        return ['success' => false, 'message' => 'An error occurred while adding the user'];
     }
 }
 

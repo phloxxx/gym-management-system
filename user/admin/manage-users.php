@@ -65,9 +65,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
             }
             
+            // Hash the password before sending to addUser function
+            $_POST['PASSWORD'] = password_hash($_POST['PASSWORD'], PASSWORD_DEFAULT);
+            
             $result = addUser($_POST);
             echo json_encode($result);
             break;
+
+        case 'delete':
+            if (!isset($_POST['userId'])) {
+                echo json_encode(['success' => false, 'message' => 'User ID is required']);
+                exit;
+            }
+            
+            try {
+                $conn = getConnection();
+                $userId = (int)$_POST['userId'];
+                
+                // Check if user exists and is not the current logged-in user
+                if ($userId === (int)$_SESSION['user_id']) {
+                    echo json_encode(['success' => false, 'message' => 'You cannot delete your own account']);
+                    exit;
+                }
+                
+                $stmt = $conn->prepare("DELETE FROM user WHERE USER_ID = ?");
+                $stmt->bind_param("i", $userId);
+                
+                if ($stmt->execute()) {
+                    echo json_encode(['success' => true, 'message' => 'User deleted successfully']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to delete user']);
+                }
+            } catch (Exception $e) {
+                error_log("Error deleting user: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'An error occurred while deleting the user']);
+            }
+            break;
+
         default:
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
     }
@@ -526,6 +560,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 </div>
             </div>
         </div>
+
+        <!-- Delete Confirmation Dialog -->
+        <div id="deleteConfirmDialog" class="fixed inset-0 bg-black bg-opacity-30 z-[60] flex items-center justify-center hidden backdrop-blur-sm">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 transform scale-95 overflow-hidden transition-all duration-200">
+                <div class="p-5">
+                    <div class="flex items-center mb-4">
+                        <div class="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mr-4">
+                            <i class="fas fa-trash-alt text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Delete User</h3>
+                            <p class="text-sm text-gray-600">Are you sure you want to delete this user? This action cannot be undone.</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button id="cancelDelete" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">
+                            Cancel
+                        </button>
+                        <button id="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                            Delete User
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <!-- Notification Toast -->
         <div id="toast" class="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg z-50 transform translate-x-full opacity-0 transition-all duration-300 flex items-center" style="display: none;">
@@ -697,6 +756,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             <button class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${user.id}">
                                 <i class="fas fa-edit text-lg"></i>
                             </button>
+                            <button class="text-red-600 hover:text-red-800 delete-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${user.id}">
+                                <i class="fas fa-trash-alt text-lg"></i>
+                            </button>
                         </td>
                     `;
                     userTableBody.appendChild(row);
@@ -707,6 +769,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     button.addEventListener('click', function() {
                         const userId = this.getAttribute('data-id');
                         openEditModal(userId);
+                    });
+                });
+
+                // Add event listeners to delete buttons
+                document.querySelectorAll('.delete-button').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const userId = this.getAttribute('data-id');
+                        deleteUser(userId);
                     });
                 });
             }
@@ -1138,6 +1208,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     saveButton.innerHTML = originalButtonText;
                     saveButton.disabled = false;
                 });
+            }
+            
+            function deleteUser(userId) {
+                const deleteConfirmDialog = document.getElementById('deleteConfirmDialog');
+                const confirmDeleteBtn = document.getElementById('confirmDelete');
+                const cancelDeleteBtn = document.getElementById('cancelDelete');
+
+                // Show delete confirmation dialog
+                deleteConfirmDialog.classList.remove('hidden');
+                setTimeout(() => {
+                    deleteConfirmDialog.querySelector('div').classList.remove('scale-95');
+                    deleteConfirmDialog.querySelector('div').classList.add('scale-100');
+                }, 10);
+
+                // Handle delete confirmation
+                const handleDelete = () => {
+                    // Show loading state on button
+                    confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
+                    confirmDeleteBtn.disabled = true;
+
+                    fetch(window.location.href, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `action=delete&userId=${userId}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast(data.message, 'success');
+                            // Refresh the page after a short delay
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            showToast(data.message || 'Failed to delete user', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('An error occurred while deleting the user', 'error');
+                    })
+                    .finally(() => {
+                        // Hide dialog and reset button state
+                        hideDeleteConfirmDialog();
+                        confirmDeleteBtn.innerHTML = 'Delete User';
+                        confirmDeleteBtn.disabled = false;
+                    });
+                };
+
+                // Add event listeners
+                confirmDeleteBtn.addEventListener('click', handleDelete, { once: true });
+                cancelDeleteBtn.addEventListener('click', hideDeleteConfirmDialog);
+            }
+
+            function hideDeleteConfirmDialog() {
+                const deleteConfirmDialog = document.getElementById('deleteConfirmDialog');
+                deleteConfirmDialog.querySelector('div').classList.remove('scale-100');
+                deleteConfirmDialog.querySelector('div').classList.add('scale-95');
+                setTimeout(() => {
+                    deleteConfirmDialog.classList.add('hidden');
+                }, 200);
             }
             
             function updateUserStatus(userId, isActive) {
