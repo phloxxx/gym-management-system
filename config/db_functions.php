@@ -46,6 +46,10 @@ function addUser($data) {
     try {
         $conn = getConnection();
         
+        // Debug log incoming data
+        error_log("Adding user - Password length: " . strlen($data['PASSWORD']));
+        error_log("User type received: " . $data['USER_TYPE']); // Add debug log
+        
         // Check if username already exists
         $stmt = $conn->prepare("SELECT USER_ID FROM user WHERE USERNAME = ?");
         $stmt->bind_param("s", $data['USERNAME']);
@@ -56,25 +60,28 @@ function addUser($data) {
             return ['success' => false, 'message' => 'Username already exists'];
         }
         
+        // Insert user with explicit column names
+        $stmt = $conn->prepare("INSERT INTO user (USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE, IS_ACTIVE) 
+                               VALUES (?, ?, ?, ?, ?, ?)");
+                               
+        $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
         // Convert user type to match database enum
         $userType = strtoupper($data['USER_TYPE']);
         if ($userType === 'ADMIN') {
             $userType = 'ADMINISTRATOR';
-        }
+        }else if ($userType === 'STAFF') {
+            $userType = 'STAFF';
+        } 
         
-        // Hash password before storing
-        $hashedPassword = password_hash($data['PASSWORD'], PASSWORD_DEFAULT);
+        error_log("Final user type being set: " . $userType); // Debug log
         
-        // Insert new user
-        $stmt = $conn->prepare("INSERT INTO user (USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE, IS_ACTIVE) 
-                               VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("sssssi", 
             $data['USER_FNAME'],
             $data['USER_LNAME'],
             $data['USERNAME'],
-            $hashedPassword,
+            $data['PASSWORD'],
             $userType,
-            $data['IS_ACTIVE']
+            $isActive
         );
         
         $success = $stmt->execute();
@@ -82,11 +89,12 @@ function addUser($data) {
         if ($success) {
             return ['success' => true, 'message' => 'User added successfully'];
         } else {
-            return ['success' => false, 'message' => 'Failed to add user'];
+            error_log("Database error: " . $stmt->error);
+            return ['success' => false, 'message' => 'Failed to add user: ' . $stmt->error];
         }
     } catch (Exception $e) {
         error_log("Error adding user: " . $e->getMessage());
-        return ['success' => false, 'message' => 'An error occurred while adding the user'];
+        return ['success' => false, 'message' => 'Database error occurred: ' . $e->getMessage()];
     }
 }
 

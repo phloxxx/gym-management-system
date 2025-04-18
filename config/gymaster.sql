@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 17, 2025 at 06:35 AM
+-- Generation Time: Apr 18, 2025 at 08:17 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -176,16 +176,23 @@ CREATE TABLE `transaction_log` (
 --
 
 CREATE TABLE `user` (
-  `USER_ID` smallint(6) NOT NULL AUTO_INCREMENT,
+  `USER_ID` smallint(6) NOT NULL,
   `USER_FNAME` varchar(50) NOT NULL,
   `USER_LNAME` varchar(30) NOT NULL,
   `USERNAME` varchar(20) NOT NULL,
   `PASSWORD` varchar(255) NOT NULL,
   `USER_TYPE` enum('ADMINISTRATOR','STAFF') NOT NULL,
   `IS_ACTIVE` tinyint(1) NOT NULL DEFAULT 1
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `user`
+--
 
+INSERT INTO `user` (`USER_ID`, `USER_FNAME`, `USER_LNAME`, `USERNAME`, `PASSWORD`, `USER_TYPE`, `IS_ACTIVE`) VALUES
+(21, 'asd', 'asd', 'asdasd', '$2y$10$oi6DSuHD', 'ADMINISTRATOR', 1);
+
+--
 -- Indexes for dumped tables
 --
 
@@ -329,7 +336,7 @@ ALTER TABLE `transaction_log`
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `USER_ID` smallint(6) NOT NULL AUTO_INCREMENT;
+  MODIFY `USER_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- Constraints for dumped tables

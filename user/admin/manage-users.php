@@ -47,6 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             break;
             
         case 'add':
+            // Debug logging for password
+            error_log("Password attempt - Length: " . strlen($_POST['PASSWORD']));
+            
             // Validate required fields
             $requiredFields = ['USER_FNAME', 'USER_LNAME', 'USERNAME', 'PASSWORD', 'USER_TYPE'];
             $postData = $_POST;
@@ -55,18 +58,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             });
             
             if (!empty($missingFields)) {
+                error_log("Missing fields: " . implode(', ', $missingFields));
                 echo json_encode(['success' => false, 'message' => 'Missing required fields']);
                 exit;
             }
             
-            // Validate password length
+            // Validate password length with better error message
             if (strlen($_POST['PASSWORD']) < 8 || strlen($_POST['PASSWORD']) > 15) {
-                echo json_encode(['success' => false, 'message' => 'Password must be 8-15 characters long']);
+                error_log("Invalid password length: " . strlen($_POST['PASSWORD']));
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Password must be between 8 and 15 characters long (current length: ' . strlen($_POST['PASSWORD']) . ')'
+                ]);
                 exit;
             }
             
             // Hash the password before sending to addUser function
             $_POST['PASSWORD'] = password_hash($_POST['PASSWORD'], PASSWORD_DEFAULT);
+            error_log("Password hash length: " . strlen($_POST['PASSWORD']));
             
             $result = addUser($_POST);
             echo json_encode($result);
@@ -1166,14 +1175,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 const formData = new FormData(userForm);
                 formData.append('action', 'add');
 
-                // Convert user type value
+                // Convert user type value to match database enum exactly
                 const userType = document.getElementById('userType').value;
-                formData.set('USER_TYPE', userType === 'admin' ? 'ADMINISTRATOR' : 'STAFF');
+                formData.set('USER_TYPE', userType.toUpperCase() === 'ADMIN' ? 'ADMINISTRATOR' : 'STAFF');
 
                 // Add status
                 formData.set('IS_ACTIVE', document.getElementById('status').checked ? 1 : 0);
 
-                // Add debugging
+                // Log the form data for debugging
                 console.log('Sending form data:', Object.fromEntries(formData));
 
                 fetch(window.location.href, {

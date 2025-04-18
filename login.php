@@ -2,111 +2,104 @@
 session_start();
 require_once 'config/db_functions.php';
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = trim($_POST['username']);
-    $password = $_POST['password'];
-    $role = strtoupper($_POST['role']); // Convert input role to uppercase
-    
-    try {
-        $conn = getConnection();
+// Handle login form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
+    $role = $_POST['role'] ?? '';
+     // First check if it's the default admin
+     if ($username === 'admin' && $password === 'admin123' && $role === 'ADMINISTRATOR') {
+        $_SESSION['user_id'] = 'ADMIN';
+        $_SESSION['username'] = 'admin';
+        $_SESSION['role'] = 'administrator';
+        $_SESSION['name'] = 'Administrator';
         
-        // Find user by username
-        $stmt = $conn->prepare("SELECT USER_ID, USERNAME, PASSWORD, UPPER(USER_TYPE) as USER_TYPE, USER_FNAME, IS_ACTIVE 
-                               FROM user 
-                               WHERE USERNAME = ?");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
-
-        // Enhanced debug logging
-        error_log("Login attempt - Username: $username, Requested Role: $role");
-        if ($user) {
-            error_log("Found user - DB Role: {$user['USER_TYPE']}, Active: {$user['IS_ACTIVE']}");
-            error_log("Stored password hash: {$user['PASSWORD']}");
-            error_log("Verifying password...");
-        }
-
-        // First check if it's the default admin
-        if ($username === 'admin' && $password === 'admin123' && $role === 'ADMINISTRATOR') {
-            $_SESSION['user_id'] = 'ADMIN';
-            $_SESSION['username'] = 'admin';
-            $_SESSION['role'] = 'administrator';
-            $_SESSION['name'] = 'Administrator';
-            
-            $response = [
-                'success' => true,
-                'redirect' => 'user/admin/admin-dashboard.php'
-            ];
-            header('Content-Type: application/json');
-            echo json_encode($response);
-            exit;
-        }
-        
-        // Then check for regular users
-        if (!$user) {
-            $response = ['success' => false, 'message' => 'Invalid username or password'];
-        } elseif ($user['IS_ACTIVE'] != 1) {
-            $response = ['success' => false, 'message' => 'Account is inactive'];
-        } else {
-            // Make sure roles match (case-insensitive)
-            if ($role !== $user['USER_TYPE']) {
-                error_log("Role mismatch - Requested: $role, User Type: {$user['USER_TYPE']}");
-                $response = ['success' => false, 'message' => 'Invalid role for this user'];
-            } else {
-                // Check if password is already hashed
-                if (strlen($user['PASSWORD']) < 60) {  // Not hashed yet
-                    $stored_password = $user['PASSWORD'];
-                    $verified = ($password === $stored_password);
-                    error_log("Using plain text comparison for legacy password");
-                } else {
-                    $verified = password_verify($password, $user['PASSWORD']);
-                    error_log("Using password_verify() for hashed password");
-                }
-
-                error_log("Password verification result: " . ($verified ? "success" : "failed"));
-
-                if ($verified) {
-                    // Password matches, create session
-                    $_SESSION['user_id'] = $user['USER_ID'];
-                    $_SESSION['username'] = $user['USERNAME'];
-                    $_SESSION['role'] = strtolower($user['USER_TYPE']);
-                    $_SESSION['name'] = $user['USER_FNAME'];
-                    
-                    $redirect = ($user['USER_TYPE'] === 'ADMINISTRATOR') ? 
-                               'user/admin/admin-dashboard.php' : 
-                               'user/staff/staff-dashboard.php';
-                    
-                    $response = [
-                        'success' => true,
-                        'redirect' => $redirect
-                    ];
-
-                    // If password wasn't hashed, update it
-                    if (strlen($user['PASSWORD']) < 60) {
-                        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                        $update_stmt = $conn->prepare("UPDATE user SET PASSWORD = ? WHERE USER_ID = ?");
-                        $update_stmt->bind_param("si", $hashed_password, $user['USER_ID']);
-                        $update_stmt->execute();
-                        error_log("Updated password hash for user: {$user['USERNAME']}");
-                    }
-                } else {
-                    $response = ['success' => false, 'message' => 'Invalid username or password'];
-                }
-            }
-        }
-        
-        header('Content-Type: application/json');
-        echo json_encode($response);
-        exit;
-        
-    } catch (Exception $e) {
-        error_log("Login error: " . $e->getMessage());
-        $response = ['success' => false, 'message' => 'Database error occurred'];
+        $response = [
+            'success' => true,
+            'redirect' => 'user/admin/admin-dashboard.php'
+        ];
         header('Content-Type: application/json');
         echo json_encode($response);
         exit;
     }
+    
+    // Debug logging
+    error_log("Login attempt - Username: $username, Role: $role");
+    error_log("Raw POST data: " . print_r($_POST, true));
+
+    if (empty($username) || empty($password) || empty($role)) {
+        $response = [
+            'success' => false,
+            'message' => 'All fields are required'
+        ];
+    } else {
+        try {
+            $conn = getConnection();
+            
+            // Debug query and parameters
+            error_log("SQL Query params - Username: $username, Role: $role");
+            
+            // Query without role case sensitivity
+            $stmt = $conn->prepare("SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE, IS_ACTIVE 
+                                  FROM user 
+                                  WHERE USERNAME = ?
+                                  AND IS_ACTIVE = 1");
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $user = $result->fetch_assoc();
+            
+            // Debug user data
+            error_log("User data found: " . print_r($user, true));
+            
+            if ($user) {
+                // Compare roles case-insensitively
+                $userRole = strtoupper($user['USER_TYPE']);
+                $submittedRole = strtoupper($role);
+                
+                error_log("Role comparison - DB Role: $userRole, Submitted Role: $submittedRole");
+                
+                if ($userRole === $submittedRole && password_verify($password, $user['PASSWORD'])) {
+                    $_SESSION['user_id'] = $user['USER_ID'];
+                    $_SESSION['username'] = $user['USERNAME'];
+                    $_SESSION['role'] = strtolower($user['USER_TYPE']);
+                    $_SESSION['name'] = $user['USER_FNAME'] . ' ' . $user['USER_LNAME'];
+                    
+                    $redirect = ($userRole === 'ADMINISTRATOR') 
+                        ? 'user/admin/admin-dashboard.php'
+                        : 'user/staff/staff-dashboard.php';
+                    
+                    $response = [
+                        'success' => true,
+                        'message' => 'Login successful',
+                        'redirect' => $redirect
+                    ];
+                } else {
+                    error_log("Role or password mismatch - User Role: {$user['USER_TYPE']}, Submitted Role: $role");
+                    $response = [
+                        'success' => false,
+                        'message' => 'Invalid username, password, or role'
+                    ];
+                }
+            } else {
+                error_log("No user found with username: $username");
+                $response = [
+                    'success' => false,
+                    'message' => 'Invalid username, password, or role'
+                ];
+            }
+        } catch(Exception $e) {
+            error_log("Login error: " . $e->getMessage());
+            $response = [
+                'success' => false,
+                'message' => 'Database error occurred'
+            ];
+        }
+    }
+
+    header('Content-Type: application/json');
+    echo json_encode($response);
+    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -161,11 +154,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
 
         <!-- Right Panel - Login Form -->
+
+        <!-- Right Panel - Login Form -->
         <div class="w-full md:w-2/5 flex items-center justify-center bg-gray-50 p-5">
             <div class="w-full max-w-md">
                 <!-- Login Card -->
-                <div class="bg-white rounded-xl shadow-md p-8">
-                    <!-- Mobile Logo - Only visible on small screens -->
                     <div class="flex justify-center mb-6 md:hidden">
                         <div class="logo-organic-container">
                             <div class="organic-splash-effect"></div>
