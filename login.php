@@ -154,11 +154,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <!-- Right Panel - Login Form -->
-
-        <!-- Right Panel - Login Form -->
-        <div class="w-full md:w-2/5 flex items-center justify-center bg-gray-50 p-5">
-            <div class="w-full max-w-md">
-                <!-- Login Card -->
+        <div class="w-full md:w-2/5 flex flex-col items-center justify-center bg-gray-50 p-5">
+            <div class="w-full max-w-md flex-grow flex items-center">
+                <div class="w-full">
                     <div class="flex justify-center mb-6 md:hidden">
                         <div class="logo-organic-container">
                             <div class="organic-splash-effect"></div>
@@ -254,15 +252,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </form>
                 </div>
-                
-                <!-- Version Info -->
-                <div class="text-center mt-4 text-xs text-gray-500">
-                    <p>Gymaster v1.0 • © 2024 All rights reserved.</p>
-                </div>
+            </div>
+            
+            <!-- Version Info - Moved to bottom of panel -->
+            <div class="w-full text-center mt-4">
+                <p class="text-xs text-gray-500">Gymaster v1.0 • © 2024 All rights reserved.</p>
             </div>
         </div>
     </div>
-
     <script>
         // Global variable to track selected role
         let selectedRole = null;
