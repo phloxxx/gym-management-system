@@ -273,7 +273,7 @@
                 
                 <!-- Action Buttons -->
                 <div class="flex gap-3 mt-6 justify-end">
-                    <button class="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors flex items-center gap-2">
+                    <button id="resetFiltersBtn" class="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors flex items-center gap-2">
                         <i class="fas fa-redo-alt"></i> Reset Filters
                     </button>
                     <button id="generateReportBtn" class="px-4 py-2.5 bg-primary-dark text-white rounded-md hover:bg-opacity-90 transition-colors flex items-center gap-2">
@@ -282,13 +282,19 @@
                 </div>
             </div>
             
-            <!-- Report Results Section -->
-            <div id="reportResults">
+            <!-- Loading Indicator -->
+            <div id="loadingReport" class="hidden bg-white rounded-lg shadow-sm p-10 mb-6 text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-dark mb-4"></div>
+                <p class="text-gray-600">Generating your report, please wait...</p>
+            </div>
+            
+            <!-- Report Results Section - Initially hidden -->
+            <div id="reportResults" class="hidden transition-opacity duration-300 opacity-0">
                 <!-- Report Header with Export Options -->
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
                     <div>
                         <h2 class="text-xl font-semibold text-primary-dark">Membership Report</h2>
-                        <p class="text-gray-500 text-sm">May 1, 2023 - May 31, 2023</p>
+                        <p class="text-gray-500 text-sm" id="reportDateRange">May 1, 2023 - May 31, 2023</p>
                     </div>
                     <div class="flex gap-2 mt-3 md:mt-0">
                         <button class="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors flex items-center gap-2">
@@ -304,7 +310,7 @@
                 </div>
                 
                 <!-- Report Summary Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4 mb-6">
                     <div class="bg-white rounded-lg shadow-sm p-5">
                         <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Total Members</h3>
                         <p class="text-3xl font-bold text-gray-800">248</p>
@@ -324,19 +330,10 @@
                     </div>
                     
                     <div class="bg-white rounded-lg shadow-sm p-5">
-                        <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Renewed Subscriptions</h3>
+                        <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Total Subscriptions</h3>
                         <p class="text-3xl font-bold text-gray-800">42</p>
                         <div class="flex items-center mt-2">
                             <span class="text-green-600 text-sm mr-1">+8%</span>
-                            <span class="text-gray-500 text-sm">vs previous period</span>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-lg shadow-sm p-5">
-                        <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Churned Members</h3>
-                        <p class="text-3xl font-bold text-gray-800">12</p>
-                        <div class="flex items-center mt-2">
-                            <span class="text-red-600 text-sm mr-1">+2%</span>
                             <span class="text-gray-500 text-sm">vs previous period</span>
                         </div>
                     </div>
@@ -344,11 +341,17 @@
                 
                 <!-- Visualization Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <!-- Chart 1: Revenue Trends -->
+                    <!-- Chart 1: Main Report Chart (will hold either membership or revenue data) -->
                     <div class="bg-white rounded-lg shadow-sm p-5">
-                        <h3 class="text-sm font-medium text-gray-500 uppercase mb-4">Revenue Trend</h3>
-                        <div class="h-72">
-                            <canvas id="membershipTrendChart"></canvas>
+                        <h3 class="text-sm font-medium text-gray-500 uppercase mb-4">Membership Trend</h3>
+                        <div class="h-72 relative">
+                            <!-- Create separate canvases for each chart type -->
+                            <div class="absolute inset-0">
+                                <canvas id="membershipTrendChart" class="chart-canvas"></canvas>
+                            </div>
+                            <div class="absolute inset-0">
+                                <canvas id="revenueTrendChart" class="chart-canvas hidden"></canvas>
+                            </div>
                         </div>
                     </div>
                     
@@ -510,6 +513,15 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- No Results Message - Initially hidden -->
+            <div id="noReportResults" class="hidden bg-white rounded-lg shadow-sm p-10 mb-6 text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                    <i class="fas fa-chart-bar text-2xl text-gray-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">No Reports Generated Yet</h3>
+                <p class="text-gray-500 max-w-md mx-auto">Please use the filters above to select your report criteria and click the "Generate Report" button.</p>
+            </div>
         </div>
     </div>
 
@@ -532,6 +544,29 @@
                     </button>
                     <button id="confirmLogout" class="px-4 py-2 bg-primary-dark text-white rounded-md hover:bg-opacity-90 transition-colors">
                         Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Notification Popup - Moved to top -->
+    <div id="successNotification" class="fixed top-6 right-6 bg-green-50 border-l-4 border-green-500 shadow-md rounded-md p-4 w-80 transform -translate-y-16 opacity-0 transition-all duration-500 z-50 hidden">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 pt-0.5">
+                <i class="fas fa-check-circle text-green-500 text-lg"></i>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-green-800">Success!</h3>
+                <div class="mt-1 text-sm text-green-700">
+                    Report has been successfully generated.
+                </div>
+            </div>
+            <div class="ml-auto pl-3">
+                <div class="-mx-1.5 -my-1.5">
+                    <button id="closeNotification" type="button" class="inline-flex rounded-md p-1.5 text-green-500 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <span class="sr-only">Dismiss</span>
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
             </div>
@@ -573,82 +608,135 @@
                 });
             });
 
-            // Initialize charts for reports
+            // Initialize separate charts for different report types
+            // Membership chart
             const membershipTrendCtx = document.getElementById('membershipTrendChart').getContext('2d');
-            const membershipTrendChart = new Chart(membershipTrendCtx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
-                    datasets: [{
-                        label: 'Total Revenue ($)',
-                        data: [8500, 9200, 10500, 11800, 14200],
-                        borderColor: '#5C6C90',
-                        backgroundColor: 'rgba(92, 108, 144, 0.1)',
-                        tension: 0.1,
-                        fill: true
-                    }, {
-                        label: 'New Subscriptions Revenue ($)',
-                        data: [2500, 2100, 3200, 3800, 4500],
-                        borderColor: '#647590',
-                        backgroundColor: 'rgba(100, 117, 144, 0.1)',
-                        borderDash: [5, 5],
-                        tension: 0.1,
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            align: 'end',
-                            labels: {
-                                usePointStyle: true,
-                                boxWidth: 8
-                            }
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.y !== null) {
-                                        label += new Intl.NumberFormat('en-US', {
-                                            style: 'currency',
-                                            currency: 'USD'
-                                        }).format(context.parsed.y);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
+            let membershipTrendChart = null;
+            
+            // Create the membership chart after a small delay to ensure the canvas is ready
+            setTimeout(() => {
+                membershipTrendChart = new Chart(membershipTrendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                        datasets: [{
+                            label: 'Active Members',
+                            data: [180, 195, 210, 225, 248],
+                            borderColor: '#5C6C90',
+                            backgroundColor: 'rgba(92, 108, 144, 0.1)',
+                            tension: 0.1,
+                            fill: true
+                        }, {
+                            label: 'New Members',
+                            data: [25, 18, 22, 29, 37],
+                            borderColor: '#647590',
+                            backgroundColor: 'rgba(100, 117, 144, 0.1)',
+                            borderDash: [5, 5],
+                            tension: 0.1,
+                            fill: false
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                drawBorder: false
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false // Remove the legend/radio buttons
                             },
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false
                             }
                         },
-                        x: {
-                            grid: {
-                                display: false
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    precision: 0
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
                             }
                         }
                     }
-                }
-            });
+                });
+            }, 100);
 
+            // Revenue chart - use the separate canvas
+            const revenueTrendCtx = document.getElementById('revenueTrendChart').getContext('2d');
+            let revenueTrendChart = null;
+            
+            // Create the revenue chart after a small delay to ensure the canvas is ready
+            setTimeout(() => {
+                revenueTrendChart = new Chart(revenueTrendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                        datasets: [{
+                            label: 'Total Revenue',
+                            data: [8500, 9200, 10500, 11800, 14200],
+                            borderColor: '#4CAF50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false // Remove the legend/radio buttons
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += new Intl.NumberFormat('en-US', {
+                                                style: 'currency',
+                                                currency: 'USD'
+                                            }).format(context.parsed.y);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }, 200);
+
+            // Initialize chart for program distribution
             const programDistributionCtx = document.getElementById('programDistributionChart').getContext('2d');
             const programDistributionChart = new Chart(programDistributionCtx, {
                 type: 'bar',
@@ -679,7 +767,7 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: false // Already removed
                         },
                     },
                     scales: {
@@ -701,26 +789,19 @@
                 }
             });
             
-            // Report Type change handler - would update filters and report view
+            // Store charts for reference
+            const charts = {
+                membership: membershipTrendChart,
+                revenue: revenueTrendChart
+            };
+            
+            // Current active chart
+            let activeChart = 'membership';
+            
+            // Report Type change handler
             document.getElementById('reportType').addEventListener('change', function(e) {
-                const reportType = e.target.value;
-                const reportResults = document.getElementById('reportResults');
-                let reportTitle;
-                
-                switch(reportType) {
-                    case 'membership':
-                        reportTitle = 'Membership Report';
-                        break;
-                    case 'revenue':
-                        reportTitle = 'Revenue Report';
-                        break;
-                }
-                
-                // Update report title - in a real app this would also update the data
-                const reportHeader = reportResults.querySelector('h2');
-                if (reportHeader) {
-                    reportHeader.textContent = reportTitle;
-                }
+                // No automatic data updates - just change the selection value
+                // User needs to click Generate Report button to see changes
             });
             
             // Date range change handler
@@ -820,11 +901,265 @@
                 }, 200);
             }
             
-            // Generate Report Button - In real app would collect filter values and generate report
+            // Show initial state - No reports generated yet
+            document.getElementById('noReportResults').classList.remove('hidden');
+            
+            // Generate Report Button
             document.getElementById('generateReportBtn').addEventListener('click', function() {
-                // This would be replaced with actual report generation logic
-                alert('Report filters applied. Displaying filtered results.');
+                // Hide previous content and show loading
+                document.getElementById('noReportResults').classList.add('hidden');
+                document.getElementById('reportResults').classList.add('hidden');
+                document.getElementById('reportResults').classList.remove('opacity-100');
+                document.getElementById('reportResults').classList.add('opacity-0');
+                document.getElementById('loadingReport').classList.remove('hidden');
+                    
+                // Get selected report type and date range
+                const reportType = document.getElementById('reportType').value;
+                const dateRange = document.getElementById('dateRange').value;
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                
+                // Update report title based on type
+                const reportTitle = document.querySelector('#reportResults h2');
+                if (reportTitle) {
+                    reportTitle.textContent = reportType === 'membership' ? 'Membership Report' : 'Revenue Report';
+                }
+                
+                // Update date range display
+                const dateRangeDisplay = document.getElementById('reportDateRange');
+                const formattedStartDate = new Date(startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                const formattedEndDate = new Date(endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                
+                if (dateRangeDisplay) {
+                    dateRangeDisplay.textContent = `${formattedStartDate} - ${formattedEndDate}`;
+                }
+                
+                // Simulate API call delay - would be replaced with actual data fetching
+                setTimeout(function() {
+                    // Hide loading and show report
+                    document.getElementById('loadingReport').classList.add('hidden');
+                    document.getElementById('reportResults').classList.remove('hidden');
+                    
+                    // Update report content based on report type
+                    updateReportDisplay(reportType);
+                        
+                    // Use setTimeout to ensure transition works properly
+                    setTimeout(function() {
+                        document.getElementById('reportResults').classList.remove('opacity-0');
+                        document.getElementById('reportResults').classList.add('opacity-100');
+                    }, 10);
+                    
+                    // Show success notification
+                    showNotification();
+                    
+                }, 1500); // Simulate 1.5s delay to fetch report data
             });
+            
+            // Function to update report display based on type
+            function updateReportDisplay(reportType) {
+                // Get elements to update
+                const summaryCards = document.querySelectorAll('#reportResults .grid.grid-cols-1.md\\:grid-cols-3.lg\\:grid-cols-3 .bg-white');
+                const chartTitles = document.querySelectorAll('#reportResults .grid.grid-cols-1.lg\\:grid-cols-2 h3');
+                
+                // Update report title
+                const reportTitle = document.querySelector('#reportResults h2');
+                if (reportTitle) {
+                    reportTitle.textContent = reportType === 'membership' ? 'Membership Report' : 'Revenue Report';
+                }
+                
+                if (reportType === 'membership') {
+                    // Update metrics in cards
+                    if (summaryCards.length >= 3) {
+                        // Card titles
+                        summaryCards[0].querySelector('h3').textContent = 'TOTAL MEMBERS';
+                        summaryCards[1].querySelector('h3').textContent = 'NEW MEMBERS';
+                        summaryCards[2].querySelector('h3').textContent = 'RENEWED SUBSCRIPTIONS';
+                        
+                        // Card values
+                        summaryCards[0].querySelector('p').textContent = '248';
+                        summaryCards[1].querySelector('p').textContent = '37';
+                        summaryCards[2].querySelector('p').textContent = '42';
+                        
+                        // Update percentage changes
+                        summaryCards[0].querySelector('.flex.items-center .text-green-600').textContent = '+12%';
+                        summaryCards[1].querySelector('.flex.items-center .text-green-600').textContent = '+6%';
+                        summaryCards[2].querySelector('.flex.items-center .text-green-600').textContent = '+8%';
+                    }
+                    
+                    // Update chart titles
+                    if (chartTitles.length >= 1) {
+                        chartTitles[0].textContent = 'MEMBERSHIP TREND';
+                    }
+                    
+                    // Show membership chart, hide revenue chart
+                    document.getElementById('membershipTrendChart').classList.remove('hidden');
+                    document.getElementById('revenueTrendChart').classList.add('hidden');
+                } else {
+                    // Update metrics for revenue report
+                    if (summaryCards.length >= 3) {
+                        // Card titles
+                        summaryCards[0].querySelector('h3').textContent = 'TOTAL REVENUE';
+                        summaryCards[1].querySelector('h3').textContent = 'NEW SUBSCRIPTIONS';
+                        summaryCards[2].querySelector('h3').textContent = 'RENEWAL REVENUE';
+                        
+                        // Card values
+                        summaryCards[0].querySelector('p').textContent = '$14,200';
+                        summaryCards[1].querySelector('p').textContent = '$4,500';
+                        summaryCards[2].querySelector('p').textContent = '$9,700';
+                        
+                        // Update percentage text colors
+                        summaryCards[0].querySelector('.flex.items-center .text-green-600').textContent = '+18%';
+                        summaryCards[1].querySelector('.flex.items-center .text-green-600').textContent = '+12%';
+                        summaryCards[2].querySelector('.flex.items-center .text-green-600').textContent = '+5%';
+                    }
+                    
+                    // Update chart titles
+                    if (chartTitles.length >= 1) {
+                        chartTitles[0].textContent = 'REVENUE TREND';
+                    }
+                    
+                    // Show revenue chart, hide membership chart
+                    document.getElementById('membershipTrendChart').classList.add('hidden');
+                    document.getElementById('revenueTrendChart').classList.remove('hidden');
+                }
+                
+                // Update table headers and data based on report type
+                const tableHeaders = document.querySelectorAll('#reportResults table thead th');
+                if (reportType === 'membership') {
+                    if (tableHeaders.length >= 6) {
+                        tableHeaders[0].textContent = 'Member Name';
+                        tableHeaders[1].textContent = 'Program';
+                        tableHeaders[2].textContent = 'Subscription';
+                        tableHeaders[3].textContent = 'Join Date';
+                        tableHeaders[4].textContent = 'Status';
+                        tableHeaders[5].textContent = 'Last Transaction';
+                    }
+                    
+                    // Reset table data for membership view
+                    const tableRows = document.querySelectorAll('#reportResults table tbody tr');
+                    tableRows.forEach((row, index) => {
+                        const cells = row.querySelectorAll('td');
+                        
+                        if (cells.length >= 6) {
+                            // Program column
+                            cells[1].textContent = ['Strength Training', 'Cardio', 'Yoga', 'CrossFit', 'Strength Training'][index];
+                            
+                            // Subscription column
+                            cells[2].textContent = ['Monthly ($49.99)', 'Annual ($499.99)', 'Quarterly ($199.99)', 'Monthly ($49.99)', 'Monthly ($49.99)'][index];
+                            
+                            // Status column - restore badges
+                            const statusBadges = [
+                                '<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>',
+                                '<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>',
+                                '<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>',
+                                '<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Inactive</span>',
+                                '<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>'
+                            ];
+                            cells[4].innerHTML = statusBadges[index];
+                            
+                            // Last transaction
+                            const transactionDates = ['May 12, 2023', 'Jan 10, 2023', 'Mar 8, 2023', 'Apr 15, 2023', 'May 2, 2023'];
+                            cells[5].textContent = transactionDates[index];
+                        }
+                    });
+                } else {
+                    if (tableHeaders.length >= 6) {
+                        tableHeaders[0].textContent = 'Member Name';
+                        tableHeaders[1].textContent = 'Subscription Type';
+                        tableHeaders[2].textContent = 'Payment Amount';
+                        tableHeaders[3].textContent = 'Payment Date';
+                        tableHeaders[4].textContent = 'Payment Method';
+                        tableHeaders[5].textContent = 'Next Billing';
+                    }
+                    
+                    // Update table data for revenue report
+                    const tableRows = document.querySelectorAll('#reportResults table tbody tr');
+                    tableRows.forEach((row, index) => {
+                        const cells = row.querySelectorAll('td');
+                        // Keep the first cell (member name) unchanged
+                        
+                        // Update other cells for revenue view
+                        if (cells.length >= 6) {
+                            // Subscription Type
+                            cells[1].textContent = ['Monthly', 'Annual', 'Quarterly', 'Monthly', 'Monthly'][index];
+                            
+                            // Payment Amount
+                            cells[2].textContent = ['$49.99', '$499.99', '$199.99', '$49.99', '$49.99'][index];
+                            
+                            // Payment Date remains the same
+                            
+                            // Payment Method
+                            const methodBadges = [
+                                '<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Credit Card</span>',
+                                '<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">PayPal</span>',
+                                '<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Bank Transfer</span>',
+                                '<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Credit Card</span>',
+                                '<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Credit Card</span>'
+                            ];
+                            cells[4].innerHTML = methodBadges[index];
+                            
+                            // Next Billing
+                            const nextDates = ['Jun 12, 2023', 'Jan 10, 2024', 'Jun 8, 2023', 'May 15, 2023', 'Jun 2, 2023'];
+                            cells[5].textContent = nextDates[index];
+                        }
+                    });
+                }
+                
+                // Force chart resize to render properly
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('resize'));
+                    
+                    // Update chart visibility again after resize
+                    if (reportType === 'membership') {
+                        document.getElementById('membershipTrendChart').style.display = 'block';
+                        document.getElementById('revenueTrendChart').style.display = 'none';
+                    } else {
+                        document.getElementById('membershipTrendChart').style.display = 'none';
+                        document.getElementById('revenueTrendChart').style.display = 'block';
+                    }
+                }, 100);
+            }
+            
+            // Reset Filters Button - use the ID instead of the text content selector
+            document.getElementById('resetFiltersBtn').addEventListener('click', function() {
+                // Reset all form inputs
+                document.getElementById('reportType').value = 'membership';
+                document.getElementById('dateRange').value = 'last30days';
+                document.getElementById('dateRange').dispatchEvent(new Event('change'));
+                document.getElementById('programFilter').value = 'all';
+                document.getElementById('subFilter').value = 'all';
+                document.getElementById('statusFilter').value = 'all';
+            });
+            
+            // Success notification functions
+            function showNotification() {
+                const notification = document.getElementById('successNotification');
+                notification.classList.remove('hidden');
+                // Use setTimeout to ensure CSS transition works
+                setTimeout(() => {
+                    notification.classList.remove('-translate-y-16', 'opacity-0');
+                }, 10);
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    hideNotification();
+                }, 5000);
+            }
+            
+            function hideNotification() {
+                const notification = document.getElementById('successNotification');
+                notification.classList.add('-translate-y-16', 'opacity-0');
+                
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 500);
+            }
+            
+            // Close notification button
+            document.getElementById('closeNotification').addEventListener('click', hideNotification);
+            
+            // Initialize charts for reports
+            // ...existing code...
         });
     </script>
 </body>

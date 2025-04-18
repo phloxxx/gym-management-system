@@ -656,6 +656,10 @@
                                             <p id="viewPhone" class="text-sm font-medium text-gray-800">+1 (555) 123-4567</p>
                                         </div>
                                         <div>
+                                            <span class="text-xs text-gray-500">Joined Date</span>
+                                            <p id="viewJoinDate" class="text-sm font-medium text-gray-800">May 15, 2023</p>
+                                        </div>
+                                        <div>
                                             <span class="text-xs text-gray-500">Status</span>
                                             <p id="viewStatus" class="inline-flex items-center mt-1">
                                                 <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
@@ -1293,6 +1297,7 @@
                         coach: "Michael Johnson",
                         isActive: true,
                         comorbidities: [],
+                        joinDate: "2023-05-15", // Added joined date
                         // Add subscription data
                         subscriptionName: "Quarterly Plan",
                         subscriptionStart: "2023-10-15",
@@ -1309,6 +1314,7 @@
                         coach: "Sarah Williams",
                         isActive: true,
                         comorbidities: ["Asthma"],
+                        joinDate: "2023-03-10", // Added joined date
                         // Add subscription data
                         subscriptionName: "Monthly Plan",
                         subscriptionStart: "2023-11-01", 
@@ -1326,6 +1332,11 @@
                     document.getElementById('viewFullName').textContent = `${member.firstName} ${member.lastName}`;
                     document.getElementById('viewEmail').textContent = member.email;
                     document.getElementById('viewPhone').textContent = member.phone;
+                    
+                    // Display joined date
+                    const joinDate = new Date(member.joinDate);
+                    document.getElementById('viewJoinDate').textContent = formatDate(joinDate);
+                    
                     document.getElementById('viewProgramDetail').textContent = member.programName;
                     document.getElementById('viewCoach').textContent = member.coach;
                     
