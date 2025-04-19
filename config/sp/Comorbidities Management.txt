@@ -1,0 +1,27 @@
+-- Insert/Update Comorbidities
+DELIMITER //
+CREATE PROCEDURE sp_UpsertComorbidity(
+    IN p_comor_id SMALLINT,
+    IN p_comor_name VARCHAR(50)
+)
+BEGIN
+    IF p_comor_id IS NULL THEN
+        INSERT INTO COMORBIDITIES (COMOR_NAME)
+        VALUES (p_comor_name);
+    ELSE
+        UPDATE COMORBIDITIES
+        SET COMOR_NAME = p_comor_name
+        WHERE COMOR_ID = p_comor_id;
+    END IF;
+END //
+DELIMITER ;
+
+-- Display Comorbidities
+DELIMITER //
+CREATE PROCEDURE sp_GetComorbidities()
+BEGIN
+    SELECT COMOR_NAME
+    FROM COMORBIDITIES
+    WHERE IS_ACTIVE = 1;
+END //
+DELIMITER ;

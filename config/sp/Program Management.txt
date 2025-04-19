@@ -1,0 +1,31 @@
+-- Get Active Programs
+DELIMITER //
+CREATE PROCEDURE sp_GetActivePrograms()
+BEGIN
+    SELECT p.PROGRAM_NAME, 
+           GROUP_CONCAT(CONCAT(c.COACH_FNAME, ' ', c.COACH_LNAME)) as Coaches
+    FROM PROGRAM p
+    LEFT JOIN PROGRAM_COACH pc ON p.PROGRAM_ID = pc.PROGRAM_ID
+    LEFT JOIN COACH c ON pc.COACH_ID = c.COACH_ID
+    WHERE p.IS_ACTIVE = 1
+    GROUP BY p.PROGRAM_ID, p.PROGRAM_NAME;
+END //
+DELIMITER ;
+
+-- Insert/Update Program
+DELIMITER //
+CREATE PROCEDURE sp_UpsertProgram(
+    IN p_program_id SMALLINT,
+    IN p_program_name VARCHAR(50)
+)
+BEGIN
+    IF p_program_id IS NULL THEN
+        INSERT INTO PROGRAM (PROGRAM_NAME)
+        VALUES (p_program_name);
+    ELSE
+        UPDATE PROGRAM
+        SET PROGRAM_NAME = p_program_name
+        WHERE PROGRAM_ID = p_program_id;
+    END IF;
+END //
+DELIMITER ;

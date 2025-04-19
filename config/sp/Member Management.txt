@@ -1,0 +1,41 @@
+-- Get Active Members
+DELIMITER //
+CREATE PROCEDURE sp_GetActiveMembers()
+BEGIN
+    SELECT m.MEMBER_ID, m.MEMBER_FNAME, m.MEMBER_LNAME, 
+           m.EMAIL, m.PHONE_NUMBER, p.PROGRAM_NAME
+    FROM `MEMBER` m
+    JOIN PROGRAM p ON m.PROGRAM_ID = p.PROGRAM_ID
+    WHERE m.IS_ACTIVE = 1;
+END //
+DELIMITER ;
+
+-- Get Members by Month
+DELIMITER //
+CREATE PROCEDURE sp_GetMembersByMonth(
+    IN p_year INT,
+    IN p_month INT
+)
+BEGIN
+    SELECT COUNT(*) as MemberCount
+    FROM `MEMBER`
+    WHERE YEAR(JOINED_DATE) = p_year
+    AND MONTH(JOINED_DATE) = p_month;
+END //
+DELIMITER ;
+
+-- Get Members by Subscription
+DELIMITER //
+CREATE PROCEDURE sp_GetMembersBySubscription(
+    IN p_sub_id SMALLINT
+)
+BEGIN
+    SELECT m.MEMBER_FNAME, m.MEMBER_LNAME, s.SUB_NAME,
+           ms.START_DATE, ms.END_DATE
+    FROM `MEMBER` m
+    JOIN MEMBER_SUBSCRIPTION ms ON m.MEMBER_ID = ms.MEMBER_ID
+    JOIN SUBSCRIPTION s ON ms.SUB_ID = s.SUB_ID
+    WHERE ms.SUB_ID = p_sub_id
+    AND ms.IS_ACTIVE = 1;
+END //
+DELIMITER ;
