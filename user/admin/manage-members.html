@@ -96,7 +96,7 @@
                     
                     <!-- Transaction -->
                     <li class="mt-2">
-                        <a href="#" class="sidebar-menu-item">
+                        <a href="manage-transaction.html" class="sidebar-menu-item">
                             <i class="fas fa-exchange-alt"></i>
                             <span>Transaction</span>
                         </a>
@@ -1017,7 +1017,9 @@
                 // Reset form dirty state
                 isFormDirty = false;
                 // Store the initial state of the form
-                captureFormState();
+                setTimeout(() => {
+                    captureFormState();
+                }, 100);
             });
             
             // Empty state add button
@@ -1028,41 +1030,59 @@
                     // Reset form dirty state
                     isFormDirty = false;
                     // Store the initial state of the form
-                    captureFormState();
+                    setTimeout(() => {
+                        captureFormState();
+                    }, 100);
                 });
             }
             
-            // Close modal directly
+            // Close modal button - force showing the confirmation dialog
             closeModal.addEventListener('click', function() {
-                // Get edit mode state
-                const isEditMode = document.getElementById('memberId').value !== '';
+                const formHasChanges = isFormDirty && hasFormChanged();
+                console.log("Form dirty:", isFormDirty, "Has changes:", formHasChanges);
                 
-                // If form is dirty, show confirmation, otherwise close directly
-                if (hasFormChanged() && isFormDirty) {
+                // Always show confirmation if form is dirty
+                if (isFormDirty) {
                     confirmDialog.classList.remove('hidden');
                 } else {
                     closeModalDirectly();
                 }
             });
             
-            // Cancel button
+            // Cancel button - force showing the confirmation dialog
             cancelButton.addEventListener('click', function() {
-                // If form is dirty, show confirmation, otherwise close directly
-                if (hasFormChanged() && isFormDirty) {
+                const formHasChanges = isFormDirty && hasFormChanged();
+                console.log("Form dirty:", isFormDirty, "Has changes:", formHasChanges);
+                
+                // Always show confirmation if form is dirty
+                if (isFormDirty) {
                     confirmDialog.classList.remove('hidden');
                 } else {
                     closeModalDirectly();
                 }
             });
             
-            // Add event listeners to all form inputs to track changes
-            memberForm.addEventListener('input', function() {
-                isFormDirty = true;
-            });
-            
-            // Add change event listener for dropdowns
-            memberForm.addEventListener('change', function() {
-                isFormDirty = true;
+            // Direct event listeners to all form inputs to better track changes
+            const allInputs = memberForm.querySelectorAll('input, select, textarea');
+            allInputs.forEach(input => {
+                // For text inputs and selects
+                input.addEventListener('input', () => {
+                    console.log("Input changed:", input.name || input.id);
+                    isFormDirty = true;
+                });
+                
+                // For checkboxes, radios, and dropdowns
+                input.addEventListener('change', () => {
+                    console.log("Input changed:", input.name || input.id);
+                    isFormDirty = true;
+                });
+                
+                // For clicks on inputs (additional safety)
+                input.addEventListener('click', () => {
+                    setTimeout(() => {
+                        isFormDirty = true;
+                    }, 100);
+                });
             });
             
             // Confirm discard
@@ -1162,51 +1182,12 @@
                         originalFormValues[name] = element.value;
                     }
                 }
+                console.log("Form state captured:", originalFormValues);
             }
             
-            // Check if form has been modified
+            // Check if form has been modified (this function is no longer needed, but kept for compatibility)
             function hasFormChanged() {
-                const formElements = memberForm.elements;
-                
-                // Special handling for the form in edit mode
-                const isEditMode = document.getElementById('memberId').value !== '';
-                // If we're in edit mode and just opened the form, no changes have been made yet
-                if (isEditMode && Object.keys(originalFormValues).length === 0) {
-                    return false;
-                }
-                
-                // Skip checking if the form wasn't initialized yet
-                if (Object.keys(originalFormValues).length === 0) {
-                    return false;
-                }
-                
-                for (let i = 0; i < formElements.length; i++) {
-                    const element = formElements[i];
-                    const name = element.name || element.id;
-                    
-                    if (!name) continue;
-                    
-                    if (element.type === 'checkbox') {
-                        if (originalFormValues[name] !== element.checked) {
-                            return true;
-                        }
-                    } else if (element.type === 'select-multiple') {
-                        const currentSelected = [];
-                        for (let j = 0; j < element.options.length; j++) {
-                            if (element.options[j].selected) {
-                                currentSelected.push(element.options[j].value);
-                            }
-                        }
-                        // Compare arrays
-                        if (!arraysEqual(originalFormValues[name], currentSelected)) {
-                            return true;
-                        }
-                    } else if (originalFormValues[name] !== element.value) {
-                        return true;
-                    }
-                }
-                
-                return false;
+                return true; // Always return true to ensure dialog shows
             }
             
             // Helper function to compare arrays

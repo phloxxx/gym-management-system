@@ -425,103 +425,229 @@
     </div>
 
     <!-- Add Transaction Modal -->
-    <div id="addTransactionModal" class="fixed inset-0 bg-black bg-opacity-30 z-[60] flex items-center justify-center hidden backdrop-blur-sm">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 transform scale-95 overflow-hidden transition-all duration-200">
-            <div class="flex items-center justify-between p-5 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-800">Add New Transaction</h3>
-                <button onclick="closeModal(document.getElementById('addTransactionModal'))" class="text-gray-400 hover:text-gray-500 focus:outline-none">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form id="addTransactionForm" class="p-6 space-y-4">
-                <!-- Member Select -->
-                <div>
-                    <label for="memberSelect" class="block text-sm font-medium text-gray-700 mb-1">Member</label>
-                    <select id="memberSelect" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
-                        <option value="">Select Member</option>
-                        <option value="1001" data-email="john.doe@example.com" data-phone="555-123-4567">John Doe</option>
-                        <option value="1002" data-email="jane.smith@example.com" data-phone="555-234-5678">Jane Smith</option>
-                        <option value="1003" data-email="robert.j@example.com" data-phone="555-345-6789">Robert Johnson</option>
-                        <option value="1004" data-email="m.rodriguez@example.com" data-phone="555-456-7890">Michael Rodriguez</option>
-                        <option value="1005" data-email="amanda.lee@example.com" data-phone="555-567-8901">Amanda Lee</option>
-                    </select>
-                </div>
-
-                <!-- Subscription Select -->
-                <div>
-                    <label for="subscriptionSelect" class="block text-sm font-medium text-gray-700 mb-1">Subscription</label>
-                    <select id="subscriptionSelect" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
-                        <option value="">Select Subscription</option>
-                        <option value="1" data-duration="1 Month" data-price="49.99">Monthly Membership ($49.99)</option>
-                        <option value="2" data-duration="3 Months" data-price="129.99">Quarterly Membership ($129.99)</option>
-                        <option value="3" data-duration="12 Months" data-price="499.99">Annual Membership ($499.99)</option>
-                    </select>
-                </div>
-                
-                <!-- Payment Method Select -->
-                <div>
-                    <label for="paymentSelect" class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                    <select id="paymentSelect" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
-                        <option value="">Select Payment Method</option>
-                        <option value="1">Credit Card</option>
-                        <option value="2">Debit Card</option>
-                        <option value="3">Cash</option>
-                        <option value="4">Bank Transfer</option>
-                        <option value="5">Mobile Payment</option>
-                        <option value="6">Online Payment</option>
-                    </select>
-                </div>
-
-                <!-- Transaction Date -->
-                <div>
-                    <label for="transactionDate" class="block text-sm font-medium text-gray-700 mb-1">Transaction Date</label>
-                    <input type="date" id="transactionDate" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200">
-                </div>
-
-                <!-- Subscription Details -->
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h4 class="text-sm font-medium text-gray-700 mb-2">Subscription Details</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Plan</label>
-                            <p id="subName" class="text-sm text-gray-900">-</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Duration</label>
-                            <p id="subDuration" class="text-sm text-gray-900">-</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
-                            <p id="subStartDate" class="text-sm text-gray-900">-</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">End Date</label>
-                            <p id="subEndDate" class="text-sm text-gray-900">-</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Price</label>
-                            <p id="subPrice" class="text-sm text-gray-900">-</p>
-                        </div>
+    <div id="addTransactionModal" class="fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center hidden backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 transform scale-95 overflow-hidden transition-all duration-200">
+            <!-- Modal Title Banner -->
+            <div class="px-6 py-4 flex items-center justify-between bg-gradient-to-r from-blue-900 to-blue-800 relative overflow-hidden">
+                <div class="flex items-center z-10">
+                    <div class="mr-4 h-10 w-10 rounded-full bg-white/25 flex items-center justify-center text-white shadow-sm">
+                        <i class="fas fa-money-bill-wave text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-medium text-white leading-tight">Add New Transaction</h2>
+                        <p class="text-xs text-white/90">Enter the payment details below</p>
                     </div>
                 </div>
+                <button type="button" onclick="closeModal(document.getElementById('addTransactionModal'))" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 focus:outline-none transition-all duration-300 hover:rotate-90 z-20 cursor-pointer">
+                    <i class="fas fa-times"></i>
+                </button>
+                
+                <!-- Decorative background elements -->
+                <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-white/10 rounded-full"></div>
+                <div class="absolute -top-6 -left-6 w-24 h-24 bg-white/5 rounded-full"></div>
+            </div>
 
-                <!-- Action Buttons -->
-                <div class="flex gap-3 justify-end">
-                    <button type="button" class="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" onclick="closeModal(document.getElementById('addTransactionModal'))">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2.5 bg-primary-dark text-white rounded-md hover:bg-opacity-90 transition-colors">
-                        Add Transaction
-                    </button>
-                </div>
-            </form>
-        </div>  
+            <!-- Modal Body -->
+            <div class="p-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                <form id="addTransactionForm" class="space-y-4">
+                    
+                    <!-- Member Information Section -->
+                    <div class="mb-1">
+                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-user text-primary-light mr-2"></i>
+                            <span>Member Information</span>
+                        </h4>
+                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
+                    </div>
+
+                    <!-- Member Select -->
+                    <div>
+                        <label for="memberSearch" class="block text-sm font-medium text-gray-700 mb-1">Member Search</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <input type="text" id="memberSearch" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" placeholder="Search member by name or email">
+                            <div id="memberSearchResults" class="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto max-h-60 focus:outline-none sm:text-sm hidden">
+                                <!-- Search results will appear here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Member Information -->
+                    <div id="selectedMemberInfo" class="bg-gray-50 p-3 rounded-md mt-2 hidden">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3" id="memberInitials">JD</div>
+                            <div>
+                                <p id="memberName" class="font-medium text-gray-900">John Doe</p>
+                                <p id="memberEmail" class="text-xs text-gray-500">john.doe@example.com</p>
+                            </div>
+                            <button type="button" id="changeMemberBtn" class="ml-auto text-sm text-blue-600 hover:text-blue-800">
+                                Change
+                            </button>
+                        </div>
+                        <input type="hidden" id="selectedMemberId" value="">
+                    </div>
+
+                    <!-- Subscription Information Section -->
+                    <div class="mt-6 mb-1">
+                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-tag text-primary-light mr-2"></i>
+                            <span>Subscription Details</span>
+                        </h4>
+                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
+                    </div>
+
+                    <!-- Subscription Select -->
+                    <div>
+                        <label for="subscriptionSelect" class="block text-sm font-medium text-gray-700 mb-1">Subscription Plan</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                <i class="fas fa-tag"></i>
+                            </div>
+                            <select id="subscriptionSelect" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
+                                <option value="">Select Subscription</option>
+                                <option value="1" data-duration="1 Month" data-price="49.99">Monthly Membership ($49.99)</option>
+                                <option value="2" data-duration="3 Months" data-price="129.99">Quarterly Membership ($129.99)</option>
+                                <option value="3" data-duration="12 Months" data-price="499.99">Annual Membership ($499.99)</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Transaction Information Section -->
+                    <div class="mt-6 mb-1">
+                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-money-bill-wave text-primary-light mr-2"></i>
+                            <span>Payment Information</span>
+                        </h4>
+                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
+                    </div>
+
+                    <!-- Payment Method Select -->
+                    <div>
+                        <label for="paymentSelect" class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <select id="paymentSelect" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
+                                <option value="">Select Payment Method</option>
+                                <option value="1">Credit Card</option>
+                                <option value="2">Debit Card</option>
+                                <option value="3">Cash</option>
+                                <option value="4">Bank Transfer</option>
+                                <option value="5">Mobile Payment</option>
+                                <option value="6">Online Payment</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Start Date and End Date Fields -->
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <!-- Start Date -->
+                        <div>
+                            <label for="startDateInput" class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                            <div class="relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                    <i class="fas fa-calendar-day"></i>
+                                </div>
+                                <input type="date" id="startDateInput" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200">
+                            </div>
+                        </div>
+                        
+                        <!-- End Date -->
+                        <div>
+                            <label for="endDateInput" class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                            <div class="relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <input type="date" id="endDateInput" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subscription Details Summary -->
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-4">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 mt-0.5">
+                                <i class="fas fa-info-circle text-blue-500"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-blue-800">Subscription Summary</h3>
+                                <div class="mt-2 text-sm space-y-2">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-medium text-blue-600 mb-1">Plan</label>
+                                            <p id="subName" class="text-sm text-gray-900">-</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-blue-600 mb-1">Duration</label>
+                                            <p id="subDuration" class="text-sm text-gray-900">-</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-blue-600 mb-1">Start Date</label>
+                                            <p id="subStartDate" class="text-sm text-gray-900">-</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-blue-600 mb-1">End Date</label>
+                                            <p id="subEndDate" class="text-sm text-gray-900">-</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-blue-600 mb-1">Price</label>
+                                            <p id="subPrice" class="text-sm font-medium text-gray-900">-</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
+                <button type="button" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none transition-colors duration-300 shadow-sm font-medium cursor-pointer relative z-10" onclick="closeModal(document.getElementById('addTransactionModal'))">
+                    Cancel
+                </button>
+                <button id="submitTransactionBtn" type="button" class="px-5 py-2.5 bg-primary-dark text-white rounded-lg hover:bg-opacity-90 focus:outline-none transition-all duration-300 shadow-md font-medium flex items-center justify-center cursor-pointer relative z-10">
+                    <i class="fas fa-save mr-2"></i> Add Transaction
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Transaction Details Modal -->
-    <div id="transactionDetailsModal" class="fixed inset-0 bg-black bg-opacity-30 z-[60] flex items-center justify-center hidden backdrop-blur-sm">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 transform scale-95 overflow-hidden transition-all duration-200">
-            <div class="p-5">
+    <div id="transactionDetailsModal" class="fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center hidden backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 transform scale-95 overflow-hidden transition-all duration-200">
+            <!-- Modal Title Banner -->
+            <div class="px-6 py-4 flex items-center justify-between bg-gradient-to-r from-blue-900 to-blue-800 relative overflow-hidden">
+                <div class="flex items-center z-10">
+                    <div class="mr-4 h-10 w-10 rounded-full bg-white/25 flex items-center justify-center text-white shadow-sm">
+                        <i class="fas fa-file-invoice text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-medium text-white leading-tight">Transaction Details</h2>
+                        <p class="text-xs text-white/90">View transaction information</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal(document.getElementById('transactionDetailsModal'))" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 focus:outline-none transition-all duration-300 hover:rotate-90 z-20 cursor-pointer">
+                    <i class="fas fa-times"></i>
+                </button>
+                
+                <!-- Decorative background elements -->
+                <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-white/10 rounded-full"></div>
+                <div class="absolute -top-6 -left-6 w-24 h-24 bg-white/5 rounded-full"></div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
                 <div class="flex items-center mb-4">
                     <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
                         <i class="fas fa-info-circle text-xl"></i>
@@ -548,7 +674,7 @@
                     <div>
                         <h4 class="text-sm font-medium text-gray-700 mb-2">Member Details</h4>
                         <div class="flex items-center mb-2">
-                            <div class="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white text-xs" id="memberInitials">-</div>
+                            <div class="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white text-xs" id="detailsMemberInitials">-</div>
                             <div class="ml-3">
                                 <p id="detailsMemberName" class="text-sm font-medium text-gray-900">-</p>
                                 <p id="detailsMemberId" class="text-xs text-gray-500">-</p>
@@ -1048,49 +1174,41 @@
                                     statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
                                     statusCell.textContent = 'Inactive';
 
-                                    // Update button to show renew icon
-                                    this.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                                    this.title = 'Renew subscription';
-                                    this.classList.remove('text-red-600', 'hover:text-red-800');
-                                    this.classList.add('text-green-600', 'hover:text-green-800');
-                                    this.setAttribute('data-action', 'renew');
-                                    this.disabled = false;
-
-                                    // Show notification
-                                    showToast('Subscription deactivated successfully!', true);
-                                    
-                                    // Important: Create a new button to replace the old one
+                                    // Create a new renew button with proper event handling
                                     const newRenewButton = document.createElement('button');
-                                    newRenewButton.className = this.className;
+                                    newRenewButton.className = 'text-green-600 hover:text-green-800 transition-colors';
                                     newRenewButton.title = 'Renew subscription';
                                     newRenewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
                                     newRenewButton.setAttribute('data-sub-id', subId);
                                     newRenewButton.setAttribute('data-action', 'renew');
                                     
-                                    // Add direct click handler for the renew button
+                                    // Replace the old button with the new one
+                                    this.parentNode.replaceChild(newRenewButton, this);
+                                    
+                                    // Explicitly add click event to the new button
                                     newRenewButton.addEventListener('click', function() {
                                         const row = this.closest('tr');
                                         const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
                                         const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
                                         openRenewModal(memberName, subscriptionName);
                                     });
-                                    
-                                    // Replace old button with new one
-                                    this.parentNode.replaceChild(newRenewButton, this);
+
+                                    // Show notification
+                                    showToast('Subscription deactivated successfully!', true);
                                 }, 800);
                             }
                         );
                     });
                 });
 
-                // Set up direct renewal modal opening for existing renew buttons - No confirmation dialog
+                // Set up direct renewal modal opening for existing renew buttons
                 document.querySelectorAll('[data-action="renew"]').forEach(button => {
                     button.addEventListener('click', function() {
                         const row = this.closest('tr');
                         const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
                         const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
                         
-                        // Open renewal form modal directly without confirmation
+                        // Open renewal form modal
                         openRenewModal(memberName, subscriptionName);
                     });
                 });
@@ -1100,13 +1218,43 @@
             function openRenewModal(memberName, subscriptionName) {
                 const modal = document.getElementById('addTransactionModal');
                 if (modal) {
-                    // Pre-fill member select
-                    const memberSelect = document.getElementById('memberSelect');
-                    for (let i = 0; i < memberSelect.options.length; i++) {
-                        if (memberSelect.options[i].text.includes(memberName)) {
-                            memberSelect.selectedIndex = i;
-                            break;
+                    // Show the modal first
+                    openModal(modal);
+                    
+                    // Get member search section and completely remove it for renewal modal
+                    const memberSearchContainer = document.getElementById('memberSearch').parentElement.parentElement;
+                    memberSearchContainer.classList.add('hidden');
+                    
+                    // Show member info without the search UI or change option
+                    const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+                    selectedMemberInfo.classList.remove('hidden');
+                    
+                    // Replace the heading to indicate member is fixed for renewal
+                    const memberInfoSection = document.querySelector('.mb-1');
+                    if (memberInfoSection) {
+                        const memberHeading = memberInfoSection.querySelector('span');
+                        if (memberHeading) {
+                            memberHeading.textContent = "Member (Fixed for Renewal)";
                         }
+                    }
+                    
+                    // Set member information in the static display
+                    const memberInitials = document.getElementById('memberInitials');
+                    const memberNameElement = document.getElementById('memberName');
+                    const memberEmail = document.getElementById('memberEmail');
+                    const selectedMemberId = document.getElementById('selectedMemberId');
+                    const changeMemberBtn = document.getElementById('changeMemberBtn');
+                    
+                    // Set member details
+                    const initials = memberName.split(' ').map(n => n[0]).join('');
+                    memberInitials.textContent = initials;
+                    memberNameElement.textContent = memberName;
+                    memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+                    selectedMemberId.value = '1001'; // This would be replaced with actual ID
+                    
+                    // Completely hide the change button for renewals
+                    if (changeMemberBtn) {
+                        changeMemberBtn.classList.add('hidden');
                     }
                     
                     // Pre-fill subscription select
@@ -1120,91 +1268,279 @@
                         }
                     }
                     
-                    // Set transaction date to today
+                    // Set start date to today
                     const today = new Date();
-                    document.getElementById('transactionDate').valueAsDate = today;
+                    document.getElementById('startDateInput').valueAsDate = today;
                     
-                    // Open modal
-                    openModal(modal);
+                    // Calculate and set end date based on subscription
+                    const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
+                    if (selectedOption.value) {
+                        const duration = selectedOption.getAttribute('data-duration');
+                        const endDate = calculateEndDate(today, duration);
+                        document.getElementById('endDateInput').valueAsDate = endDate;
+                    }
+                    
+                    // Change modal title to indicate renewal
+                    const modalTitle = modal.querySelector('.text-lg.font-medium.text-white');
+                    if (modalTitle) {
+                        modalTitle.textContent = "Renew Subscription";
+                    }
+                    const modalSubtitle = modal.querySelector('.text-xs.text-white/90');
+                    if (modalSubtitle) {
+                        modalSubtitle.textContent = "Renew subscription for " + memberName;
+                    }
+                    
+                    // Change submit button text
+                    const submitButton = modal.querySelector('button[type="submit"]');
+                    if (submitButton) {
+                        submitButton.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Renew Subscription';
+                    }
                 }
             }
 
-            // Add form validation and submission
+            // Modify form submission reset to restore the UI for regular add transaction
             const addTransactionForm = document.getElementById('addTransactionForm');
             if (addTransactionForm) {
                 addTransactionForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-
-                    // Get form data
-                    const memberSelect = document.getElementById('memberSelect');
-                    const subscriptionSelect = document.getElementById('subscriptionSelect');
-                    const paymentSelect = document.getElementById('paymentSelect');
-                    const transactionDate = document.getElementById('transactionDate');
-
+                    e.preventDefault(); // Prevent default form submission
+                    
+                    // Get form fields
+                    const memberId = document.getElementById('selectedMemberId').value;
+                    const subscriptionId = document.getElementById('subscriptionSelect').value;
+                    const paymentMethod = document.getElementById('paymentSelect').value;
+                    const startDate = document.getElementById('startDateInput').value;
+                    const endDate = document.getElementById('endDateInput').value;
+                    
                     // Validate form
-                    if (!memberSelect.value) {
-                        showConfirmationDialog('Error', 'Please select a member', 'error');
+                    if (!memberId) {
+                        showToast('Please select a member', false);
                         return;
                     }
-                    if (!subscriptionSelect.value) {
-                        showConfirmationDialog('Error', 'Please select a subscription', 'error');
+                    
+                    if (!subscriptionId) {
+                        showToast('Please select a subscription plan', false);
                         return;
                     }
-                    if (!paymentSelect.value) {
-                        showConfirmationDialog('Error', 'Please select a payment method', 'error');
+                    
+                    if (!paymentMethod) {
+                        showToast('Please select a payment method', false);
                         return;
                     }
-
-                    // Show confirmation dialog
-                    showConfirmationDialog(
-                        'Confirm Transaction', 
-                        'Are you sure you want to add this transaction?',
-                        'confirm',
-                        () => {
-                            // This function runs if user confirms
-                            processTransactionSubmission();
-                        }
-                    );
-
-                    // Function to process the transaction submission
+                    
+                    if (!startDate || !endDate) {
+                        showToast('Please set the subscription period', false);
+                        return;
+                    }
+                    
+                    // Show loading state on the button
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalBtnText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                    submitBtn.disabled = true;
+                    
+                    // Process the transaction submission
+                    processTransactionSubmission();
+                    
                     function processTransactionSubmission() {
-                        // Prepare transaction data
-                        const transactionData = {
-                            member_id: memberSelect.value,
-                            sub_id: subscriptionSelect.value,
-                            payment_id: paymentSelect.value,
-                            transac_date: transactionDate.value || formatDate(new Date())
-                        };
-
-                        // Show loading state
-                        const submitBtn = addTransactionForm.querySelector('button[type="submit"]');
-                        const originalBtnText = submitBtn.innerHTML;
-                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
-                        submitBtn.disabled = true;
-
-                        // Simulate form submission
+                        // Get subscription details for the notification
+                        const subscriptionSelect = document.getElementById('subscriptionSelect');
+                        const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
+                        const subscriptionName = selectedOption.text.split('(')[0].trim();
+                        const memberName = document.getElementById('memberName').textContent;
+                        
+                        // Simulate API call with timeout
                         setTimeout(() => {
                             // Close modal
-                            closeModal(addTransactionModal);
+                            closeModal(document.getElementById('addTransactionModal'));
+                            
                             // Reset form
                             addTransactionForm.reset();
                             
-                            // Reset subscription details
-                            document.getElementById('subName').textContent = '-';
-                            document.getElementById('subDuration').textContent = '-';
-                            document.getElementById('subStartDate').textContent = '-';
-                            document.getElementById('subEndDate').textContent = '-';
-                            document.getElementById('subPrice').textContent = '-';
-
+                            // Reset the UI for future new transactions
+                            resetTransactionModalUI();
+                            
+                            // Update summary cards (simulating data refresh)
+                            updateSummaryCards();
+                            
                             // Show success notification using the toast
-                            showToast('Transaction added successfully!', true);
-
+                            showToast(`${subscriptionName} successfully added for ${memberName}!`, true);
+                            
                             // Reset button
                             submitBtn.innerHTML = originalBtnText;
                             submitBtn.disabled = false;
                         }, 1000);
                     }
                 });
+            }
+            
+            // Function to update summary cards after transaction
+            function updateSummaryCards() {
+                // Get current values
+                const totalTransactions = document.getElementById('totalTransactions');
+                const totalRevenue = document.getElementById('totalRevenue');
+                const recentTransactions = document.getElementById('recentTransactions');
+                
+                // Increment values
+                totalTransactions.textContent = (parseInt(totalTransactions.textContent) + 1).toString();
+                
+                // Update revenue - assuming we have a way to get the price
+                const currentRevenue = parseFloat(totalRevenue.textContent.replace('$', ''));
+                const subscriptionPrice = parseFloat(document.getElementById('subPrice').textContent.replace('$', ''));
+                totalRevenue.textContent = '$' + (currentRevenue + subscriptionPrice).toFixed(2);
+                
+                // Increment recent transactions
+                recentTransactions.textContent = (parseInt(recentTransactions.textContent) + 1).toString();
+                
+                // Update growth percentages (for demonstration)
+                document.getElementById('transactionGrowth').textContent = '+5%';
+                document.getElementById('revenueGrowth').textContent = '+7%';
+            }
+
+            // When the modal is closed with the cancel button, also reset the UI
+            document.querySelector('button[onclick="closeModal(document.getElementById(\'addTransactionModal\'))"]')
+                .addEventListener('click', function() {
+                    // Check if form has been modified
+                    const formChanged = hasFormChanged();
+                    
+                    if (formChanged) {
+                        // Show confirmation dialog
+                        showConfirmationDialog(
+                            'Discard Changes',
+                            'Are you sure you want to cancel? Any unsaved changes will be lost.',
+                            () => {
+                                // If confirmed, close the modal
+                                closeModal(document.getElementById('addTransactionModal'));
+                                // Give time for the close animation to finish before resetting
+                                setTimeout(resetTransactionModalUI, 300);
+                            }
+                        );
+                    } else {
+                        // If no changes, close directly
+                        closeModal(document.getElementById('addTransactionModal'));
+                        // Give time for the close animation to finish before resetting
+                        setTimeout(resetTransactionModalUI, 300);
+                    }
+                });
+
+            // Improved function to check if form has changed
+            function hasFormChanged() {
+                const form = document.getElementById('addTransactionForm');
+                
+                // Check if any field has been filled
+                const memberId = document.getElementById('selectedMemberId').value;
+                const memberSearch = document.getElementById('memberSearch').value;
+                const subscriptionSelect = document.getElementById('subscriptionSelect').value;
+                const paymentSelect = document.getElementById('paymentSelect').value;
+                const startDateInput = document.getElementById('startDateInput').value;
+                const endDateInput = document.getElementById('endDateInput').value;
+                
+                // Check if any field has been filled
+                return memberId || memberSearch || subscriptionSelect || paymentSelect || startDateInput || endDateInput;
+            }
+            
+            // Track form changes for the transaction form
+            const transactionFormInputs = document.querySelectorAll('#addTransactionForm input, #addTransactionForm select');
+            let formDirty = false;
+            
+            transactionFormInputs.forEach(input => {
+                if (input) {
+                    // For all input and change events
+                    ['input', 'change'].forEach(eventType => {
+                        input.addEventListener(eventType, function() {
+                            formDirty = true;
+                            console.log('Form modified:', input.id || input.name);
+                        });
+                    });
+                }
+            });
+            
+            // Also track the X button at the top of the modal for confirmation
+            const closeModalButton = document.querySelector('#addTransactionModal button[type="button"]');
+            if (closeModalButton) {
+                closeModalButton.removeAttribute('onclick');
+                closeModalButton.addEventListener('click', function() {
+                    const formChanged = hasFormChanged() && formDirty;
+                    
+                    if (formChanged) {
+                        // Show confirmation dialog
+                        showConfirmationDialog(
+                            'Discard Changes',
+                            'Are you sure you want to cancel? Any unsaved changes will be lost.',
+                            () => {
+                                // If confirmed, close the modal
+                                closeModal(document.getElementById('addTransactionModal'));
+                                // Reset form dirty state
+                                formDirty = false;
+                                // Give time for the close animation to finish before resetting
+                                setTimeout(resetTransactionModalUI, 300);
+                            }
+                        );
+                    } else {
+                        // If no changes, close directly
+                        closeModal(document.getElementById('addTransactionModal'));
+                        // Give time for the close animation to finish before resetting
+                        setTimeout(resetTransactionModalUI, 300);
+                    }
+                });
+            }
+
+            // Function to reset the transaction modal UI back to add transaction mode
+            function resetTransactionModalUI() {
+                const modal = document.getElementById('addTransactionModal');
+                if (!modal) return;
+                
+                // Reset form dirty state
+                formDirty = false;
+                
+                // Restore the original member section heading
+                const memberInfoSection = document.querySelector('.mb-1');
+                if (memberInfoSection) {
+                    const memberHeading = memberInfoSection.querySelector('span');
+                    if (memberHeading) {
+                        memberHeading.textContent = "Member Information";
+                    }
+                }
+                
+                // Show the member search field again
+                const memberSearchContainer = document.getElementById('memberSearch').parentElement.parentElement;
+                if (memberSearchContainer) {
+                    memberSearchContainer.classList.remove('hidden');
+                }
+                
+                // Reset member search field
+                const memberSearchInput = document.getElementById('memberSearch');
+                if (memberSearchInput) {
+                    memberSearchInput.value = '';
+                    memberSearchInput.disabled = false;
+                }
+                
+                // Hide the selected member info
+                const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+                if (selectedMemberInfo) {
+                    selectedMemberInfo.classList.add('hidden');
+                }
+                
+                // Show the change member button
+                const changeMemberBtn = document.getElementById('changeMemberBtn');
+                if (changeMemberBtn) {
+                    changeMemberBtn.classList.remove('hidden');
+                }
+                
+                // Reset the modal title
+                const modalTitle = modal.querySelector('.text-lg.font-medium.text-white');
+                if (modalTitle) {
+                    modalTitle.textContent = "Add New Transaction";
+                }
+                const modalSubtitle = modal.querySelector('.text-xs.text-white/90');
+                if (modalSubtitle) {
+                    modalSubtitle.textContent = "Enter the payment details below";
+                }
+                
+                // Reset the submit button
+                const submitButton = modal.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.innerHTML = '<i class="fas fa-save mr-2"></i> Add Transaction';
+                }
             }
 
             // Add filter application functionality
@@ -1277,6 +1613,58 @@
                     // }
                 });
             });
+
+            // Add Transaction Button functionality
+            const submitTransactionBtn = document.getElementById('submitTransactionBtn');
+            if (submitTransactionBtn) {
+                submitTransactionBtn.addEventListener('click', function() {
+                    // Get form fields
+                    const memberId = document.getElementById('selectedMemberId').value;
+                    const subscriptionId = document.getElementById('subscriptionSelect').value;
+                    const paymentMethod = document.getElementById('paymentSelect').value;
+                    const startDate = document.getElementById('startDateInput').value;
+                    const endDate = document.getElementById('endDateInput').value;
+                    
+                    // Show loading state on the button
+                    const originalBtnText = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+                    this.disabled = true;
+                    
+                    // Get subscription details for the notification
+                    const subscriptionSelect = document.getElementById('subscriptionSelect');
+                    const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
+                    const subscriptionName = selectedOption.text.split('(')[0].trim();
+                    const memberName = document.getElementById('memberName').textContent;
+                    
+                    // Simulate API call with timeout
+                    setTimeout(() => {
+                        // Close modal
+                        closeModal(document.getElementById('addTransactionModal'));
+                        
+                        // Reset form
+                        document.getElementById('addTransactionForm').reset();
+                        
+                        // Reset the UI for future new transactions
+                        resetTransactionModalUI();
+                        
+                        // Update summary cards (simulating data refresh)
+                        updateSummaryCards();
+                        
+                        // Determine if this was a renewal
+                        const isRenewal = this.innerHTML.includes('Renew');
+                        const message = isRenewal 
+                            ? `${subscriptionName} successfully renewed for ${memberName}!`
+                            : `${subscriptionName} successfully added for ${memberName}!`;
+                        
+                        // Show success notification using the toast
+                        showToast(message, true);
+                        
+                        // Reset button
+                        this.innerHTML = originalBtnText;
+                        this.disabled = false;
+                    }, 1000);
+                });
+            }
         });
 
         // Functions for the toast notification (matching member UI)
@@ -1328,6 +1716,21 @@
             confirmationTitle.textContent = title;
             confirmationMessage.textContent = message;
 
+            // Update button styles to match member UI
+            if (title === 'Discard Changes') {
+                confirmAction.textContent = 'Discard Changes';
+                confirmAction.classList.remove('bg-primary-dark');
+                confirmAction.classList.add('bg-red-600', 'hover:bg-red-700');
+                
+                cancelConfirmation.textContent = 'Continue Editing';
+            } else {
+                confirmAction.textContent = 'Confirm';
+                confirmAction.classList.remove('bg-red-600', 'hover:bg-red-700');
+                confirmAction.classList.add('bg-primary-dark');
+                
+                cancelConfirmation.textContent = 'Cancel';
+            }
+
             // Show dialog
             confirmationDialog.classList.remove('hidden');
             setTimeout(() => {
@@ -1360,6 +1763,149 @@
                 confirmationDialog.classList.add('hidden');
             }, 200);
         }
+        
+        // Enhanced form validation with visual error indicators - modified to show only inline errors
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get references to form fields
+            const memberSearchInput = document.getElementById('memberSearch').closest('#addTransactionForm #memberSearch');
+            const subscriptionSelect = document.getElementById('subscriptionSelect');
+            const paymentSelect = document.getElementById('paymentSelect');
+            const startDateInput = document.getElementById('startDateInput');
+            const endDateInput = document.getElementById('endDateInput');
+            const submitTransactionBtn = document.getElementById('submitTransactionBtn');
+            
+            if (submitTransactionBtn) {
+                // Replace the existing click event with enhanced validation
+                submitTransactionBtn.addEventListener('click', function() {
+                    // Get form fields
+                    const memberId = document.getElementById('selectedMemberId').value;
+                    const subscriptionId = subscriptionSelect.value;
+                    const paymentMethod = paymentSelect.value;
+                    const startDate = startDateInput.value;
+                    const endDate = endDateInput.value;
+                    
+                    // Reset previous error states
+                    document.querySelectorAll('#addTransactionForm .error-border').forEach(el => {
+                        el.classList.remove('error-border');
+                    });
+                    document.querySelectorAll('#addTransactionForm .error-message').forEach(el => {
+                        el.remove();
+                    });
+                    
+                    // Validate form and show inline errors
+                    let hasErrors = false;
+                    
+                    // Member validation - check just once, avoid duplicate errors
+                    if (!memberId) {
+                        hasErrors = true;
+                        // Find the member search field and add error only once
+                        const memberSearchContainer = document.querySelector('#addTransactionForm #memberSearch').closest('div');
+                        if (memberSearchContainer && !memberSearchContainer.querySelector('.error-message')) {
+                            highlightError(memberSearchContainer, 'Please select a member');
+                        }
+                    }
+                    
+                    // Subscription validation
+                    if (!subscriptionId) {
+                        hasErrors = true;
+                        highlightError(subscriptionSelect.parentElement, 'Please select a subscription plan');
+                    }
+                    
+                    // Payment method validation
+                    if (!paymentMethod) {
+                        hasErrors = true;
+                        highlightError(paymentSelect.parentElement, 'Please select a payment method');
+                    }
+                    
+                    // Date validation
+                    if (!startDate) {
+                        hasErrors = true;
+                        highlightError(startDateInput.parentElement, 'Please set a start date');
+                    }
+                    
+                    if (!endDate) {
+                        hasErrors = true;
+                        highlightError(endDateInput.parentElement, 'Please set an end date');
+                    }
+                    
+                    // If validation fails, exit
+                    if (hasErrors) {
+                        return;
+                    }
+                    
+                    // If all validations pass, proceed with form submission
+                    // Show loading state on the button
+                    const originalBtnText = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+                    this.disabled = true;
+                    
+                    // Get subscription details for the notification
+                    const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
+                    const subscriptionName = selectedOption.text.split('(')[0].trim();
+                    const memberName = document.getElementById('memberName').textContent;
+                    
+                    // Simulate API call with timeout
+                    setTimeout(() => {
+                        // Close modal
+                        closeModal(document.getElementById('addTransactionModal'));
+                        
+                        // Reset form
+                        document.getElementById('addTransactionForm').reset();
+                        
+                        // Reset the UI for future new transactions
+                        resetTransactionModalUI();
+                        
+                        // Update summary cards (simulating data refresh)
+                        updateSummaryCards();
+                        
+                        // Determine if this was a renewal
+                        const isRenewal = this.innerHTML.includes('Renew');
+                        const message = isRenewal 
+                            ? `${subscriptionName} successfully renewed for ${memberName}!`
+                            : `${subscriptionName} successfully added for ${memberName}!`;
+                        
+                        // Show success notification using the toast
+                        showToast(message, true);
+                        
+                        // Reset button
+                        this.innerHTML = originalBtnText;
+                        this.disabled = false;
+                    }, 1000);
+                });
+            }
+            
+            // Function to highlight error fields with a red border and message
+            function highlightError(fieldContainer, message) {
+                // Add red border to the input
+                const input = fieldContainer.querySelector('input, select');
+                if (input) {
+                    input.classList.add('border-red-500', 'error-border');
+                    input.classList.remove('border-gray-300');
+                }
+                
+                // Add error message below the field
+                const errorMessage = document.createElement('p');
+                errorMessage.className = 'text-xs text-red-600 mt-1 error-message';
+                errorMessage.textContent = message;
+                fieldContainer.appendChild(errorMessage);
+            }
+            
+            // Add event listeners to clear error state when input changes
+            const modalFormInputs = document.querySelectorAll('#addTransactionForm input, #addTransactionForm select');
+            modalFormInputs.forEach(input => {
+                if (input) {
+                    input.addEventListener('change', function() {
+                        // Remove red border
+                        this.classList.remove('border-red-500', 'error-border');
+                        this.classList.add('border-gray-300');
+                        
+                        // Remove error message if it exists
+                        const errorMessage = this.parentElement.querySelector('.error-message');
+                        if (errorMessage) errorMessage.remove();
+                    });
+                }
+            });
+        });
     </script>
 </body>
 </html>
