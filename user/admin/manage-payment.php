@@ -1,3 +1,9 @@
+<?php 
+// Get user data from session - remove the default 'Admin' value to ensure we see the actual session data
+$fullName = $_SESSION['name'];
+$role = ucfirst(strtolower($_SESSION['role']));
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -132,8 +138,8 @@
                         <!-- User Profile - Direct link to edit profile -->
                         <a href="edit-profile.php" class="flex items-center space-x-3 pr-2 cursor-pointer">
                             <div class="text-right hidden sm:block">
-                                <p class="text-sm font-medium text-gray-700">John Doe</p>
-                                <p class="text-xs text-gray-500">Administrator</p>
+                                <p class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($fullName); ?></p>
+                                <p class="text-xs text-gray-500"><?php echo htmlspecialchars($role); ?></p>
                             </div>
                             <div class="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-white">
                                 <i class="fas fa-user text-lg"></i>

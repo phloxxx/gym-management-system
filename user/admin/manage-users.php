@@ -7,6 +7,9 @@ if (!isset($_SESSION['user_id']) || strtolower($_SESSION['role']) !== 'administr
     header("Location: ../../login.php");
     exit();
 }
+// Get user data from session - remove the default 'Admin' value to ensure we see the actual session data
+$fullName = $_SESSION['name'];
+$role = ucfirst(strtolower($_SESSION['role']));
 
 // Add this after the session check but before the AJAX handling
 function getAllUsers() {
@@ -81,6 +84,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             echo json_encode($result);
             break;
 
+        case 'edit':
+            if (!isset($_POST['userId'])) {
+                echo json_encode(['success' => false, 'message' => 'User ID is required']);
+                exit;
+            }
+            
+            try {
+                $conn = getConnection();
+                $userId = (int)$_POST['userId'];
+                $updates = [];
+                $params = [];
+                $types = '';
+                
+                // Only include fields that were sent
+                if (isset($_POST['USER_FNAME'])) {
+                    $updates[] = "USER_FNAME = ?";
+                    $params[] = $_POST['USER_FNAME'];
+                    $types .= 's';
+                }
+                if (isset($_POST['USER_LNAME'])) {
+                    $updates[] = "USER_LNAME = ?";
+                    $params[] = $_POST['USER_LNAME'];
+                    $types .= 's';
+                }
+                if (isset($_POST['USERNAME'])) {
+                    $updates[] = "USERNAME = ?";
+                    $params[] = $_POST['USERNAME'];
+                    $types .= 's';
+                }
+                if (isset($_POST['USER_TYPE'])) {
+                    $updates[] = "USER_TYPE = ?";
+                    $params[] = $_POST['USER_TYPE'];
+                    $types .= 's';
+                }
+                if (isset($_POST['IS_ACTIVE'])) {
+                    $updates[] = "IS_ACTIVE = ?";
+                    $params[] = $_POST['IS_ACTIVE'];
+                    $types .= 'i';
+                }
+                if (isset($_POST['newPassword'])) {
+                    $updates[] = "PASSWORD = ?";
+                    $params[] = password_hash($_POST['newPassword'], PASSWORD_DEFAULT);
+                    $types .= 's';
+                }
+                
+                if (empty($updates)) {
+                    echo json_encode(['success' => false, 'message' => 'No fields to update']);
+                    exit;
+                }
+                
+                // Add userId to params array
+                $params[] = $userId;
+                $types .= 'i';
+                
+                $sql = "UPDATE user SET " . implode(', ', $updates) . " WHERE USER_ID = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param($types, ...$params);
+                
+                if ($stmt->execute()) {
+                    echo json_encode(['success' => true, 'message' => 'User updated successfully']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to update user']);
+                }
+            } catch (Exception $e) {
+                error_log("Error updating user: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'An error occurred while updating the user']);
+            }
+            break;
+
         case 'delete':
             if (!isset($_POST['userId'])) {
                 echo json_encode(['success' => false, 'message' => 'User ID is required']);
@@ -108,6 +180,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             } catch (Exception $e) {
                 error_log("Error deleting user: " . $e->getMessage());
                 echo json_encode(['success' => false, 'message' => 'An error occurred while deleting the user']);
+            }
+            break;
+
+        case 'getUser':
+            if (!isset($_POST['userId'])) {
+                echo json_encode(['success' => false, 'message' => 'User ID is required']);
+                exit;
+            }
+            
+            try {
+                $conn = getConnection();
+                $userId = (int)$_POST['userId'];
+                
+                $stmt = $conn->prepare("SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, USER_TYPE, IS_ACTIVE 
+                                      FROM user WHERE USER_ID = ?");
+                $stmt->bind_param("i", $userId);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                
+                if ($user = $result->fetch_assoc()) {
+                    echo json_encode([
+                        'success' => true,
+                        'user' => [
+                            'id' => $user['USER_ID'],
+                            'firstName' => $user['USER_FNAME'],
+                            'lastName' => $user['USER_LNAME'],
+                            'username' => $user['USERNAME'],
+                            'userType' => strtolower($user['USER_TYPE']) === 'administrator' ? 'admin' : 'staff',
+                            'isActive' => (int)$user['IS_ACTIVE']
+                        ]
+                    ]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'User not found']);
+                }
+            } catch (Exception $e) {
+                error_log("Error fetching user: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'An error occurred while fetching the user']);
             }
             break;
 
@@ -238,8 +347,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         <!-- User Profile - Direct link to edit profile -->
                         <a href="edit-profile.php" class="flex items-center space-x-3 pr-2 cursor-pointer">
                             <div class="text-right hidden sm:block">
-                                <p class="text-sm font-medium text-gray-700">John Doe</p>
-                                <p class="text-xs text-gray-500">Administrator</p>
+                                <p class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($fullName); ?></p>
+                                <p class="text-xs text-gray-500"><?php echo htmlspecialchars($role); ?></p>
                             </div>
                             <div class="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-white">
                                 <i class="fas fa-user text-lg"></i>
@@ -796,21 +905,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 emptyStateAddBtn.addEventListener('click', openAddModal);
                 
                 // Close modal buttons with improved behavior
-                closeModal.addEventListener('click', function() {
-                    console.log("Close button clicked"); // Debug log
-                    
-                    // Check if there are any actual modifications to the form
-                    const hasChanges = checkForActualChanges();
-                    
-                    if (hasChanges) {
-                        // Show confirmation dialog if there are changes
-                        showConfirmDialog(); 
-                    } else {
-                        // Close directly if there are no changes
-                        userModal.style.display = 'none';
-                        userModal.classList.add('hidden');
-                        userModal.classList.remove('active');
-                    }
+                closeModal.addEventListener('click', function(e) {
+                    e.preventDefault(); // Prevent any default action
+                    handleModalClose();
                 });
                 
                 // Cancel button behavior
@@ -950,43 +1047,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
             
-            // New function to check for actual changes rather than always returning true
+            function handleModalClose() {
+                const hasChanges = checkForActualChanges();
+                
+                if (hasChanges) {
+                    showConfirmDialog();
+                } else {
+                    closeUserModal();
+                }
+            }
+            
             function checkForActualChanges() {
-                // If we're adding a new user, check if any required field has content
+                // If we're adding a new user
                 if (!currentUserId) {
                     const firstName = document.getElementById('firstName').value.trim();
                     const lastName = document.getElementById('lastName').value.trim();
                     const username = document.getElementById('username').value.trim();
+                    const userType = document.getElementById('userType').value;
                     
-                    // If any of the main fields have content, consider it modified
-                    return firstName !== '' || lastName !== '' || username !== '';
-                } else {
-                    // If editing, find the original user
-                    const user = sampleUsers.find(u => u.id.toString() === currentUserId.toString());
-                    if (user) {
-                        // Check if any fields differ from original values
-                        const firstNameChanged = document.getElementById('firstName').value !== user.firstName;
-                        const lastNameChanged = document.getElementById('lastName').value !== user.lastName;
-                        const usernameChanged = document.getElementById('username').value !== user.username;
-                        const userTypeChanged = document.getElementById('userType').value !== user.userType;
-                        const statusChanged = document.getElementById('status').checked !== (user.isActive === 1);
-                        
-                        // Check if password change was requested
-                        const passwordChangeRequested = document.getElementById('changePassword') && 
-                                                      document.getElementById('changePassword').checked;
-                        
-                        return firstNameChanged || lastNameChanged || usernameChanged || 
-                               userTypeChanged || statusChanged || passwordChangeRequested;
-                    }
+                    // Check if any field has content
+                    return firstName !== '' || lastName !== '' || username !== '' || userType !== '';
                 }
                 
-                // Default fallback
-                return false;
-            }
-            
-            // Replace the hasFormBeenModified function with our more detailed function
-            function hasFormBeenModified() {
-                return checkForActualChanges();
+                // For editing users, compare with initial values loaded in the form
+                const originalValues = {
+                    firstName: document.getElementById('firstName').defaultValue,
+                    lastName: document.getElementById('lastName').defaultValue,
+                    username: document.getElementById('username').defaultValue,
+                    userType: document.getElementById('userType').defaultValue,
+                    isActive: document.getElementById('status').getAttribute('data-initial') === '1'
+                };
+                
+                return document.getElementById('firstName').value !== originalValues.firstName ||
+                       document.getElementById('lastName').value !== originalValues.lastName ||
+                       document.getElementById('username').value !== originalValues.username ||
+                       document.getElementById('userType').value !== originalValues.userType ||
+                       document.getElementById('status').checked !== originalValues.isActive ||
+                       (document.getElementById('changePassword') && document.getElementById('changePassword').checked);
             }
             
             function initializePasswordToggles() {
@@ -1082,55 +1179,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             
             function openEditModal(userId) {
-                // Set current user ID
-                currentUserId = userId;
-                document.getElementById('userId').value = userId;
+                // Show loading state on the modal title
+                modalTitle.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Loading User Data...';
                 
-                // Find user data
-                const user = sampleUsers.find(u => u.id.toString() === userId.toString());
-                
-                if (user) {
-                    // Set modal title
-                    modalTitle.textContent = 'Edit User';
-                    modalIcon.className = 'fas fa-user-edit text-xl';
-                    
-                    // Populate form fields
-                    document.getElementById('firstName').value = user.firstName;
-                    document.getElementById('lastName').value = user.lastName;
-                    document.getElementById('username').value = user.username;
-                    document.getElementById('userType').value = user.userType;
-                    document.getElementById('status').checked = user.isActive === 1;
-                    
-                    // Update status label
-                    statusLabel.textContent = user.isActive === 1 ? 'Active' : 'Inactive';
-                    statusLabel.className = user.isActive === 1
-                        ? 'text-sm text-green-600 font-medium flex items-center'
-                        : 'text-sm text-red-600 font-medium flex items-center';
-                    
-                    // Update the status icon
-                    const icon = statusLabel.querySelector('i') || document.createElement('i');
-                    icon.className = user.isActive === 1 ? 'fas fa-check-circle mr-1.5' : 'fas fa-times-circle mr-1.5';
-                    if (!statusLabel.querySelector('i')) {
-                        statusLabel.prepend(icon);
+                // Show modal immediately with loading state
+                userModal.style.display = 'flex';
+                userModal.classList.remove('hidden');
+                userModal.classList.add('active');
+
+                // Fetch user data
+                fetch(window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=getUser&userId=${userId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.user) {
+                        // Set current user ID
+                        currentUserId = userId;
+                        document.getElementById('userId').value = userId;
+
+                        // Set modal title
+                        modalTitle.innerHTML = '<i class="fas fa-user-edit text-xl mr-2"></i> Edit User';
+
+                        // Populate form fields
+                        document.getElementById('firstName').value = data.user.firstName;
+                        document.getElementById('lastName').value = data.user.lastName;
+                        document.getElementById('username').value = data.user.username;
+                        document.getElementById('userType').value = data.user.userType;
+                        document.getElementById('status').checked = data.user.isActive === 1;
+
+                        // Store the initial values as data attributes for comparison
+                        document.getElementById('status').setAttribute('data-initial', data.user.isActive);
+
+                        // Update status label
+                        const isActive = data.user.isActive === 1;
+                        statusLabel.textContent = isActive ? 'Active' : 'Inactive';
+                        statusLabel.className = isActive
+                            ? 'text-sm text-green-600 font-medium flex items-center'
+                            : 'text-sm text-red-600 font-medium flex items-center';
+
+                        // Update status icon
+                        const icon = statusLabel.querySelector('i') || document.createElement('i');
+                        icon.className = isActive ? 'fas fa-check-circle mr-1.5' : 'fas fa-times-circle mr-1.5';
+                        if (!statusLabel.querySelector('i')) {
+                            statusLabel.prepend(icon);
+                        }
+
+                        // Hide regular password field, show change password option
+                        passwordContainer.classList.add('hidden');
+                        document.getElementById('password').required = false;
+                        changePasswordContainer.classList.remove('hidden');
+                        newPasswordContainer.classList.add('hidden');
+
+                        // Reset change password checkbox
+                        document.getElementById('changePassword').checked = false;
+                        document.getElementById('newPassword').required = false;
+                    } else {
+                        showToast(data.message || 'Failed to load user data', 'error');
+                        closeUserModal();
                     }
-                    
-                    // Hide regular password field, show change password option
-                    passwordContainer.classList.add('hidden');
-                    document.getElementById('password').required = false;
-                    changePasswordContainer.classList.remove('hidden');
-                    newPasswordContainer.classList.add('hidden');
-                    
-                    // Reset change password checkbox
-                    document.getElementById('changePassword').checked = false;
-                    document.getElementById('newPassword').required = false;
-                    
-                    // Show modal - ensure it's visible and properly styled
-                    userModal.style.display = 'flex';
-                    userModal.classList.remove('hidden');
-                    userModal.classList.add('active');
-                } else {
-                    showToast('User not found.', 'error');
-                }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('An error occurred while loading user data', 'error');
+                    closeUserModal();
+                });
             }
             
             function closeUserModal() {
@@ -1159,10 +1276,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             
             function saveUser() {
-                // Form validation
-                if (!userForm.checkValidity()) {
-                    userForm.reportValidity();
-                    return;
+                // Form validation - only validate required fields for new users
+                if (!currentUserId) {
+                    if (!userForm.checkValidity()) {
+                        userForm.reportValidity();
+                        return;
+                    }
                 }
 
                 // Show loading state
@@ -1173,30 +1292,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 // Get form data
                 const formData = new FormData(userForm);
-                formData.append('action', 'add');
-
-                // Convert user type value to match database enum exactly
-                const userType = document.getElementById('userType').value;
-                formData.set('USER_TYPE', userType.toUpperCase() === 'ADMIN' ? 'ADMINISTRATOR' : 'STAFF');
-
-                // Add status
-                formData.set('IS_ACTIVE', document.getElementById('status').checked ? 1 : 0);
-
-                // Log the form data for debugging
-                console.log('Sending form data:', Object.fromEntries(formData));
+                
+                if (currentUserId) {
+                    // Edit mode - only include changed fields
+                    formData.set('action', 'edit');
+                    formData.set('userId', currentUserId);
+                    
+                    // Compare with original values and only include changed fields
+                    const originalValues = {
+                        firstName: document.getElementById('firstName').defaultValue,
+                        lastName: document.getElementById('lastName').defaultValue,
+                        username: document.getElementById('username').defaultValue,
+                        userType: document.getElementById('userType').defaultValue,
+                        isActive: document.getElementById('status').getAttribute('data-initial') === '1'
+                    };
+                    
+                    if (document.getElementById('firstName').value !== originalValues.firstName) {
+                        formData.set('USER_FNAME', document.getElementById('firstName').value);
+                    }
+                    if (document.getElementById('lastName').value !== originalValues.lastName) {
+                        formData.set('USER_LNAME', document.getElementById('lastName').value);
+                    }
+                    if (document.getElementById('username').value !== originalValues.username) {
+                        formData.set('USERNAME', document.getElementById('username').value);
+                    }
+                    if (document.getElementById('userType').value !== originalValues.userType) {
+                        formData.set('USER_TYPE', document.getElementById('userType').value.toUpperCase() === 'ADMIN' ? 'ADMINISTRATOR' : 'STAFF');
+                    }
+                    if (document.getElementById('status').checked !== originalValues.isActive) {
+                        formData.set('IS_ACTIVE', document.getElementById('status').checked ? 1 : 0);
+                    }
+                    
+                    // Handle password change if requested
+                    if (document.getElementById('changePassword').checked) {
+                        formData.set('newPassword', document.getElementById('newPassword').value);
+                    }
+                } else {
+                    // Add mode - include all required fields
+                    formData.set('action', 'add');
+                    const userType = document.getElementById('userType').value;
+                    formData.set('USER_TYPE', userType.toUpperCase() === 'ADMIN' ? 'ADMINISTRATOR' : 'STAFF');
+                    formData.set('IS_ACTIVE', document.getElementById('status').checked ? 1 : 0);
+                }
 
                 fetch(window.location.href, {
                     method: 'POST',
                     body: formData
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
-                    console.log('Server response:', data); // Debug log
                     if (data.success) {
                         showToast(data.message);
                         closeUserModal();
@@ -1213,7 +1357,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     showToast('An error occurred while saving the user', 'error');
                 })
                 .finally(() => {
-                    // Reset button state
                     saveButton.innerHTML = originalButtonText;
                     saveButton.disabled = false;
                 });
