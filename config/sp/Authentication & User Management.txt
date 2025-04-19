@@ -1,0 +1,61 @@
+-- Authenticate User by Role
+DELIMITER //
+CREATE PROCEDURE sp_AuthenticateUser(
+    IN p_username VARCHAR(20),
+    IN p_password VARCHAR(15)
+)
+BEGIN
+    SELECT USER_ID, USER_FNAME, USER_LNAME, USER_TYPE 
+    FROM `USER`
+    WHERE USERNAME = p_username 
+    AND PASSWORD = p_password
+    AND IS_ACTIVE = 1;
+END //
+DELIMITER ;
+
+-- Get Staff Members
+DELIMITER //
+CREATE PROCEDURE sp_GetStaffMembers()
+BEGIN
+    SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, USER_TYPE
+    FROM `USER`
+    WHERE USER_TYPE = 'STAFF'
+    AND IS_ACTIVE = 1;
+END //
+DELIMITER ;
+
+-- Insert/Update User
+DELIMITER //
+CREATE PROCEDURE sp_UpsertUser(
+    IN p_user_id SMALLINT,
+    IN p_fname VARCHAR(50),
+    IN p_lname VARCHAR(30),
+    IN p_username VARCHAR(20),
+    IN p_password VARCHAR(15),
+    IN p_user_type ENUM('ADMINISTRATOR', 'STAFF')
+)
+BEGIN
+    IF p_user_id IS NULL THEN
+        INSERT INTO `USER` (USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE)
+        VALUES (p_fname, p_lname, p_username, p_password, p_user_type);
+    ELSE
+        UPDATE `USER`
+        SET USER_FNAME = p_fname,
+            USER_LNAME = p_lname,
+            USERNAME = p_username,
+            PASSWORD = p_password,
+            USER_TYPE = p_user_type
+        WHERE USER_ID = p_user_id;
+    END IF;
+END //
+DELIMITER ;
+
+-- Display Users
+DELIMITER //
+CREATE PROCEDURE sp_GetUsers()
+BEGIN
+    SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, USER_TYPE
+    FROM `USER`
+    WHERE IS_ACTIVE = 1;
+END //
+DELIMITER ;
