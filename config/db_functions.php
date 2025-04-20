@@ -157,4 +157,104 @@ function updateUser($data) {
     }
 }
 
+function updateUserProfile($data) {
+    try {
+        $conn = getConnection();
+        
+        // First verify the current password if attempting to change password
+        if (!empty($data['currentPassword'])) {
+            $stmt = $conn->prepare("SELECT PASSWORD FROM user WHERE USER_ID = ?");
+            $stmt->bind_param("i", $data['USER_ID']);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $user = $result->fetch_assoc();
+            
+            if (!password_verify($data['currentPassword'], $user['PASSWORD'])) {
+                return ['success' => false, 'message' => 'Current password is incorrect'];
+            }
+        }
+        
+        // Build update query
+        $sql = "UPDATE user SET USER_FNAME = ?, USER_LNAME = ?";
+        $params = [$data['USER_FNAME'], $data['USER_LNAME']];
+        $types = "ss";
+        
+        // Add password to update if provided
+        if (!empty($data['PASSWORD'])) {
+            $sql .= ", PASSWORD = ?";
+            $hashedPassword = password_hash($data['PASSWORD'], PASSWORD_DEFAULT);
+            $params[] = $hashedPassword;
+            $types .= "s";
+        }
+        
+        $sql .= " WHERE USER_ID = ?";
+        $params[] = $data['USER_ID'];
+        $types .= "i";
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param($types, ...$params);
+        
+        if ($stmt->execute()) {
+            return ['success' => true, 'message' => 'Profile updated successfully'];
+        } else {
+            return ['success' => false, 'message' => 'Failed to update profile'];
+        }
+    } catch (Exception $e) {
+        error_log("Error updating user profile: " . $e->getMessage());
+        return ['success' => false, 'message' => 'Database error occurred'];
+    }
+}
+
+function getUserProfile($userId) {
+    try {
+        $conn = getConnection();
+        $stmt = $conn->prepare("SELECT USER_FNAME, USER_LNAME, USERNAME, USER_TYPE FROM user WHERE USER_ID = ?");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->fetch_assoc();
+    } catch (Exception $e) {
+        error_log("Error getting user profile: " . $e->getMessage());
+        return false;
+    }
+}
+
+function getSubscriptions() {
+    try {
+        $conn = getConnection();
+        $stmt = $conn->prepare("SELECT * FROM subscription ORDER BY IS_ACTIVE DESC, SUB_NAME ASC");
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    } catch (Exception $e) {
+        error_log("Error getting subscriptions: " . $e->getMessage());
+        return false;
+    }
+}
+
+function addSubscription($data) {
+    try {
+        $conn = getConnection();
+        $stmt = $conn->prepare("INSERT INTO subscription (SUB_NAME, DURATION, PRICE, IS_ACTIVE) VALUES (?, ?, ?, ?)");
+        $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
+        $stmt->bind_param("ssdi", $data['SUB_NAME'], $data['DURATION'], $data['PRICE'], $isActive);
+        return $stmt->execute();
+    } catch (Exception $e) {
+        error_log("Error adding subscription: " . $e->getMessage());
+        return false;
+    }
+}
+
+function updateSubscription($data) {
+    try {
+        $conn = getConnection();
+        $stmt = $conn->prepare("UPDATE subscription SET SUB_NAME=?, DURATION=?, PRICE=?, IS_ACTIVE=? WHERE SUB_ID=?");
+        $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
+        $stmt->bind_param("ssdii", $data['SUB_NAME'], $data['DURATION'], $data['PRICE'], $isActive, $data['SUB_ID']);
+        return $stmt->execute();
+    } catch (Exception $e) {
+        error_log("Error updating subscription: " . $e->getMessage());
+        return false;
+    }
+}
+
 
