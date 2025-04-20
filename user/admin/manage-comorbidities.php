@@ -1,5 +1,14 @@
 <?php
-// Get user data from session - remove the default 'Admin' value to ensure we see the actual session data
+session_start();
+
+// Check if user is logged in and session variables exist
+if (!isset($_SESSION['name']) || !isset($_SESSION['role'])) {
+    // Redirect to login page if session data is missing
+    header("Location: ../../login.php");
+    exit();
+}
+
+// Get user data from session
 $fullName = $_SESSION['name'];
 $role = ucfirst(strtolower($_SESSION['role']));
 ?>
@@ -188,91 +197,6 @@ $role = ucfirst(strtolower($_SESSION['role']));
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">Hypertension</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-comorbidity h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="001">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">Diabetes</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-comorbidity h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="002">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">Asthma</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-comorbidity h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="003">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">Heart Disease</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                        Inactive
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-comorbidity h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="004">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">Osteoporosis</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-comorbidity h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="005">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -376,6 +300,31 @@ $role = ucfirst(strtolower($_SESSION['role']));
         </div>
     </div>
 
+    <!-- Delete Confirmation Dialog -->
+    <div id="deleteConfirmDialog" class="fixed inset-0 bg-black bg-opacity-30 z-[60] flex items-center justify-center hidden backdrop-blur-sm">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 transform scale-95 overflow-hidden transition-all duration-200">
+            <div class="p-5">
+                <div class="flex items-center mb-4">
+                    <div class="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mr-4">
+                        <i class="fas fa-trash-alt text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">Delete Condition</h3>
+                        <p class="text-sm text-gray-600">Are you sure you want to delete this condition? This action cannot be undone.</p>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button id="cancelDelete" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Discard Changes Confirmation Dialog -->
     <div id="discardChangesDialog" class="fixed inset-0 bg-black bg-opacity-30 z-[60] flex items-center justify-center hidden backdrop-blur-sm">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 transform scale-95 overflow-hidden transition-all duration-200">
@@ -437,299 +386,291 @@ $role = ucfirst(strtolower($_SESSION['role']));
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
     <script>
-        // Toast notification functions
-        function hideToast() {
-            const toast = document.getElementById('toast');
-            toast.classList.add('translate-x-full', 'opacity-0');
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 300);
-        }
-
-        // Show success toast
-        function showToast(message, isSuccess = true) {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toastMessage');
-            const toastIcon = document.getElementById('toastIcon');
-            toastMessage.textContent = message;
-            toast.style.display = 'flex';
-            if (isSuccess) {
-                toast.classList.remove('bg-red-600');
-                toast.classList.add('bg-green-600');
-                toastIcon.classList.remove('fa-times-circle');
-                toastIcon.classList.add('fa-check-circle');
-            } else {
-                toast.classList.remove('bg-green-600');
-                toast.classList.add('bg-red-600');
-                toastIcon.classList.remove('fa-check-circle');
-                toastIcon.classList.add('fa-times-circle');
-            }
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full', 'opacity-0');
-            }, 10);
-            // Auto hide after 5 seconds
-            setTimeout(hideToast, 5000);
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize dropdown toggle functionality for sidebar
-            const dropdownButtons = document.querySelectorAll('[data-collapse-toggle]');
-            dropdownButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const targetId = this.getAttribute('data-collapse-toggle');
-                    const targetElement = document.getElementById(targetId);
-                    const chevronIcon = document.getElementById(targetId.replace('dropdown-', '') + '-chevron');
-                    if (targetElement) {
-                        if (targetElement.classList.contains('hidden')) {
-                            // Show dropdown
-                            targetElement.classList.remove('hidden');
-                            targetElement.style.maxHeight = targetElement.scrollHeight + 'px';
-                            if (chevronIcon) {
-                                chevronIcon.style.transform = 'rotate(180deg)';
-                            }
-                        } else {
-                            // Hide dropdown
-                            targetElement.style.maxHeight = '0px';
-                            if (chevronIcon) {
-                                chevronIcon.style.transform = 'rotate(0deg)';
-                            }
-                            setTimeout(() => {
-                                targetElement.classList.add('hidden');
-                            }, 300);
-                        }
-                    }
-                });
-            });
-
-            // Management dropdown should be open by default since we're on a management page
-            const managementDropdown = document.getElementById('dropdown-management');
-            const managementChevron = document.getElementById('management-chevron');
-            if (managementDropdown && managementChevron) {
-                managementDropdown.classList.remove('hidden');
-                managementDropdown.style.maxHeight = managementDropdown.scrollHeight + 'px';
-                managementChevron.style.transform = 'rotate(180deg)';
-            }
-
-            // Comorbidity Modal Functions
-            const comorbidityModal = document.getElementById('comorbidityModal');
-            const addComorbidityBtn = document.getElementById('addComorbidityBtn');
-            const closeComorbidityModal = document.getElementById('closeComorbidityModal');
-            const cancelComorbidityBtn = document.getElementById('cancelComorbidityBtn');
-            const comorbidityForm = document.getElementById('comorbidityForm');
-            const modalTitle = document.getElementById('modalTitle');
-            const saveButtonText = document.getElementById('saveButtonText');
-            const comorbidityId = document.getElementById('comorbidityId');
-            const comorbidityName = document.getElementById('comorbidityName');
-            const saveConditionBtn = document.getElementById('saveConditionBtn');
-            const discardChangesDialog = document.getElementById('discardChangesDialog');
-            const continueEditingBtn = document.getElementById('continueEditing');
-            const discardChangesBtn = document.getElementById('discardChanges');
-
-            // Track form changes
-            let originalFormState = {};
-            let formChanged = false;
-
-            // Capture the initial form state when opening the modal
-            function captureFormState() {
-                originalFormState = {
-                    name: comorbidityName.value,
-                    status: document.getElementById('status').checked
-                };
-            }
-
-            // Check if form has changed
-            function hasFormChanged() {
-                return comorbidityName.value !== originalFormState.name || 
-                       document.getElementById('status').checked !== originalFormState.status;
-            }
-
-            // Form change detection
-            comorbidityForm.addEventListener('input', function() {
-                formChanged = true;
-            });
-
-            comorbidityForm.addEventListener('change', function() {
-                formChanged = true;
-            });
-
-            // Add new comorbidity button click
-            addComorbidityBtn.addEventListener('click', function() {
-                modalTitle.textContent = 'Add New Health Condition';
-                saveButtonText.textContent = 'Save Condition';
-                comorbidityId.value = '';
-                comorbidityName.value = '';
-                document.getElementById('status').checked = true;
-                document.getElementById('statusLabel').innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
-                document.getElementById('statusLabel').classList.remove('text-red-600');
-                document.getElementById('statusLabel').classList.add('text-green-600');
-                showModal(comorbidityModal);
-
-                // Reset form change tracking
-                formChanged = false;
-                captureFormState();
-            });
-
-            // Edit comorbidity button click
-            const editButtons = document.querySelectorAll('.edit-comorbidity');
-            editButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const id = this.getAttribute('data-id');
-                    modalTitle.textContent = 'Edit Health Condition';
-                    saveButtonText.textContent = 'Update Condition';
-                    comorbidityId.value = id;
-
-                    // For demo purposes, populate with sample data
-                    if (id === '001') {
-                        comorbidityName.value = 'Hypertension';
-                        document.getElementById('status').checked = true;
-                        document.getElementById('statusLabel').innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
-                        document.getElementById('statusLabel').classList.remove('text-red-600');
-                        document.getElementById('statusLabel').classList.add('text-green-600');
-                    } else if (id === '002') {
-                        comorbidityName.value = 'Diabetes';
-                        document.getElementById('status').checked = true;
-                        document.getElementById('statusLabel').innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
-                        document.getElementById('statusLabel').classList.remove('text-red-600');
-                        document.getElementById('statusLabel').classList.add('text-green-600');
-                    } else if (id === '004') { // Heart Disease is inactive
-                        comorbidityName.value = 'Heart Disease';
-                        document.getElementById('status').checked = false;
-                        document.getElementById('statusLabel').innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
-                        document.getElementById('statusLabel').classList.remove('text-green-600');
-                        document.getElementById('statusLabel').classList.add('text-red-600');
-                    } else {
-                        comorbidityName.value = 'Sample Condition';
-                        document.getElementById('status').checked = true;
-                        document.getElementById('statusLabel').innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
-                        document.getElementById('statusLabel').classList.remove('text-red-600');
-                        document.getElementById('statusLabel').classList.add('text-green-600');
-                    }
-
-                    showModal(comorbidityModal);
-
-                    // Reset form change tracking and capture initial state
-                    formChanged = false;
-                    captureFormState();
-                });
-            });
-
-            // Close modal buttons - check for unsaved changes
-            closeComorbidityModal.addEventListener('click', function() {
-                handleModalClose();
-            });
-
-            cancelComorbidityBtn.addEventListener('click', function() {
-                handleModalClose();
-            });
-
-            // Handle modal close with change detection
-            function handleModalClose() {
-                if (formChanged && hasFormChanged()) {
-                    // Show confirmation dialog
-                    showModal(discardChangesDialog);
-                } else {
-                    // No changes, close directly
-                    hideModal(comorbidityModal);
-                }
-            }
-
-            // Discard changes dialog buttons
-            continueEditingBtn.addEventListener('click', function() {
-                hideModal(discardChangesDialog);
-            });
-
-            discardChangesBtn.addEventListener('click', function() {
-                hideModal(discardChangesDialog);
-                hideModal(comorbidityModal);
-            });
-
-            // Form submission
-            saveConditionBtn.addEventListener('click', function() {
-                if(comorbidityForm.checkValidity()) {
-                    // Get condition name to show in notification
-                    const conditionName = comorbidityName.value;
-                    // Get action (add or update)
-                    const isUpdate = comorbidityId.value ? true : false;
-                    // Show confirmation dialog
-                    // Close modal
-                    hideModal(comorbidityModal);
-                    // Show success notification
-                    if (isUpdate) {
-                        showToast(`${conditionName} condition updated successfully!`, true);
-                    } else {
-                        showToast(`${conditionName} condition added successfully!`, true);
-                    }
-                    // Reset form change tracking
-                    formChanged = false;
-                    // In a real application, you would refresh the table or add/update the row here
-                } else {
-                    // Trigger browser's default validation
-                    const submitButton = document.createElement('button');
-                    submitButton.type = 'submit';
-                    comorbidityForm.appendChild(submitButton);
-                    submitButton.click();
-                    comorbidityForm.removeChild(submitButton);
-                }
-            });
-
-            // Logout functionality
-            const logoutButton = document.getElementById('logout-button');
-            const logoutConfirmDialog = document.getElementById('logoutConfirmDialog');
-            const cancelLogout = document.getElementById('cancelLogout');
-            const confirmLogout = document.getElementById('confirmLogout');
-
-            logoutButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                showModal(logoutConfirmDialog);
-            });
-
-            cancelLogout.addEventListener('click', function() {
-                hideModal(logoutConfirmDialog);
-            });
-
-            confirmLogout.addEventListener('click', function() {
-                window.location.href = "../../login.php";
-            });
-
-            // Helper functions for modals
+            // Add these new functions at the top of your existing JavaScript
             function showModal(modal) {
                 modal.classList.remove('hidden');
                 setTimeout(() => {
-                    const dialogContent = modal.querySelector('.transform');
-                    if (dialogContent) {
-                        dialogContent.classList.remove('scale-95');
-                        dialogContent.classList.add('scale-100');
-                    }
+                    modal.querySelector('.modal-content').classList.remove('scale-95');
+                    modal.querySelector('.modal-content').classList.add('scale-100');
                 }, 10);
             }
-            
+
             function hideModal(modal) {
-                const dialogContent = modal.querySelector('.transform');
-                if (dialogContent) {
-                    dialogContent.classList.remove('scale-100');
-                    dialogContent.classList.add('scale-95');
-                }
+                modal.querySelector('.modal-content').classList.remove('scale-100');
+                modal.querySelector('.modal-content').classList.add('scale-95');
                 setTimeout(() => {
                     modal.classList.add('hidden');
-                }, 200);
+                }, 300);
             }
 
-            // Toggle status in add/edit form
-            const statusToggle = document.getElementById('status');
-            const statusLabel = document.getElementById('statusLabel');
-            
-            if (statusToggle && statusLabel) {
-                statusToggle.addEventListener('change', function() {
-                    if (this.checked) {
-                        statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
-                        statusLabel.classList.remove('text-red-600');
-                        statusLabel.classList.add('text-green-600');
-                    } else {
-                        statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
-                        statusLabel.classList.remove('text-green-600');
-                        statusLabel.classList.add('text-red-600');
+            // Add Condition button click handler
+            document.getElementById('addComorbidityBtn').addEventListener('click', function() {
+                // Reset form
+                document.getElementById('comorbidityForm').reset();
+                document.getElementById('comorbidityId').value = '';
+                document.getElementById('modalTitle').textContent = 'Add New Health Condition';
+                document.getElementById('saveButtonText').textContent = 'Save Condition';
+                document.getElementById('status').checked = true;
+                document.getElementById('statusLabel').innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                document.getElementById('statusLabel').className = 'text-sm text-green-600 font-medium flex items-center';
+                
+                showModal(document.getElementById('comorbidityModal'));
+            });
+
+            // Empty state Add button click handler
+            document.getElementById('emptyStateAddBtn').addEventListener('click', function() {
+                document.getElementById('addComorbidityBtn').click();
+            });
+
+            // Close modal button click handler
+            document.getElementById('closeComorbidityModal').addEventListener('click', function() {
+                hideModal(document.getElementById('comorbidityModal'));
+            });
+
+            // Cancel button click handler
+            document.getElementById('cancelComorbidityBtn').addEventListener('click', function() {
+                hideModal(document.getElementById('comorbidityModal'));
+            });
+
+            // Status toggle handler
+            document.getElementById('status').addEventListener('change', function() {
+                const label = document.getElementById('statusLabel');
+                if (this.checked) {
+                    label.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                    label.className = 'text-sm text-green-600 font-medium flex items-center';
+                } else {
+                    label.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                    label.className = 'text-sm text-red-600 font-medium flex items-center';
+                }
+            });
+
+            // Toast notification functions
+            function hideToast() {
+                const toast = document.getElementById('toast');
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 300);
+            }
+
+            // Show success toast
+            function showToast(message, isSuccess = true) {
+                const toast = document.getElementById('toast');
+                const toastMessage = document.getElementById('toastMessage');
+                const toastIcon = document.getElementById('toastIcon');
+                toastMessage.textContent = message;
+                toast.style.display = 'flex';
+                if (isSuccess) {
+                    toast.classList.remove('bg-red-600');
+                    toast.classList.add('bg-green-600');
+                    toastIcon.classList.remove('fa-times-circle');
+                    toastIcon.classList.add('fa-check-circle');
+                } else {
+                    toast.classList.remove('bg-green-600');
+                    toast.classList.add('bg-red-600');
+                    toastIcon.classList.remove('fa-check-circle');
+                    toastIcon.classList.add('fa-times-circle');
+                }
+                setTimeout(() => {
+                    toast.classList.remove('translate-x-full', 'opacity-0');
+                }, 10);
+                // Auto hide after 5 seconds
+                setTimeout(hideToast, 5000);
+            }
+
+            // Load comorbidities on page load
+            loadComorbidities();
+
+            // Function to load comorbidities
+            function loadComorbidities() {
+                const tableBody = document.querySelector('#comorbiditiesTable tbody');
+                const emptyState = document.getElementById('emptyState');
+                const loadingState = document.getElementById('loadingState');
+
+                // Show loading state
+                tableBody.classList.add('hidden');
+                emptyState.classList.add('hidden');
+                loadingState.classList.remove('hidden');
+
+                fetch('../../config/comorbidity_api.php')
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingState.classList.add('hidden');
+                        
+                        if (data.success && data.data.length > 0) {
+                            tableBody.innerHTML = data.data.map(comorbidity => `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">${comorbidity.name}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${comorbidity.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                            ${comorbidity.isActive ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                                        <div class="flex space-x-2 justify-center">
+                                            <button class="text-primary-dark hover:text-primary-light edit-comorbidity h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${comorbidity.id}">
+                                                <i class="fas fa-edit text-lg"></i>
+                                            </button>
+                                            <button class="text-red-600 hover:text-red-700 delete-comorbidity h-9 w-9 inline-flex items-center justify-center bg-red-100 hover:bg-red-200 rounded-full transition-all duration-200" data-id="${comorbidity.id}" data-name="${comorbidity.name}">
+                                                <i class="fas fa-trash-alt text-lg"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('');
+                            tableBody.classList.remove('hidden');
+                            
+                            // Re-attach event listeners to edit and delete buttons
+                            attachEditListeners();
+                        } else {
+                            emptyState.classList.remove('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        loadingState.classList.add('hidden');
+                        showToast('Failed to load comorbidities', false);
+                    });
+            }
+
+            // Save comorbidity function
+            saveConditionBtn.addEventListener('click', function() {
+                if(comorbidityForm.checkValidity()) {
+                    const id = comorbidityId.value;
+                    const data = {
+                        name: comorbidityName.value,
+                        isActive: document.getElementById('status').checked ? 1 : 0,
+                        action: id ? 'update' : 'add'
+                    };
+                    
+                    if (id) {
+                        data.id = id;
                     }
+
+                    fetch('../../config/comorbidity_api.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            hideModal(comorbidityModal);
+                            showToast(result.message, true);
+                            loadComorbidities();
+                        } else {
+                            showToast(result.message, false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('An error occurred while saving', false);
+                    });
+                }
+            });
+
+            // Add delete functionality
+            let deleteId = null;
+            const deleteDialog = document.getElementById('deleteConfirmDialog');
+
+            function showDeleteModal(modal) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.querySelector('.transform').classList.remove('scale-95');
+                    modal.querySelector('.transform').classList.add('scale-100');
+                }, 10);
+            }
+
+            function hideDeleteModal(modal) {
+                modal.querySelector('.transform').classList.remove('scale-100');
+                modal.querySelector('.transform').classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+
+            // Attach delete button listeners
+            function attachDeleteListeners() {
+                document.querySelectorAll('.delete-comorbidity').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const id = this.getAttribute('data-id');
+                        const name = this.getAttribute('data-name');
+                        deleteId = id;
+                        showDeleteModal(deleteDialog);
+                    });
                 });
+            }
+
+            // Delete confirmation handlers
+            document.getElementById('cancelDelete').addEventListener('click', function() {
+                hideDeleteModal(deleteDialog);
+                deleteId = null;
+            });
+
+            document.getElementById('confirmDelete').addEventListener('click', function() {
+                if (deleteId) {
+                    fetch('../../config/comorbidity_api.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            action: 'delete',
+                            id: deleteId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        hideDeleteModal(deleteDialog);
+                        if (result.success) {
+                            showToast('Condition deleted successfully', true);
+                            loadComorbidities();
+                        } else {
+                            showToast(result.message || 'Failed to delete condition', false);
+                        }
+                        deleteId = null;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('An error occurred while deleting', false);
+                        hideDeleteModal(deleteDialog);
+                        deleteId = null;
+                    });
+                }
+            });
+
+            // Function to attach edit listeners
+            function attachEditListeners() {
+                document.querySelectorAll('.edit-comorbidity').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const row = this.closest('tr');
+                        const id = this.getAttribute('data-id');
+                        const name = row.querySelector('.text-gray-900').textContent;
+                        const isActive = row.querySelector('.rounded-full').classList.contains('bg-green-100');
+
+                        modalTitle.textContent = 'Edit Health Condition';
+                        saveButtonText.textContent = 'Update Condition';
+                        comorbidityId.value = id;
+                        comorbidityName.value = name;
+                        document.getElementById('status').checked = isActive;
+                        document.getElementById('statusLabel').innerHTML = isActive ? 
+                            '<i class="fas fa-check-circle mr-1.5"></i> Active' : 
+                            '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                        document.getElementById('statusLabel').className = isActive ? 
+                            'text-sm text-green-600 font-medium flex items-center' : 
+                            'text-sm text-red-600 font-medium flex items-center';
+
+                        showModal(comorbidityModal);
+                        formChanged = false;
+                        captureFormState();
+                    });
+                });
+                attachDeleteListeners();
             }
         });
     </script>

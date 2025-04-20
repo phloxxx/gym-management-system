@@ -576,17 +576,19 @@ $role = ucfirst(strtolower($_SESSION['role']));
                 url: 'program_coach_handler.php',
                 type: 'POST',
                 data: formData,
+                dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        showToast(response.message, true);
-                        $('#programModal').addClass('hidden');
+                        alert(response.message || 'Program saved successfully');
+                        document.getElementById('programModal').classList.add('hidden');
+                        document.getElementById('programForm').reset();
                         refreshProgramsTable();
                     } else {
-                        showToast(response.message || 'Error saving program', false);
+                        alert(response.message || 'Error saving program');
                     }
                 },
                 error: function() {
-                    showToast('Error connecting to server', false);
+                    alert('Error connecting to server');
                 }
             });
         }
@@ -596,17 +598,19 @@ $role = ucfirst(strtolower($_SESSION['role']));
                 url: 'program_coach_handler.php',
                 type: 'POST',
                 data: formData,
+                dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        showToast(response.message, true);
-                        $('#coachModal').addClass('hidden');
+                        alert(response.message || 'Coach saved successfully');
+                        document.getElementById('coachModal').classList.add('hidden');
+                        document.getElementById('coachForm').reset();
                         refreshCoachesTable();
                     } else {
-                        showToast(response.message || 'Error saving coach', false);
+                        alert(response.message || 'Error saving coach');
                     }
                 },
                 error: function() {
-                    showToast('Error connecting to server', false);
+                    alert('Error connecting to server');
                 }
             });
         }
@@ -616,41 +620,59 @@ $role = ucfirst(strtolower($_SESSION['role']));
             // Refresh tables on load
             refreshProgramsTable();
             refreshCoachesTable();
-        });
 
-        // Add these functions to handle form submissions
-        document.getElementById('saveProgramButton').addEventListener('click', function() {
-            const form = document.getElementById('programForm');
-            if (form.checkValidity()) {
-                const formData = {
-                    action: document.getElementById('programId').value ? 'update_program' : 'add_program',
-                    PROGRAM_ID: document.getElementById('programId').value,
-                    PROGRAM_NAME: document.getElementById('programName').value,
-                    IS_ACTIVE: document.getElementById('programStatus').checked ? 1 : 0
-                };
-                saveProgram(formData);
-            } else {
-                form.reportValidity();
-            }
-        });
+            // Program form submission
+            document.getElementById('saveProgramButton').addEventListener('click', function(e) {
+                e.preventDefault();
+                const form = document.getElementById('programForm');
+                if (form.checkValidity()) {
+                    const formData = {
+                        action: document.getElementById('programId').value ? 'update_program' : 'add_program',
+                        PROGRAM_ID: document.getElementById('programId').value,
+                        PROGRAM_NAME: document.getElementById('programName').value.trim(),
+                        IS_ACTIVE: document.getElementById('programStatus').checked ? 1 : 0
+                    };
+                    
+                    if (!formData.PROGRAM_NAME) {
+                        alert('Program name cannot be empty');
+                        return;
+                    }
+                    
+                    saveProgram(formData);
+                } else {
+                    form.reportValidity();
+                }
+            });
 
-        document.getElementById('saveCoachButton').addEventListener('click', function() {
-            const form = document.getElementById('coachForm');
-            if (form.checkValidity()) {
-                const formData = new FormData(form);
-                formData.append('action', document.getElementById('coachId').value ? 'update_coach' : 'add_coach');
-                
-                // Get program assignments
-                const programAssignments = [];
-                document.querySelectorAll('input[name="program_assignments[]"]:checked').forEach(checkbox => {
-                    programAssignments.push(checkbox.value);
-                });
-                formData.append('PROGRAM_ASSIGNMENTS', programAssignments);
-                
-                saveCoach(Object.fromEntries(formData));
-            } else {
-                form.reportValidity();
-            }
+            // Single Coach Save Handler
+            document.getElementById('saveCoachButton').addEventListener('click', function(e) {
+                e.preventDefault();
+                const form = document.getElementById('coachForm');
+                if (form.checkValidity()) {
+                    const formData = new FormData(form);
+                    const data = {
+                        action: document.getElementById('coachId').value ? 'update_coach' : 'add_coach',
+                        COACH_ID: document.getElementById('coachId').value,
+                        COACH_FNAME: document.getElementById('coachFname').value.trim(),
+                        COACH_LNAME: document.getElementById('coachLname').value.trim(),
+                        EMAIL: document.getElementById('coachEmail').value.trim(),
+                        PHONE_NUMBER: document.getElementById('coachPhone').value.trim(),
+                        GENDER: document.querySelector('input[name="GENDER"]:checked').value,
+                        IS_ACTIVE: document.getElementById('coachStatus').checked ? 1 : 0
+                    };
+
+                    // Get program assignments
+                    const programAssignments = [];
+                    document.querySelectorAll('input[name="PROGRAM_ASSIGNMENTS[]"]:checked').forEach(checkbox => {
+                        programAssignments.push(checkbox.value);
+                    });
+                    data.PROGRAM_ASSIGNMENTS = JSON.stringify(programAssignments);
+                    
+                    saveCoach(data);
+                } else {
+                    form.reportValidity();
+                }
+            });
         });
 
         // Initialize event listeners for add buttons
@@ -683,71 +705,6 @@ $role = ucfirst(strtolower($_SESSION['role']));
             if (event.target.classList.contains('fixed')) {
                 event.target.classList.add('hidden');
             }
-        });
-
-        // Save program handler
-        document.getElementById('saveProgramButton').addEventListener('click', function() {
-            const formData = {
-                action: document.getElementById('programId').value ? 'update_program' : 'add_program',
-                PROGRAM_ID: document.getElementById('programId').value,
-                PROGRAM_NAME: document.getElementById('programName').value,
-                IS_ACTIVE: document.getElementById('programStatus').checked ? 1 : 0
-            };
-
-            $.ajax({
-                url: 'program_coach_handler.php',
-                type: 'POST',
-                data: formData,
-                success: function(response) {
-                    if (response.success) {
-                        document.getElementById('programModal').classList.add('hidden');
-                        refreshProgramsTable();
-                        alert('Program saved successfully');
-                    } else {
-                        alert(response.message || 'Error saving program');
-                    }
-                },
-                error: function() {
-                    alert('Error connecting to server');
-                }
-            });
-        });
-
-        // Save coach handler
-        document.getElementById('saveCoachButton').addEventListener('click', function() {
-            const form = document.getElementById('coachForm');
-            const formData = new FormData(form);
-            
-            // Add action type
-            formData.append('action', document.getElementById('coachId').value ? 'update_coach' : 'add_coach');
-            
-            // Get selected program assignments
-            const programAssignments = [];
-            document.querySelectorAll('input[name="PROGRAM_ASSIGNMENTS[]"]:checked').forEach(checkbox => {
-                programAssignments.push(checkbox.value);
-            });
-            formData.append('PROGRAM_ASSIGNMENTS', JSON.stringify(programAssignments));
-            
-            // Add status
-            formData.append('IS_ACTIVE', document.getElementById('coachStatus').checked ? 1 : 0);
-
-            $.ajax({
-                url: 'program_coach_handler.php',
-                type: 'POST',
-                data: Object.fromEntries(formData),
-                success: function(response) {
-                    if (response.success) {
-                        document.getElementById('coachModal').classList.add('hidden');
-                        refreshCoachesTable();
-                        alert('Coach saved successfully');
-                    } else {
-                        alert(response.message || 'Error saving coach');
-                    }
-                },
-                error: function() {
-                    alert('Error connecting to server');
-                }
-            });
         });
 
         // Initial table load

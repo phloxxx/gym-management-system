@@ -119,16 +119,16 @@
                             </div>
                         </div>
 
-                        <!-- Employee ID field -->
+                        <!-- User ID field -->
                         <div>
-                            <label for="employee-id" class="text-sm font-medium uppercase text-primary-dark tracking-wide mb-2 block">Employee ID</label>
+                            <label for="user-id" class="text-sm font-medium uppercase text-primary-dark tracking-wide mb-2 block">User ID</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-3.5">
                                     <i class="fas fa-id-card text-secondary/70"></i>
                                 </div>
-                                <input type="text" id="employee-id" name="employee-id" 
+                                <input type="text" id="user-id" name="user_id" 
                                     class="w-full py-2.5 pl-10 pr-3 border border-tertiary/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-primary-light custom-input-focus bg-gray-50/50" 
-                                    placeholder="Enter your employee ID">
+                                    placeholder="Enter your user ID">
                             </div>
                         </div>
 
@@ -166,11 +166,11 @@
         const accounts = {
             admin: {
                 username: "admin",
-                employeeId: "ADM001"
+                userId: "ADM001"
             },
             staff: {
                 username: "staff",
-                employeeId: "STF001"
+                userId: "STF001"
             }
         };
 
@@ -200,7 +200,7 @@
             
             if (verificationStep === 1) {
                 const username = document.getElementById('username').value.trim();
-                const employeeId = document.getElementById('employee-id').value.trim();
+                const userId = document.getElementById('user-id').value.trim();
                 
                 // Validate username
                 if (!username) {
@@ -209,11 +209,11 @@
                     highlightErrorField('username');
                 }
                 
-                // Validate employee ID
-                if (!employeeId) {
+                // Validate user ID
+                if (!userId) {
                     isValid = false;
-                    errors.push('Employee ID field cannot be empty');
-                    highlightErrorField('employee-id');
+                    errors.push('User ID field cannot be empty');
+                    highlightErrorField('user-id');
                 }
                 
                 // Validate role selection
@@ -252,7 +252,7 @@
                 
                 if (verificationStep === 1) {
                     formData.append('username', document.getElementById('username').value.trim());
-                    formData.append('employee_id', document.getElementById('employee-id').value.trim());
+                    formData.append('user_id', document.getElementById('user-id').value.trim());
                     formData.append('role', selectedRole);
                     formData.append('step', '1');
                 } else {
@@ -424,7 +424,7 @@
             if (e.key === 'Enter') {
                 const activeElement = document.activeElement;
                 if (activeElement.id === 'username' || 
-                    activeElement.id === 'employee-id' ||
+                    activeElement.id === 'user-id' ||
                     activeElement.id === 'verification-code') {
                     submitResetRequest();
                 }

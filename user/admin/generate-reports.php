@@ -1,7 +1,5 @@
 <?php 
-// Get user data from session - remove the default 'Admin' value to ensure we see the actual session data
-$fullName = $_SESSION['name'];
-$role = ucfirst(strtolower($_SESSION['role']));
+
 ?>
 
 <!DOCTYPE html>
