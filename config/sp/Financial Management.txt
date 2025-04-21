@@ -1,0 +1,42 @@
+-- Get Monthly Revenue
+DELIMITER //
+CREATE PROCEDURE sp_GetMonthlyRevenue(
+    IN p_year INT,
+    IN p_month INT
+)
+BEGIN
+    SELECT SUM(s.PRICE) as MonthlyRevenue
+    FROM `TRANSACTION` t
+    JOIN SUBSCRIPTION s ON t.SUB_ID = s.SUB_ID
+    WHERE YEAR(t.TRANSAC_DATE) = p_year
+    AND MONTH(t.TRANSAC_DATE) = p_month;
+END //
+DELIMITER ;
+
+-- Insert/Update Payment Method
+DELIMITER //
+CREATE PROCEDURE sp_UpsertPayment(
+    IN p_payment_id SMALLINT,
+    IN p_pay_method VARCHAR(20)
+)
+BEGIN
+    IF p_payment_id IS NULL THEN
+        INSERT INTO PAYMENT (PAY_METHOD)
+        VALUES (p_pay_method);
+    ELSE
+        UPDATE PAYMENT
+        SET PAY_METHOD = p_pay_method
+        WHERE PAYMENT_ID = p_payment_id;
+    END IF;
+END //
+DELIMITER ;
+
+-- Display Payment Methods
+DELIMITER //
+CREATE PROCEDURE sp_GetPaymentMethods()
+BEGIN
+    SELECT PAY_METHOD
+    FROM PAYMENT
+    WHERE IS_ACTIVE = 1;
+END //
+DELIMITER ;
