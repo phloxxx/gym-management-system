@@ -135,7 +135,7 @@
                         <!-- Forgot password -->
                         <div class="flex items-center justify-end pt-1">
                             <div class="text-sm">
-                                <a href="forgot-password.html" class="text-primary-light font-medium hover:text-primary-dark">
+                                <a href="forgot-password.php" class="text-primary-light font-medium hover:text-primary-dark">
                                     Forgot password?
                                 </a>
                             </div>
@@ -304,9 +304,9 @@
                 notification.remove();
                 // Update paths to match the correct file locations
                 if (dashboardType === 'admin') {
-                    window.location.href = 'user/admin/admin-dashboard.html';
+                    window.location.href = 'user/admin/admin-dashboard.php';
                 } else {
-                    window.location.href = 'user/staff/staff-dashboard.html';
+                    window.location.href = 'user/staff/staff-dashboard.php';
                 }
             }, 2000);
         }

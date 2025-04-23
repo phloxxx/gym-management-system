@@ -90,7 +90,7 @@
                                 <i class="fas fa-cog mr-2"></i> Settings
                             </a>
                             <div class="border-t border-gray-100"></div>
-                            <a href="../../login.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <a href="../../login.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 <i class="fas fa-sign-out-alt mr-2"></i> Logout
                             </a>
                         </div>
@@ -129,7 +129,7 @@
                 <span>Schedules</span>
             </a>
             <div class="border-t border-primary-light my-2"></div>
-            <a href="../../login.html" class="block px-4 py-2 hover:bg-primary-light rounded-md mt-1 transition-colors flex items-center">
+            <a href="../../login.php" class="block px-4 py-2 hover:bg-primary-light rounded-md mt-1 transition-colors flex items-center">
                 <i class="fas fa-sign-out-alt mr-3"></i>
                 <span>Logout</span>
             </a>

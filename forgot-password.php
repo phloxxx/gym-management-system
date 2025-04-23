@@ -143,7 +143,7 @@
 
                     <!-- Back to Login link -->
                     <div class="mt-6 text-center">
-                        <a href="login.html" class="text-primary-light font-medium hover:text-primary-dark inline-flex items-center">
+                        <a href="login.php" class="text-primary-light font-medium hover:text-primary-dark inline-flex items-center">
                             <i class="fas fa-arrow-left mr-2 text-xs"></i> Back to Login
                         </a>
                     </div>
@@ -351,7 +351,7 @@
                     Your password has been reset to: <strong>Temp123!</strong><br>
                     Please change this temporary password after logging in.
                 </p>
-                <a href="login.html" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-dark hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-light">
+                <a href="login.php" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-dark hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-light">
                     Return to Login
                 </a>
             `;
