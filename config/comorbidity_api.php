@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once 'comorbidity_functions.php';
+require_once 'db_functions.php';
 
 // Handle CORS
 header("Access-Control-Allow-Origin: *");
@@ -19,9 +20,15 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 try {
+    $conn = getConnection();
+
     switch ($_SERVER['REQUEST_METHOD']) {
         case 'GET':
-            echo json_encode(getAllComorbidities());
+            $result = getAllComorbidities();
+            if (!$result['success']) {
+                throw new Exception($result['message']);
+            }
+            echo json_encode($result);
             break;
             
         case 'POST':
@@ -46,10 +53,14 @@ try {
                     if (!isset($data['id'], $data['name']) || empty(trim($data['name']))) {
                         throw new Exception('Comorbidity ID and name are required');
                     }
+                    
+                    // Add explicit isActive conversion to integer
+                    $isActive = isset($data['isActive']) ? ($data['isActive'] ? 1 : 0) : 1;
+                    
                     echo json_encode(updateComorbidity(
                         $data['id'],
                         trim($data['name']),
-                        isset($data['isActive']) ? (int)$data['isActive'] : 1
+                        $isActive
                     ));
                     break;
 
@@ -70,5 +81,13 @@ try {
     }
 } catch (Exception $e) {
     error_log("Comorbidity API error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Failed to load comorbidities: ' . $e->getMessage()
+    ]);
+} catch (mysqli_sql_exception $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Database error: ' . $e->getMessage()
+    ]);
 }
