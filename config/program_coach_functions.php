@@ -1,5 +1,5 @@
 <?php
-require_once 'database.php';
+require_once dirname(__DIR__) . '/connection/database.php';
 
 function getAllPrograms() {
     global $conn;

@@ -5,7 +5,7 @@ require_once 'db_functions.php';
 
 // Handle CORS
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -26,7 +26,7 @@ try {
         case 'GET':
             $result = getAllComorbidities();
             if (!$result['success']) {
-                throw new Exception($result['message']);
+                error_log("Failed to get comorbidities: " . ($result['error'] ?? 'Unknown error'));
             }
             echo json_encode($result);
             break;
@@ -80,10 +80,11 @@ try {
             throw new Exception('Method not allowed');
     }
 } catch (Exception $e) {
-    error_log("Comorbidity API error: " . $e->getMessage());
+    error_log("API Error: " . $e->getMessage());
     echo json_encode([
         'success' => false, 
-        'message' => 'Failed to load comorbidities: ' . $e->getMessage()
+        'message' => 'Server error occurred',
+        'error' => $e->getMessage()
     ]);
 } catch (mysqli_sql_exception $e) {
     echo json_encode([

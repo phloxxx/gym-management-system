@@ -39,31 +39,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Debug query and parameters
             error_log("SQL Query params - Username: $username, Role: $role");
             
-            // Query without role case sensitivity
-            $stmt = $conn->prepare("SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE, IS_ACTIVE 
-                                  FROM user 
-                                  WHERE USERNAME = ?
-                                  AND IS_ACTIVE = 1");
-            $stmt->bind_param("s", $username);
+            $stmt = $conn->prepare("CALL sp_GetUsers()");
             $stmt->execute();
             $result = $stmt->get_result();
-            $user = $result->fetch_assoc();
+            
+            $found_user = null;
+            while ($row = $result->fetch_assoc()) {
+                if (strtolower($row['USERNAME']) === strtolower($username)) {
+                    $found_user = $row;
+                    break;
+                }
+            }
             
             // Debug user data
-            error_log("User data found: " . print_r($user, true));
+            error_log("User data found: " . print_r($found_user, true));
             
-            if ($user) {
+            if ($found_user) {
                 // Compare roles case-insensitively
-                $userRole = strtoupper($user['USER_TYPE']);
+                $userRole = strtoupper($found_user['USER_TYPE']);
                 $submittedRole = strtoupper($role);
                 
                 error_log("Role comparison - DB Role: $userRole, Submitted Role: $submittedRole");
                 
-                if ($userRole === $submittedRole && password_verify($password, $user['PASSWORD'])) {
-                    $_SESSION['user_id'] = $user['USER_ID'];
-                    $_SESSION['username'] = $user['USERNAME'];
-                    $_SESSION['role'] = strtolower($user['USER_TYPE']);
-                    $_SESSION['name'] = $user['USER_FNAME'] . ' ' . $user['USER_LNAME'];
+                if ($userRole === $submittedRole && password_verify($password, $found_user['PASSWORD'])) {
+                    $_SESSION['user_id'] = $found_user['USER_ID'];
+                    $_SESSION['username'] = $found_user['USERNAME'];
+                    $_SESSION['role'] = strtolower($found_user['USER_TYPE']);
+                    $_SESSION['name'] = $found_user['USER_FNAME'] . ' ' . $found_user['USER_LNAME'];
                     
                     $redirect = ($userRole === 'ADMINISTRATOR') 
                         ? 'user/admin/admin-dashboard.php'
@@ -75,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'redirect' => $redirect
                     ];
                 } else {
-                    error_log("Role or password mismatch - User Role: {$user['USER_TYPE']}, Submitted Role: $role");
+                    error_log("Role or password mismatch - User Role: {$found_user['USER_TYPE']}, Submitted Role: $role");
                     $response = [
                         'success' => false,
                         'message' => 'Invalid username, password, or role'

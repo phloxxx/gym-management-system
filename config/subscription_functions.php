@@ -1,6 +1,6 @@
 <?php
-require_once 'database.php';
-require_once 'db_functions.php';
+require_once dirname(__DIR__) . '/connection/database.php';
+require_once __DIR__ . '/db_functions.php';
 
 function getAllSubscriptions() {
     try {

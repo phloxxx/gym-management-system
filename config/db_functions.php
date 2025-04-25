@@ -1,47 +1,10 @@
 <?php
-require_once 'database.php';
+require_once dirname(__DIR__) . '/connection/database.php';
 
 function getConnection() {
-    try {
-    $host = "localhost";
-    $username = "root";
-    $password = "";
-    $database = "gymaster";  // make sure this matches your database name
-    
-    $conn = new mysqli($host, $username, $password, $database);
-    
-    if ($conn->connect_error) {
-        throw new Exception("Connection failed: " . $conn->connect_error);
-    }
-        
-        // Check for 'user' table instead of 'users'
-        $tableCheck = $conn->query("SHOW TABLES LIKE 'user'");
-        if ($tableCheck->num_rows == 0) {
-            // Create user table if it doesn't exist
-            $sql = "CREATE TABLE IF NOT EXISTS `user` (
-                `USER_ID` smallint(6) NOT NULL AUTO_INCREMENT,
-                `USER_FNAME` varchar(50) NOT NULL,
-                `USER_LNAME` varchar(30) NOT NULL,
-                `USERNAME` varchar(20) NOT NULL,
-                `PASSWORD` varchar(255) NOT NULL,
-                `USER_TYPE` enum('ADMINISTRATOR','STAFF') NOT NULL,
-                `IS_ACTIVE` tinyint(1) NOT NULL DEFAULT 1,
-                PRIMARY KEY (`USER_ID`),
-                UNIQUE KEY `USERNAME` (`USERNAME`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-            
-            if (!$conn->query($sql)) {
-                throw new Exception("Table creation failed: " . $conn->error);
-            }
-        }
-        
-        return $conn;
-    } catch (Exception $e) {
-        error_log("Database error: " . $e->getMessage());
-        throw $e;
-    }
+    global $conn;
+    return $conn;
 }
-
 function addUser($data) {
     try {
         $conn = getConnection();

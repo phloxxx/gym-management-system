@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'config/db_functions.php';
+require_once './config/db_functions.php';
 
 header('Content-Type: application/json');
 
@@ -44,18 +44,18 @@ if ($step === '1') {
     // Add debug logging for role comparison
     error_log("Role comparison - Input role: $role, Converted role: $userType");
 
-    // Update query to match your table name and column names
-    $sql = "SELECT USER_ID, USERNAME, USER_TYPE, IS_ACTIVE FROM user WHERE USERNAME = ?";
-    $stmt = $conn->prepare($sql);
-    
+    // Debug received values with types
+    error_log("Input values - Username: $username (" . gettype($username) . ")");
+    error_log("UserID: $userId (" . gettype($userId) . ")");
+    error_log("Role: $userType (" . gettype($userType) . ")");
+
+    $stmt = $conn->prepare("CALL sp_GetUsers()");
     if (!$stmt) {
         error_log("Prepare failed: " . $conn->error);
         echo json_encode(['success' => false, 'message' => 'Database error']);
         exit;
     }
 
-    $stmt->bind_param("s", $username);
-    
     if (!$stmt->execute()) {
         error_log("Execute failed: " . $stmt->error);
         echo json_encode(['success' => false, 'message' => 'Database error']);
@@ -63,28 +63,39 @@ if ($step === '1') {
     }
 
     $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
+    $found_user = null;
+    
+    // Find matching user with detailed logging
+    while ($row = $result->fetch_assoc()) {
+        error_log("Comparing with DB record - ID: {$row['USER_ID']}, Username: {$row['USERNAME']}, Type: {$row['USER_TYPE']}");
+        
+        // Debug comparison values
+        $idMatch = ($row['USER_ID'] == $userId);
+        $usernameMatch = (strtolower($row['USERNAME']) === strtolower($username));
+        $typeMatch = (strtoupper($row['USER_TYPE']) === $userType);
+        
+        error_log("Matches - ID: " . ($idMatch ? 'YES' : 'NO') . 
+                 ", Username: " . ($usernameMatch ? 'YES' : 'NO') . 
+                 ", Type: " . ($typeMatch ? 'YES' : 'NO'));
 
-    // Debug found user data before comparison
-    error_log("Found user data: " . print_r($user, true));
-    error_log("DB User Type: {$user['USER_TYPE']}, Converted User Type: $userType");
-    error_log("DB User ID: {$user['USER_ID']}, Input User ID: $userId");
+        if ($idMatch && $usernameMatch && $typeMatch) {
+            $found_user = $row;
+            error_log("User found! User data: " . print_r($row, true));
+            break;
+        }
+    }
 
-    if (!$user) {
-        echo json_encode(['success' => false, 'message' => 'User not found']);
+    if (!$found_user) {
+        error_log("No matching user found for - ID: $userId, Username: $username, Type: $userType");
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Unable to verify identity. Please check your User ID, Username, and Role.'
+        ]);
         exit;
     }
 
-    // Update condition checks with proper role comparison
-    if ($user['USER_ID'] != $userId || $user['USER_TYPE'] != $userType || $user['IS_ACTIVE'] != 1) {
-        error_log("Verification failed:");
-        error_log("ID match: " . ($user['USER_ID'] == $userId ? 'true' : 'false'));
-        error_log("Role match: " . ($user['USER_TYPE'] == $userType ? 'true' : 'false'));
-        error_log("Active: " . ($user['IS_ACTIVE'] == 1 ? 'true' : 'false'));
-        echo json_encode(['success' => false, 'message' => 'Invalid credentials']);
-        exit;
-    }
-
+    // Remove the IS_ACTIVE check since it's not in your database
+    
     // Store validated user info in session for step 2
     $_SESSION['reset_password'] = [
         'username' => $username,
@@ -96,53 +107,94 @@ if ($step === '1') {
     echo json_encode(['success' => true, 'step' => 2]);
 
 } elseif ($step === '2') {
+    error_log("Starting step 2 verification process");
+    
+    // Verify session exists
     if (!isset($_SESSION['reset_password'])) {
-        echo json_encode(['success' => false, 'message' => 'Invalid session']);
+        error_log("No reset password session found");
+        echo json_encode(['success' => false, 'message' => 'Session expired. Please try again.']);
         exit;
     }
 
-    $verificationCode = filter_input(INPUT_POST, 'verification_code', FILTER_SANITIZE_STRING);
+    // Get verification code directly from POST
+    $verificationCode = $_POST['verification_code'] ?? '';
+    error_log("Verification code received: " . $verificationCode);
 
-    // For demo purposes, we're using a static verification code
+    // Check verification code
     if ($verificationCode !== "123456") {
+        error_log("Invalid verification code: " . $verificationCode);
         echo json_encode(['success' => false, 'message' => 'Invalid verification code']);
         exit;
     }
 
-    // Generate temporary password
-    $tempPassword = generateTempPassword();
-    $hashedPassword = password_hash($tempPassword, PASSWORD_DEFAULT);
+    try {
+        // Get user data from session
+        $userId = $_SESSION['reset_password']['user_id'];
+        $userType = strtoupper($_SESSION['reset_password']['role']);
+        if ($userType === 'ADMIN') {
+            $userType = 'ADMINISTRATOR';
+        }
 
-    // Update the table name and column names in the UPDATE query
-    $sql = "UPDATE user SET PASSWORD = ? WHERE USERNAME = ? AND USER_ID = ? AND USER_TYPE = ?";
-    $stmt = $conn->prepare($sql);
+        // Get existing user data from database
+        $stmt = $conn->prepare("CALL sp_GetUsers()");
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $userData = null;
+        
+        while ($row = $result->fetch_assoc()) {
+            if ($row['USER_ID'] == $userId) {
+                $userData = $row;
+                break;
+            }
+        }
+        $stmt->close();
 
-    // Convert role to match your enum format
-    $userType = strtoupper($_SESSION['reset_password']['role']);
-    if ($userType === 'ADMIN') {
-        $userType = 'ADMINISTRATOR';
-    }
+        if (!$userData) {
+            throw new Exception("User not found");
+        }
 
-    $stmt->bind_param("ssis", 
-        $hashedPassword,
-        $_SESSION['reset_password']['username'],
-        $_SESSION['reset_password']['user_id'],
-        $userType
-    );
+        // Generate new password and hash it
+        $tempPassword = generateTempPassword();
+        $hashedPassword = password_hash($tempPassword, PASSWORD_DEFAULT);
+        error_log("Generated temp password: $tempPassword");
+        error_log("Generated hash: " . substr($hashedPassword, 0, 10) . "...");
 
-    if ($stmt->execute()) {
-        // Clear reset password session
+        // Call sp_UpsertUser with all required parameters
+        $stmt = $conn->prepare("CALL sp_UpsertUser(?, ?, ?, ?, ?, ?)");
+        if (!$stmt) {
+            throw new Exception("Failed to prepare statement: " . $conn->error);
+        }
+
+        // Make sure to pass the hashed password
+        $stmt->bind_param("isssss", 
+            $userId,
+            $userData['USER_FNAME'],
+            $userData['USER_LNAME'],
+            $userData['USERNAME'],
+            $hashedPassword,   // Pass the hashed password
+            $userType
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception($stmt->error);
+        }
+
+        // Success - clear session and return temp password
         unset($_SESSION['reset_password']);
         echo json_encode([
             'success' => true,
-            'message' => 'Password reset successful',
+            'message' => 'Password reset successful!',
             'temp_password' => $tempPassword
         ]);
-    } else {
+        exit;
+
+    } catch (Exception $e) {
+        error_log("Password reset failed: " . $e->getMessage());
         echo json_encode([
             'success' => false,
-            'message' => 'Failed to reset password'
+            'message' => 'Failed to reset password: ' . $e->getMessage()
         ]);
+        exit;
     }
 }
 
