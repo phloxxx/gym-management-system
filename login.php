@@ -59,9 +59,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $userRole = strtoupper($found_user['USER_TYPE']);
                 $submittedRole = strtoupper($role);
                 
-                error_log("Role comparison - DB Role: $userRole, Submitted Role: $submittedRole");
+                error_log("Login - Username match found");
+                error_log("Login - Hash length check: " . strlen($found_user['PASSWORD']));
                 
-                if ($userRole === $submittedRole && password_verify($password, $found_user['PASSWORD'])) {
+                // Try to verify password regardless of hash length
+                $passwordVerified = password_verify($password, $found_user['PASSWORD']);
+                error_log("Login - Password verify result: " . ($passwordVerified ? "true" : "false"));
+                
+                if ($userRole === $submittedRole && $passwordVerified) {
+                    // Password verified successfully, proceed with login
                     $_SESSION['user_id'] = $found_user['USER_ID'];
                     $_SESSION['username'] = $found_user['USERNAME'];
                     $_SESSION['role'] = strtolower($found_user['USER_TYPE']);

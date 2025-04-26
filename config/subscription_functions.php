@@ -2,55 +2,6 @@
 require_once dirname(__DIR__) . '/connection/database.php';
 require_once __DIR__ . '/db_functions.php';
 
-function getAllSubscriptions() {
-    try {
-        $conn = getConnection();
-        $stmt = $conn->prepare("SELECT * FROM subscription ORDER BY IS_ACTIVE DESC, SUB_NAME ASC");
-        $stmt->execute();
-        $result = $stmt->get_result();
-        return ['success' => true, 'subscriptions' => $result->fetch_all(MYSQLI_ASSOC)];
-    } catch (Exception $e) {
-        error_log("Error getting subscriptions: " . $e->getMessage());
-        return ['success' => false, 'message' => 'Error retrieving subscriptions'];
-    }
-}
-
-function addSubscriptionPlan($data) {
-    try {
-        $conn = getConnection();
-        $stmt = $conn->prepare("INSERT INTO subscription (SUB_NAME, DURATION, PRICE, IS_ACTIVE) VALUES (?, ?, ?, ?)");
-        $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
-        $stmt->bind_param("ssdi", $data['SUB_NAME'], $data['DURATION'], $data['PRICE'], $isActive);
-        
-        if ($stmt->execute()) {
-            return ['success' => true, 'message' => 'Subscription plan added successfully'];
-        } else {
-            throw new Exception($stmt->error);
-        }
-    } catch (Exception $e) {
-        error_log("Error adding subscription: " . $e->getMessage());
-        return ['success' => false, 'message' => 'Failed to add subscription plan'];
-    }
-}
-
-function updateSubscriptionPlan($data) {
-    try {
-        $conn = getConnection();
-        $stmt = $conn->prepare("UPDATE subscription SET SUB_NAME=?, DURATION=?, PRICE=?, IS_ACTIVE=? WHERE SUB_ID=?");
-        $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
-        $stmt->bind_param("ssdii", $data['SUB_NAME'], $data['DURATION'], $data['PRICE'], $isActive, $data['SUB_ID']);
-        
-        if ($stmt->execute()) {
-            return ['success' => true, 'message' => 'Subscription plan updated successfully'];
-        } else {
-            throw new Exception($stmt->error);
-        }
-    } catch (Exception $e) {
-        error_log("Error updating subscription: " . $e->getMessage());
-        return ['success' => false, 'message' => 'Failed to update subscription plan'];
-    }
-}
-
 function toggleSubscriptionStatus($subId) {
     try {
         $conn = getConnection();

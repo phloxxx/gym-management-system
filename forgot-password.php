@@ -81,7 +81,7 @@
                                         <i class="fas fa-user-shield text-base text-primary-dark"></i>
                                     </div>
                                     <div class="ml-3">
-                                        <p class="font-medium text-primary-dark text-sm">Admin</p>
+                                        <p class="font-medium text-primary-dark text-sm">Administrator</p>
                                     </div>
                                 </div>
                             </div>

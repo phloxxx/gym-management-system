@@ -1,153 +1,116 @@
 <?php
 require_once dirname(__DIR__) . '/connection/database.php';
 
-function getActiveMembersCount() {
+function executeStoredProcedure($procedureName) {
     global $conn;
     try {
-        $sql = "SELECT COUNT(*) as count FROM member WHERE IS_ACTIVE = 1";
-        if ($result = $conn->query($sql)) {
-            return $result->fetch_assoc()['count'] ?? 0;
+        // Prepare and execute
+        $stmt = $conn->prepare("CALL " . $procedureName);
+        if (!$stmt) {
+            throw new mysqli_sql_exception("Failed to prepare statement: " . $conn->error);
         }
-        return 0;
+        if (!$stmt->execute()) {
+            throw new mysqli_sql_exception("Failed to execute statement: " . $stmt->error);
+        }
+        
+        // Get the result
+        $result = $stmt->get_result();
+        $data = $result->fetch_assoc();
+        
+        // Clean up
+        $stmt->close();
+        while ($conn->more_results()) {
+            $conn->next_result();
+            if ($moreResult = $conn->store_result()) {
+                $moreResult->free();
+            }
+        }
+        
+        return $data;
     } catch (mysqli_sql_exception $e) {
-        error_log("Error in getActiveMembersCount: " . $e->getMessage());
-        return 0;
+        error_log("Error in $procedureName: " . $e->getMessage());
+        return null;
     }
+}
+
+function executeStoredProcedureWithMultipleRows($procedureName) {
+    global $conn;
+    try {
+        // Prepare and execute
+        $stmt = $conn->prepare("CALL " . $procedureName);
+        if (!$stmt) {
+            throw new mysqli_sql_exception("Failed to prepare statement: " . $conn->error);
+        }
+        if (!$stmt->execute()) {
+            throw new mysqli_sql_exception("Failed to execute statement: " . $stmt->error);
+        }
+        
+        // Get all results
+        $result = $stmt->get_result();
+        $data = $result->fetch_all(MYSQLI_ASSOC);
+        
+        // Clean up
+        $stmt->close();
+        while ($conn->more_results()) {
+            $conn->next_result();
+            if ($moreResult = $conn->store_result()) {
+                $moreResult->free();
+            }
+        }
+        
+        return $data;
+    } catch (mysqli_sql_exception $e) {
+        error_log("Error in $procedureName: " . $e->getMessage());
+        return [];
+    }
+}
+
+function getActiveMembersCount() {
+    $result = executeStoredProcedure("GetActiveMembersCount");
+    return $result['count'] ?? 0;
 }
 
 function getMonthlyRevenue() {
-    global $conn;
-    try {
-        $sql = "SELECT SUM(s.PRICE) as revenue 
-                FROM transaction t 
-                JOIN subscription s ON t.SUB_ID = s.SUB_ID 
-                WHERE MONTH(t.TRANSAC_DATE) = MONTH(CURRENT_DATE()) 
-                AND YEAR(t.TRANSAC_DATE) = YEAR(CURRENT_DATE())";
-        if ($result = $conn->query($sql)) {
-            return $result->fetch_assoc()['revenue'] ?? 0;
-        }
-        return 0;
-    } catch (mysqli_sql_exception $e) {
-        error_log("Error in getMonthlyRevenue: " . $e->getMessage());
-        return 0;
-    }
+    $result = executeStoredProcedure("GetMonthlyRevenue");
+    return $result['revenue'] ?? 0;
 }
 
 function getActiveProgramsCount() {
-    global $conn;
-    try {
-        $sql = "SELECT COUNT(*) as count FROM program WHERE IS_ACTIVE = 1";
-        if ($result = $conn->query($sql)) {
-            return $result->fetch_assoc()['count'] ?? 0;
-        }
-        return 0;
-    } catch (mysqli_sql_exception $e) {
-        error_log("Error in getActiveProgramsCount: " . $e->getMessage());
-        return 0;
-    }
+    $result = executeStoredProcedure("GetActiveProgramsCount");
+    return $result['count'] ?? 0;
 }
 
 function getStaffCount() {
-    global $conn;
-    try {
-        $sql = "SELECT COUNT(*) as count FROM user WHERE USER_TYPE = 'STAFF' AND IS_ACTIVE = 1";
-        if ($result = $conn->query($sql)) {
-            return $result->fetch_assoc()['count'] ?? 0;
-        }
-        return 0;
-    } catch (mysqli_sql_exception $e) {
-        error_log("Error in getStaffCount: " . $e->getMessage());
-        return 0;
-    }
+    $result = executeStoredProcedure("GetStaffCount");
+    return $result['count'] ?? 0;
 }
 
 function getMembershipGrowthData() {
-    global $conn;
-    try {
-        $months = array_fill(0, 6, 0);
-        
-        $sql = "SELECT MONTH(JOINED_DATE) as month, COUNT(*) as count 
-                FROM member 
-                WHERE JOINED_DATE >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
-                GROUP BY MONTH(JOINED_DATE)
-                ORDER BY JOINED_DATE";
-                
-        if ($result = $conn->query($sql)) {
-            while ($row = $result->fetch_assoc()) {
-                $monthIndex = (int)$row['month'] - 1;
-                if ($monthIndex >= 0 && $monthIndex < 6) {
-                    $months[$monthIndex] = (int)$row['count'];
-                }
-            }
-            return array_values($months);
+    $months = array_fill(0, 6, 0);
+    $results = executeStoredProcedureWithMultipleRows("GetMembershipGrowthData");
+    
+    foreach ($results as $row) {
+        $monthIndex = (int)$row['month'] - 1;
+        if ($monthIndex >= 0 && $monthIndex < 6) {
+            $months[$monthIndex] = (int)$row['count'];
         }
-        return $months;
-    } catch (mysqli_sql_exception $e) {
-        error_log("Error in getMembershipGrowthData: " . $e->getMessage());
-        return array_fill(0, 6, 0);
     }
+    return array_values($months);
 }
 
 function getSubscriptionDistribution() {
-    global $conn;
-    try {
-        $sql = "SELECT s.SUB_NAME, COUNT(ms.MEMBER_ID) as count
-                FROM subscription s
-                LEFT JOIN member_subscription ms ON s.SUB_ID = ms.SUB_ID
-                WHERE s.IS_ACTIVE = 1 AND (ms.IS_ACTIVE = 1 OR ms.IS_ACTIVE IS NULL)
-                GROUP BY s.SUB_NAME";
-        $result = $conn->query($sql);
-        $data = [];
-        while($row = $result->fetch_assoc()) {
-            $data[$row['SUB_NAME']] = (int)$row['count'];
-        }
-        return $data;
-    } catch (mysqli_sql_exception $e) {
-        error_log("Error in getSubscriptionDistribution: " . $e->getMessage());
-        return [];
+    $results = executeStoredProcedureWithMultipleRows("GetSubscriptionDistribution");
+    $data = [];
+    foreach ($results as $row) {
+        $data[$row['SUB_NAME']] = (int)$row['count'];
     }
+    return $data;
 }
 
 function getRecentMembers() {
-    global $conn;
-    try {
-        $sql = "SELECT m.MEMBER_FNAME, m.MEMBER_LNAME, m.EMAIL, p.PROGRAM_NAME, 
-                m.IS_ACTIVE, m.JOINED_DATE
-                FROM member m
-                LEFT JOIN program p ON m.PROGRAM_ID = p.PROGRAM_ID
-                ORDER BY m.JOINED_DATE DESC 
-                LIMIT 3";
-        $result = $conn->query($sql);
-        $members = [];
-        while($row = $result->fetch_assoc()) {
-            $members[] = $row;
-        }
-        return $members;
-    } catch (mysqli_sql_exception $e) {
-        error_log("Error in getRecentMembers: " . $e->getMessage());
-        return [];
-    }
+    return executeStoredProcedureWithMultipleRows("GetRecentMembers");
 }
 
 function getRecentTransactions() {
-    global $conn;
-    try {
-        $sql = "SELECT t.TRANSACTION_ID, m.MEMBER_FNAME, m.MEMBER_LNAME,
-                s.SUB_NAME, s.PRICE, t.TRANSAC_DATE, p.PAY_METHOD
-                FROM transaction t
-                JOIN member m ON t.MEMBER_ID = m.MEMBER_ID
-                JOIN subscription s ON t.SUB_ID = s.SUB_ID
-                JOIN payment p ON t.PAYMENT_ID = p.PAYMENT_ID
-                ORDER BY t.TRANSAC_DATE DESC
-                LIMIT 3";
-        $result = $conn->query($sql);
-        $transactions = [];
-        while($row = $result->fetch_assoc()) {
-            $transactions[] = $row;
-        }
-        return $transactions;
-    } catch (mysqli_sql_exception $e) {
-        error_log("Error in getRecentTransactions: " . $e->getMessage());
-        return [];
-    }
+    return executeStoredProcedureWithMultipleRows("GetRecentTransactions");
 }

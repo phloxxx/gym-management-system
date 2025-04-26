@@ -120,7 +120,7 @@ if ($step === '1') {
     $verificationCode = $_POST['verification_code'] ?? '';
     error_log("Verification code received: " . $verificationCode);
 
-    // Check verification code
+    // Check verification code - using static code for demo
     if ($verificationCode !== "123456") {
         error_log("Invalid verification code: " . $verificationCode);
         echo json_encode(['success' => false, 'message' => 'Invalid verification code']);
@@ -130,6 +130,7 @@ if ($step === '1') {
     try {
         // Get user data from session
         $userId = $_SESSION['reset_password']['user_id'];
+        $username = $_SESSION['reset_password']['username'];
         $userType = strtoupper($_SESSION['reset_password']['role']);
         if ($userType === 'ADMIN') {
             $userType = 'ADMINISTRATOR';
@@ -142,7 +143,9 @@ if ($step === '1') {
         $userData = null;
         
         while ($row = $result->fetch_assoc()) {
-            if ($row['USER_ID'] == $userId) {
+            if ($row['USER_ID'] == $userId && 
+                strtolower($row['USERNAME']) === strtolower($username) &&
+                $row['USER_TYPE'] === $userType) {
                 $userData = $row;
                 break;
             }
@@ -156,22 +159,24 @@ if ($step === '1') {
         // Generate new password and hash it
         $tempPassword = generateTempPassword();
         $hashedPassword = password_hash($tempPassword, PASSWORD_DEFAULT);
-        error_log("Generated temp password: $tempPassword");
-        error_log("Generated hash: " . substr($hashedPassword, 0, 10) . "...");
+        
+        // Log hash details for debugging
+        error_log("Reset - New temp password (plain): " . $tempPassword);
+        error_log("Reset - Hash length: " . strlen($hashedPassword));
+        error_log("Reset - Full hash: " . $hashedPassword);
 
-        // Call sp_UpsertUser with all required parameters
+        // Call sp_UpsertUser to update the password
         $stmt = $conn->prepare("CALL sp_UpsertUser(?, ?, ?, ?, ?, ?)");
         if (!$stmt) {
             throw new Exception("Failed to prepare statement: " . $conn->error);
         }
 
-        // Make sure to pass the hashed password
         $stmt->bind_param("isssss", 
             $userId,
             $userData['USER_FNAME'],
             $userData['USER_LNAME'],
             $userData['USERNAME'],
-            $hashedPassword,   // Pass the hashed password
+            $hashedPassword,
             $userType
         );
 
@@ -183,7 +188,7 @@ if ($step === '1') {
         unset($_SESSION['reset_password']);
         echo json_encode([
             'success' => true,
-            'message' => 'Password reset successful!',
+            'message' => 'Password reset successful! Your temporary password is: ' . $tempPassword,
             'temp_password' => $tempPassword
         ]);
         exit;
@@ -198,8 +203,9 @@ if ($step === '1') {
     }
 }
 
-function generateTempPassword($length = 10) {
-    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+function generateTempPassword($length = 8) {
+    // Simplified character set for more readable passwords
+    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     $password = '';
     for ($i = 0; $i < $length; $i++) {
         $password .= $chars[random_int(0, strlen($chars) - 1)];

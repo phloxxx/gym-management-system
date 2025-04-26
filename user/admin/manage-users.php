@@ -15,27 +15,84 @@ $role = ucfirst(strtolower($_SESSION['role']));
 function getAllUsers() {
     try {
         $conn = getConnection();
-        $sql = "SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, USER_TYPE, IS_ACTIVE 
-                FROM user 
-                ORDER BY USER_ID DESC";
-        $result = $conn->query($sql);
+        
+        error_log("Attempting to call sp_GetUsers");
+        
+        $stmt = $conn->prepare("CALL sp_GetUsers()");
+        if (!$stmt) {
+            error_log("Error preparing statement: " . $conn->error);
+            return [];
+        }
+        
+        if (!$stmt->execute()) {
+            error_log("Error executing stored procedure: " . $stmt->error);
+            return [];
+        }
+        
+        $result = $stmt->get_result();
+        if (!$result) {
+            error_log("Error getting result set: " . $stmt->error);
+            return [];
+        }
         
         $users = [];
         while ($row = $result->fetch_assoc()) {
-            // Format the data to match the frontend expectations
+            // Debug the IS_ACTIVE value
+            error_log("Raw IS_ACTIVE value: " . var_export($row['IS_ACTIVE'], true));
+            
+            // Ensure IS_ACTIVE is properly converted to integer
+            $isActive = (!empty($row['IS_ACTIVE']) && $row['IS_ACTIVE'] == 1) ? 1 : 0;
+            error_log("Processed IS_ACTIVE value: " . $isActive);
+            
             $users[] = [
                 'id' => $row['USER_ID'],
                 'firstName' => $row['USER_FNAME'],
                 'lastName' => $row['USER_LNAME'],
                 'username' => $row['USERNAME'],
-                'userType' => strtolower($row['USER_TYPE']) === 'administrator' ? 'admin' : 'staff',
-                'isActive' => (int)$row['IS_ACTIVE']
+                'userType' => $row['USER_TYPE'] === 'ADMINISTRATOR' ? 'admin' : 'staff',
+                'isActive' => $isActive
             ];
         }
+        
+        error_log("Users array: " . print_r($users, true));
+        
+        $stmt->close();
+        $conn->close();
+        
         return $users;
     } catch (Exception $e) {
-        error_log("Error fetching users: " . $e->getMessage());
+        error_log("Error in getAllUsers: " . $e->getMessage());
         return [];
+    }
+}
+
+// Add new function to handle user upsert using stored procedure
+function upsertUser($data) {
+    try {
+        $conn = getConnection();
+        $stmt = $conn->prepare("CALL sp_UpsertUser(?, ?, ?, ?, ?, ?)");
+        
+        // If userId is not set or empty, pass NULL for new user
+        $userId = isset($data['userId']) && !empty($data['userId']) ? $data['userId'] : null;
+        
+        $stmt->bind_param(
+            "isssss",
+            $userId,
+            $data['USER_FNAME'],
+            $data['USER_LNAME'],
+            $data['USERNAME'],
+            $data['PASSWORD'],
+            $data['USER_TYPE']
+        );
+        
+        if ($stmt->execute()) {
+            return ['success' => true, 'message' => $userId ? 'User updated successfully' : 'User added successfully'];
+        } else {
+            return ['success' => false, 'message' => 'Failed to save user'];
+        }
+    } catch (Exception $e) {
+        error_log("Error upserting user: " . $e->getMessage());
+        return ['success' => false, 'message' => 'An error occurred while saving the user'];
     }
 }
 
@@ -45,14 +102,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     
     switch ($_POST['action']) {
         case 'getUsers':
-            $users = getAllUsers();
-            echo json_encode(['success' => true, 'users' => $users]);
+            try {
+                $users = getAllUsers();
+                if (empty($users)) {
+                    error_log("No users found or error occurred");
+                }
+                echo json_encode(['success' => true, 'users' => $users]);
+            } catch (Exception $e) {
+                error_log("Error in getUsers action: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Failed to load users']);
+            }
             break;
             
         case 'add':
-            // Debug logging for password
-            error_log("Password attempt - Length: " . strlen($_POST['PASSWORD']));
-            
             // Validate required fields
             $requiredFields = ['USER_FNAME', 'USER_LNAME', 'USERNAME', 'PASSWORD', 'USER_TYPE'];
             $postData = $_POST;
@@ -66,21 +128,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
             }
             
-            // Validate password length with better error message
+            // Validate password length
             if (strlen($_POST['PASSWORD']) < 8 || strlen($_POST['PASSWORD']) > 15) {
-                error_log("Invalid password length: " . strlen($_POST['PASSWORD']));
                 echo json_encode([
                     'success' => false, 
-                    'message' => 'Password must be between 8 and 15 characters long (current length: ' . strlen($_POST['PASSWORD']) . ')'
+                    'message' => 'Password must be between 8 and 15 characters long'
                 ]);
                 exit;
             }
             
-            // Hash the password before sending to addUser function
+            // Hash the password
             $_POST['PASSWORD'] = password_hash($_POST['PASSWORD'], PASSWORD_DEFAULT);
-            error_log("Password hash length: " . strlen($_POST['PASSWORD']));
             
-            $result = addUser($_POST);
+            // Call upsertUser function
+            $result = upsertUser($_POST);
             echo json_encode($result);
             break;
 
@@ -90,67 +151,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
             }
             
-            try {
-                $conn = getConnection();
-                $userId = (int)$_POST['userId'];
-                $updates = [];
-                $params = [];
-                $types = '';
-                
-                // Only include fields that were sent
-                if (isset($_POST['USER_FNAME'])) {
-                    $updates[] = "USER_FNAME = ?";
-                    $params[] = $_POST['USER_FNAME'];
-                    $types .= 's';
-                }
-                if (isset($_POST['USER_LNAME'])) {
-                    $updates[] = "USER_LNAME = ?";
-                    $params[] = $_POST['USER_LNAME'];
-                    $types .= 's';
-                }
-                if (isset($_POST['USERNAME'])) {
-                    $updates[] = "USERNAME = ?";
-                    $params[] = $_POST['USERNAME'];
-                    $types .= 's';
-                }
-                if (isset($_POST['USER_TYPE'])) {
-                    $updates[] = "USER_TYPE = ?";
-                    $params[] = $_POST['USER_TYPE'];
-                    $types .= 's';
-                }
-                if (isset($_POST['IS_ACTIVE'])) {
-                    $updates[] = "IS_ACTIVE = ?";
-                    $params[] = $_POST['IS_ACTIVE'];
-                    $types .= 'i';
-                }
-                if (isset($_POST['newPassword'])) {
-                    $updates[] = "PASSWORD = ?";
-                    $params[] = password_hash($_POST['newPassword'], PASSWORD_DEFAULT);
-                    $types .= 's';
-                }
-                
-                if (empty($updates)) {
-                    echo json_encode(['success' => false, 'message' => 'No fields to update']);
-                    exit;
-                }
-                
-                // Add userId to params array
-                $params[] = $userId;
-                $types .= 'i';
-                
-                $sql = "UPDATE user SET " . implode(', ', $updates) . " WHERE USER_ID = ?";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param($types, ...$params);
-                
-                if ($stmt->execute()) {
-                    echo json_encode(['success' => true, 'message' => 'User updated successfully']);
-                } else {
-                    echo json_encode(['success' => false, 'message' => 'Failed to update user']);
-                }
-            } catch (Exception $e) {
-                error_log("Error updating user: " . $e->getMessage());
-                echo json_encode(['success' => false, 'message' => 'An error occurred while updating the user']);
-            }
+            // Prepare data for upsert
+            $updateData = [
+                'userId' => $_POST['userId'],
+                'USER_FNAME' => $_POST['USER_FNAME'] ?? '',
+                'USER_LNAME' => $_POST['USER_LNAME'] ?? '',
+                'USERNAME' => $_POST['USERNAME'] ?? '',
+                'USER_TYPE' => $_POST['USER_TYPE'] ?? '',
+                'PASSWORD' => isset($_POST['newPassword']) ? 
+                    password_hash($_POST['newPassword'], PASSWORD_DEFAULT) : 
+                    $_POST['currentPassword'] // You'll need to fetch this from the database
+            ];
+            
+            $result = upsertUser($updateData);
+            echo json_encode($result);
             break;
 
         case 'delete':
@@ -866,8 +880,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                                ${user.isActive ? 'Active' : 'Inactive'}
+                                ${parseInt(user.isActive) === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${parseInt(user.isActive) === 1 ? 'Active' : 'Inactive'}
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
