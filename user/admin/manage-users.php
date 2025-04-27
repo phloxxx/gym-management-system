@@ -16,9 +16,9 @@ function getAllUsers() {
     try {
         $conn = getConnection();
         
-        error_log("Attempting to call sp_GetUsers");
+        error_log("Attempting to call sp_GetAllUsers");
         
-        $stmt = $conn->prepare("CALL sp_GetUsers()");
+        $stmt = $conn->prepare("CALL sp_GetAllUsers()");
         if (!$stmt) {
             error_log("Error preparing statement: " . $conn->error);
             return [];
@@ -70,28 +70,33 @@ function getAllUsers() {
 function upsertUser($data) {
     try {
         $conn = getConnection();
-        $stmt = $conn->prepare("CALL sp_UpsertUser(?, ?, ?, ?, ?, ?)");
+        $stmt = $conn->prepare("CALL sp_UpsertUser(?, ?, ?, ?, ?, ?, ?)");
         
         // If userId is not set or empty, pass NULL for new user
         $userId = isset($data['userId']) && !empty($data['userId']) ? $data['userId'] : null;
+        $isActive = isset($data['IS_ACTIVE']) ? (int)$data['IS_ACTIVE'] : 0;  // Ensure integer
+        
+        error_log("upsertUser isActive value: " . $isActive);
         
         $stmt->bind_param(
-            "isssss",
+            "isssssi",
             $userId,
             $data['USER_FNAME'],
             $data['USER_LNAME'],
             $data['USERNAME'],
             $data['PASSWORD'],
-            $data['USER_TYPE']
+            $data['USER_TYPE'],
+            $isActive
         );
         
         if ($stmt->execute()) {
             return ['success' => true, 'message' => $userId ? 'User updated successfully' : 'User added successfully'];
         } else {
+            error_log("Error executing upsertUser: " . $stmt->error);
             return ['success' => false, 'message' => 'Failed to save user'];
         }
     } catch (Exception $e) {
-        error_log("Error upserting user: " . $e->getMessage());
+        error_log("Error in upsertUser: " . $e->getMessage());
         return ['success' => false, 'message' => 'An error occurred while saving the user'];
     }
 }
@@ -151,6 +156,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
             }
             
+            // Debug the incoming status value
+            error_log("Received IS_ACTIVE value: " . var_export($_POST['IS_ACTIVE'], true));
+            
             // Prepare data for upsert
             $updateData = [
                 'userId' => $_POST['userId'],
@@ -158,10 +166,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'USER_LNAME' => $_POST['USER_LNAME'] ?? '',
                 'USERNAME' => $_POST['USERNAME'] ?? '',
                 'USER_TYPE' => $_POST['USER_TYPE'] ?? '',
+                'IS_ACTIVE' => isset($_POST['IS_ACTIVE']) ? (int)$_POST['IS_ACTIVE'] : 0,  // Convert to integer
                 'PASSWORD' => isset($_POST['newPassword']) ? 
                     password_hash($_POST['newPassword'], PASSWORD_DEFAULT) : 
-                    $_POST['currentPassword'] // You'll need to fetch this from the database
+                    $_POST['currentPassword']
             ];
+            
+            error_log("Update data: " . print_r($updateData, true));
             
             $result = upsertUser($updateData);
             echo json_encode($result);
@@ -885,7 +896,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <button class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${user.id}">
+                            <button class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200 mr-1" data-id="${user.id}">
                                 <i class="fas fa-edit text-lg"></i>
                             </button>
                             <button class="text-red-600 hover:text-red-800 delete-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${user.id}">
@@ -1308,39 +1319,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 const formData = new FormData(userForm);
                 
                 if (currentUserId) {
-                    // Edit mode - only include changed fields
+                    // Edit mode - include all necessary fields
                     formData.set('action', 'edit');
                     formData.set('userId', currentUserId);
-                    
-                    // Compare with original values and only include changed fields
-                    const originalValues = {
-                        firstName: document.getElementById('firstName').defaultValue,
-                        lastName: document.getElementById('lastName').defaultValue,
-                        username: document.getElementById('username').defaultValue,
-                        userType: document.getElementById('userType').defaultValue,
-                        isActive: document.getElementById('status').getAttribute('data-initial') === '1'
-                    };
-                    
-                    if (document.getElementById('firstName').value !== originalValues.firstName) {
-                        formData.set('USER_FNAME', document.getElementById('firstName').value);
-                    }
-                    if (document.getElementById('lastName').value !== originalValues.lastName) {
-                        formData.set('USER_LNAME', document.getElementById('lastName').value);
-                    }
-                    if (document.getElementById('username').value !== originalValues.username) {
-                        formData.set('USERNAME', document.getElementById('username').value);
-                    }
-                    if (document.getElementById('userType').value !== originalValues.userType) {
-                        formData.set('USER_TYPE', document.getElementById('userType').value.toUpperCase() === 'ADMIN' ? 'ADMINISTRATOR' : 'STAFF');
-                    }
-                    if (document.getElementById('status').checked !== originalValues.isActive) {
-                        formData.set('IS_ACTIVE', document.getElementById('status').checked ? 1 : 0);
-                    }
+                    formData.set('USER_FNAME', document.getElementById('firstName').value);
+                    formData.set('USER_LNAME', document.getElementById('lastName').value);
+                    formData.set('USERNAME', document.getElementById('username').value);
+                    formData.set('USER_TYPE', document.getElementById('userType').value.toUpperCase() === 'ADMIN' ? 'ADMINISTRATOR' : 'STAFF');
+                    formData.set('IS_ACTIVE', document.getElementById('status').checked ? '1' : '0');
                     
                     // Handle password change if requested
                     if (document.getElementById('changePassword').checked) {
                         formData.set('newPassword', document.getElementById('newPassword').value);
                     }
+                    
+                    // Debug log
+                    console.log('Status value being sent:', formData.get('IS_ACTIVE'));
                 } else {
                     // Add mode - include all required fields
                     formData.set('action', 'add');
