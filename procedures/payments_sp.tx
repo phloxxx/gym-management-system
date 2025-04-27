@@ -1,0 +1,39 @@
+DELIMITER //
+
+CREATE PROCEDURE sp_get_payment_methods()
+BEGIN
+    SELECT PAYMENT_ID, PAY_METHOD, IS_ACTIVE FROM payment ORDER BY PAY_METHOD ASC;
+END //
+
+CREATE PROCEDURE sp_get_payment_method_by_id(
+    IN p_payment_id SMALLINT
+)
+BEGIN
+    SELECT PAYMENT_ID, PAY_METHOD, IS_ACTIVE 
+    FROM payment 
+    WHERE PAYMENT_ID = p_payment_id;
+END //
+
+CREATE PROCEDURE sp_create_payment_method(
+    IN p_pay_method VARCHAR(20),
+    IN p_is_active TINYINT
+)
+BEGIN
+    INSERT INTO payment (PAY_METHOD, IS_ACTIVE)
+    VALUES (p_pay_method, p_is_active);
+    SELECT LAST_INSERT_ID() as payment_id;
+END //
+
+CREATE PROCEDURE sp_update_payment_method(
+    IN p_payment_id SMALLINT,
+    IN p_pay_method VARCHAR(20),
+    IN p_is_active TINYINT
+)
+BEGIN
+    UPDATE payment 
+    SET PAY_METHOD = p_pay_method,
+        IS_ACTIVE = p_is_active
+    WHERE PAYMENT_ID = p_payment_id;
+END //
+
+DELIMITER ;

@@ -1,0 +1,40 @@
+DELIMITER //
+
+-- Get All Programs
+CREATE PROCEDURE sp_GetAllPrograms()
+BEGIN
+    SELECT * FROM program ORDER BY PROGRAM_NAME;
+END //
+
+-- Add Program
+CREATE PROCEDURE sp_AddProgram(
+    IN p_program_name VARCHAR(255),
+    IN p_is_active TINYINT
+)
+BEGIN
+    INSERT INTO program (PROGRAM_NAME, IS_ACTIVE) 
+    VALUES (p_program_name, p_is_active);
+END //
+
+-- Edit Program
+CREATE PROCEDURE sp_EditProgram(
+    IN p_program_id INT,
+    IN p_program_name VARCHAR(255),
+    IN p_is_active TINYINT
+)
+BEGIN
+    UPDATE program 
+    SET PROGRAM_NAME = p_program_name,
+        IS_ACTIVE = p_is_active 
+    WHERE PROGRAM_ID = p_program_id;
+END //
+
+-- Delete Program
+CREATE PROCEDURE sp_DeleteProgram(
+    IN p_program_id INT
+)
+BEGIN
+    DELETE FROM program WHERE PROGRAM_ID = p_program_id;
+END //
+
+DELIMITER ;

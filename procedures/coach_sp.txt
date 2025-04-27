@@ -1,0 +1,76 @@
+DELIMITER //
+CREATE PROCEDURE sp_GetAllCoachesWithPrograms()
+BEGIN
+    SELECT c.*, 
+           GROUP_CONCAT(p.PROGRAM_NAME) as PROGRAM_NAMES,
+           GROUP_CONCAT(p.PROGRAM_ID) as PROGRAM_IDS
+    FROM coach c 
+    LEFT JOIN program_coach pc ON c.COACH_ID = pc.COACH_ID 
+    LEFT JOIN program p ON pc.PROGRAM_ID = p.PROGRAM_ID 
+    GROUP BY c.COACH_ID;
+END //
+DELIMITER ;
+
+-- Add Coach
+CREATE PROCEDURE sp_AddCoach(
+    IN p_fname VARCHAR(255),
+    IN p_lname VARCHAR(255),
+    IN p_email VARCHAR(255),
+    IN p_phone VARCHAR(20),
+    IN p_gender VARCHAR(10),
+    IN p_is_active TINYINT
+)
+BEGIN
+    INSERT INTO coach (COACH_FNAME, COACH_LNAME, EMAIL, PHONE_NUMBER, GENDER, IS_ACTIVE)
+    VALUES (p_fname, p_lname, p_email, p_phone, p_gender, p_is_active);
+    SELECT LAST_INSERT_ID() as COACH_ID;
+END //
+
+-- Add Coach Program Assignment
+CREATE PROCEDURE sp_AddCoachProgram(
+    IN p_coach_id INT,
+    IN p_program_id INT
+)
+BEGIN
+    INSERT INTO program_coach (PROGRAM_ID, COACH_ID)
+    VALUES (p_program_id, p_coach_id);
+END //
+
+-- Edit Coach
+CREATE PROCEDURE sp_EditCoach(
+    IN p_coach_id INT,
+    IN p_fname VARCHAR(255),
+    IN p_lname VARCHAR(255),
+    IN p_email VARCHAR(255),
+    IN p_phone VARCHAR(20),
+    IN p_gender VARCHAR(10),
+    IN p_is_active TINYINT
+)
+BEGIN
+    UPDATE coach 
+    SET COACH_FNAME = p_fname,
+        COACH_LNAME = p_lname,
+        EMAIL = p_email,
+        PHONE_NUMBER = p_phone,
+        GENDER = p_gender,
+        IS_ACTIVE = p_is_active
+    WHERE COACH_ID = p_coach_id;
+END //
+
+-- Delete Coach Program Assignments
+CREATE PROCEDURE sp_DeleteCoachPrograms(
+    IN p_coach_id INT
+)
+BEGIN
+    DELETE FROM program_coach WHERE COACH_ID = p_coach_id;
+END //
+
+-- Delete Coach
+CREATE PROCEDURE sp_DeleteCoach(
+    IN p_coach_id INT
+)
+BEGIN
+    DELETE FROM coach WHERE COACH_ID = p_coach_id;
+END //
+
+DELIMITER ;

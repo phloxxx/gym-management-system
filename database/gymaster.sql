@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 26, 2025 at 01:57 PM
+-- Generation Time: Apr 27, 2025 at 01:40 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -81,23 +81,208 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `GetSubscriptionDistribution` ()   B
     GROUP BY s.SUB_NAME;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetUsers` ()   BEGIN
-    SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE, IS_ACTIVE
-    FROM `USER`
-    ORDER BY USER_ID DESC;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_AddCoach` (IN `p_fname` VARCHAR(255), IN `p_lname` VARCHAR(255), IN `p_email` VARCHAR(255), IN `p_phone` VARCHAR(20), IN `p_gender` VARCHAR(10), IN `p_is_active` TINYINT)   BEGIN
+    INSERT INTO coach (COACH_FNAME, COACH_LNAME, EMAIL, PHONE_NUMBER, GENDER, IS_ACTIVE)
+    VALUES (p_fname, p_lname, p_email, p_phone, p_gender, p_is_active);
+    SELECT LAST_INSERT_ID() as COACH_ID;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_UpsertUser` (IN `p_user_id` SMALLINT, IN `p_fname` VARCHAR(50), IN `p_lname` VARCHAR(30), IN `p_username` VARCHAR(20), IN `p_password` VARCHAR(255), IN `p_user_type` ENUM('ADMINISTRATOR','STAFF'))   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_AddCoachProgram` (IN `p_coach_id` INT, IN `p_program_id` INT)   BEGIN
+    INSERT INTO program_coach (PROGRAM_ID, COACH_ID)
+    VALUES (p_program_id, p_coach_id);
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_AddProgram` (IN `p_program_name` VARCHAR(255), IN `p_is_active` TINYINT)   BEGIN
+    DECLARE EXIT HANDLER FOR 1062 
+    BEGIN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Program name already exists';
+    END;
+    
+    INSERT INTO program (PROGRAM_NAME, IS_ACTIVE) 
+    VALUES (p_program_name, p_is_active);
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_AddSubscription` (IN `p_sub_name` VARCHAR(255), IN `p_duration` INT, IN `p_price` DECIMAL(10,2), IN `p_is_active` BOOLEAN)   BEGIN
+    INSERT INTO subscription (SUB_NAME, DURATION, PRICE, IS_ACTIVE)
+    VALUES (p_sub_name, p_duration, p_price, p_is_active);
+    SELECT LAST_INSERT_ID() as SUB_ID;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_add_user` (IN `p_fname` VARCHAR(255), IN `p_lname` VARCHAR(255), IN `p_username` VARCHAR(255), IN `p_password` VARCHAR(255), IN `p_user_type` ENUM('ADMINISTRATOR','STAFF'), IN `p_is_active` TINYINT)   BEGIN
+    INSERT INTO user (USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE, IS_ACTIVE)
+    VALUES (p_fname, p_lname, p_username, p_password, p_user_type, p_is_active);
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CheckComorbidityExists` (IN `p_name` VARCHAR(255))   BEGIN
+    SELECT COMOR_ID 
+    FROM comorbidities 
+    WHERE COMOR_NAME = p_name;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CheckComorbidityExistsForUpdate` (IN `p_name` VARCHAR(255), IN `p_id` INT)   BEGIN
+    SELECT COMOR_ID 
+    FROM comorbidities 
+    WHERE COMOR_NAME = p_name 
+    AND COMOR_ID != p_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_check_username` (IN `p_username` VARCHAR(255))   BEGIN
+    SELECT USER_ID FROM user WHERE USERNAME = p_username;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_create_payment_method` (IN `p_pay_method` VARCHAR(20), IN `p_is_active` TINYINT)   BEGIN
+    INSERT INTO payment (PAY_METHOD, IS_ACTIVE)
+    VALUES (p_pay_method, p_is_active);
+    SELECT LAST_INSERT_ID() as payment_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_DeleteCoach` (IN `p_coach_id` INT)   BEGIN
+    DELETE FROM coach WHERE COACH_ID = p_coach_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_DeleteCoachPrograms` (IN `p_coach_id` INT)   BEGIN
+    DELETE FROM program_coach WHERE COACH_ID = p_coach_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_DeleteComorbidity` (IN `p_id` INT)   BEGIN
+    DELETE FROM comorbidities 
+    WHERE COMOR_ID = p_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_DeleteProgram` (IN `p_program_id` INT)   BEGIN
+    DELETE FROM program WHERE PROGRAM_ID = p_program_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_DeleteSubscription` (IN `p_sub_id` INT)   BEGIN
+    DELETE FROM subscription WHERE SUB_ID = p_sub_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_EditCoach` (IN `p_coach_id` INT, IN `p_fname` VARCHAR(255), IN `p_lname` VARCHAR(255), IN `p_email` VARCHAR(255), IN `p_phone` VARCHAR(20), IN `p_gender` VARCHAR(10), IN `p_is_active` TINYINT)   BEGIN
+    UPDATE coach 
+    SET COACH_FNAME = p_fname,
+        COACH_LNAME = p_lname,
+        EMAIL = p_email,
+        PHONE_NUMBER = p_phone,
+        GENDER = p_gender,
+        IS_ACTIVE = p_is_active
+    WHERE COACH_ID = p_coach_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_EditProgram` (IN `p_program_id` INT, IN `p_program_name` VARCHAR(255), IN `p_is_active` TINYINT)   BEGIN
+    UPDATE program 
+    SET PROGRAM_NAME = p_program_name,
+        IS_ACTIVE = p_is_active 
+    WHERE PROGRAM_ID = p_program_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetAllCoachesWithPrograms` ()   BEGIN
+    SELECT c.*, 
+           GROUP_CONCAT(p.PROGRAM_NAME) as PROGRAM_NAMES,
+           GROUP_CONCAT(p.PROGRAM_ID) as PROGRAM_IDS
+    FROM coach c 
+    LEFT JOIN program_coach pc ON c.COACH_ID = pc.COACH_ID 
+    LEFT JOIN program p ON pc.PROGRAM_ID = p.PROGRAM_ID 
+    GROUP BY c.COACH_ID;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetAllComorbidities` ()   BEGIN
+    SELECT COMOR_ID, COMOR_NAME, IS_ACTIVE 
+    FROM comorbidities 
+    ORDER BY COMOR_NAME ASC;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetAllPrograms` ()   BEGIN
+    SELECT * FROM program ORDER BY PROGRAM_NAME;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetAllSubscriptions` ()   BEGIN
+    SELECT * FROM subscription ORDER BY SUB_ID DESC;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetAllUsers` ()   BEGIN
+    SELECT 
+        u.USER_ID,
+        u.USER_FNAME,
+        u.USER_LNAME,
+        u.USERNAME,
+        u.USER_TYPE,
+        u.IS_ACTIVE
+    FROM user u
+    ORDER BY u.USER_ID DESC;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_getForgotUser` ()   BEGIN
+    SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE
+    FROM `USER`
+    WHERE IS_ACTIVE = 1;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetSubscriptionById` (IN `p_sub_id` INT)   BEGIN
+    SELECT * FROM subscription WHERE SUB_ID = p_sub_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetUsers` ()   BEGIN
+    SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE
+    FROM `USER`
+    WHERE IS_ACTIVE = 1;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_payment_methods` ()   BEGIN
+    SELECT PAYMENT_ID, PAY_METHOD, IS_ACTIVE FROM payment ORDER BY PAY_METHOD ASC;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_payment_method_by_id` (IN `p_payment_id` SMALLINT)   BEGIN
+    SELECT PAYMENT_ID, PAY_METHOD, IS_ACTIVE 
+    FROM payment 
+    WHERE PAYMENT_ID = p_payment_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_ToggleSubscriptionStatus` (IN `p_sub_id` INT)   BEGIN
+    UPDATE subscription 
+    SET IS_ACTIVE = NOT IS_ACTIVE 
+    WHERE SUB_ID = p_sub_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_UpdateSubscription` (IN `p_sub_id` INT, IN `p_sub_name` VARCHAR(255), IN `p_duration` INT, IN `p_price` DECIMAL(10,2), IN `p_is_active` BOOLEAN)   BEGIN
+    UPDATE subscription 
+    SET SUB_NAME = p_sub_name,
+        DURATION = p_duration,
+        PRICE = p_price,
+        IS_ACTIVE = p_is_active
+    WHERE SUB_ID = p_sub_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_update_payment_method` (IN `p_payment_id` SMALLINT, IN `p_pay_method` VARCHAR(20), IN `p_is_active` TINYINT)   BEGIN
+    UPDATE payment 
+    SET PAY_METHOD = p_pay_method,
+        IS_ACTIVE = p_is_active
+    WHERE PAYMENT_ID = p_payment_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_UpsertComorbidity` (IN `p_id` INT, IN `p_name` VARCHAR(255), IN `p_is_active` TINYINT)   BEGIN
+    IF p_id IS NULL THEN
+        INSERT INTO comorbidities (COMOR_NAME, IS_ACTIVE) 
+        VALUES (p_name, p_is_active);
+    ELSE
+        UPDATE comorbidities 
+        SET COMOR_NAME = p_name, 
+            IS_ACTIVE = p_is_active 
+        WHERE COMOR_ID = p_id;
+    END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_UpsertUser` (IN `p_user_id` SMALLINT, IN `p_fname` VARCHAR(50), IN `p_lname` VARCHAR(30), IN `p_username` VARCHAR(20), IN `p_password` VARCHAR(255), IN `p_user_type` ENUM('ADMINISTRATOR','STAFF'), IN `p_is_active` TINYINT(1))   BEGIN
     IF p_user_id IS NULL THEN
-        INSERT INTO `USER` (USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE)
-        VALUES (p_fname, p_lname, p_username, p_password, p_user_type);
+        INSERT INTO `USER` (USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE, IS_ACTIVE)
+        VALUES (p_fname, p_lname, p_username, p_password, p_user_type, COALESCE(p_is_active, 1));
     ELSE
         UPDATE `USER`
         SET USER_FNAME = p_fname,
             USER_LNAME = p_lname,
             USERNAME = p_username,
             PASSWORD = p_password,
-            USER_TYPE = p_user_type
+            USER_TYPE = p_user_type,
+            IS_ACTIVE = COALESCE(p_is_active, IS_ACTIVE)
         WHERE USER_ID = p_user_id;
     END IF;
 END$$
@@ -126,8 +311,8 @@ CREATE TABLE `coach` (
 --
 
 INSERT INTO `coach` (`COACH_ID`, `COACH_FNAME`, `COACH_LNAME`, `EMAIL`, `PHONE_NUMBER`, `GENDER`, `SPECIALIZATION`, `IS_ACTIVE`) VALUES
-(7, 'jeff', 'monreal', 'jeff@gmail.com', '0912312312312', 'MALE', '', 1),
-(8, 'jeff', 'monreal', 'jeff@gmail.com', '0912312312312', 'MALE', '', 1);
+(8, 'jeff', 'monreal', 'jeff@gmail.com', '0912312312312', 'MALE', '', 1),
+(9, 'Nino', 'Ocliasa', 'ninzo@gmail.com', '2342412422', 'MALE', 'Strength Training,Padako', 1);
 
 -- --------------------------------------------------------
 
@@ -147,8 +332,8 @@ CREATE TABLE `comorbidities` (
 
 INSERT INTO `comorbidities` (`COMOR_ID`, `COMOR_NAME`, `IS_ACTIVE`) VALUES
 (2, 'Arthritis', 1),
-(3, 'Copia', 1),
-(4, 'Cardiac Arrest', 1);
+(4, 'Cardiac Arrest', 1),
+(6, 'Copia', 1);
 
 -- --------------------------------------------------------
 
@@ -223,7 +408,7 @@ CREATE TABLE `program` (
 
 INSERT INTO `program` (`PROGRAM_ID`, `PROGRAM_NAME`, `IS_ACTIVE`) VALUES
 (5, 'Strength Training', 1),
-(15, 'Pautog', 1);
+(16, 'Padako', 1);
 
 -- --------------------------------------------------------
 
@@ -241,8 +426,9 @@ CREATE TABLE `program_coach` (
 --
 
 INSERT INTO `program_coach` (`PROGRAM_ID`, `COACH_ID`) VALUES
-(15, 7),
-(15, 8);
+(5, 8),
+(5, 9),
+(16, 9);
 
 -- --------------------------------------------------------
 
@@ -257,6 +443,13 @@ CREATE TABLE `subscription` (
   `PRICE` decimal(10,2) NOT NULL,
   `IS_ACTIVE` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `subscription`
+--
+
+INSERT INTO `subscription` (`SUB_ID`, `SUB_NAME`, `DURATION`, `PRICE`, `IS_ACTIVE`) VALUES
+(5, 'Annually', '365', 5999.00, 1);
 
 -- --------------------------------------------------------
 
@@ -306,9 +499,8 @@ CREATE TABLE `user` (
 --
 
 INSERT INTO `user` (`USER_ID`, `USER_FNAME`, `USER_LNAME`, `USERNAME`, `PASSWORD`, `USER_TYPE`, `IS_ACTIVE`) VALUES
-(31, 'ninz', 'qweqwe', 'qweqwe', '$2y$10$ExGFPtPnrN3Db2mNhHrvH.QZNLZ3vijgVqrexWGGo1t1wP7iW5p4.', 'STAFF', 1),
-(38, 'jeff', 'monreal', 'ertert', '$2y$10$XM8DsExuB8peOATRH/EkaOjk5fZsVN9IKlb5OPxThyHQgICidqnA2', 'ADMINISTRATOR', 1),
-(41, 'asdasd', 'asdasd', 'asdasd', '$2y$10$SWsLwkYwHZ1LSiyH8WB8XucaxpeAlXFNBwoUPQSpZGSPa00wD6geC', 'ADMINISTRATOR', 1);
+(31, 'ninz', 'qweqwe', 'qweqwe', '$2y$10$USckYH.KDPe1A.yZ3RJEIOzHvkGH5WM6uUGLgWAu8evUTxacU/hvO', 'STAFF', 1),
+(41, 'TRALALELO', 'TRALALA', 'asdasd', '$2y$10$PyRS12IiIzPWFGa6PEWhROaaXtWtrXycAbI2LR.WngnPh.AsRBZue', 'ADMINISTRATOR', 1);
 
 --
 -- Indexes for dumped tables
@@ -406,13 +598,13 @@ ALTER TABLE `user`
 -- AUTO_INCREMENT for table `coach`
 --
 ALTER TABLE `coach`
-  MODIFY `COACH_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `COACH_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `comorbidities`
 --
 ALTER TABLE `comorbidities`
-  MODIFY `COMOR_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `COMOR_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `member`
@@ -430,13 +622,13 @@ ALTER TABLE `payment`
 -- AUTO_INCREMENT for table `program`
 --
 ALTER TABLE `program`
-  MODIFY `PROGRAM_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `PROGRAM_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `subscription`
 --
 ALTER TABLE `subscription`
-  MODIFY `SUB_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `SUB_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `transaction`
@@ -454,7 +646,7 @@ ALTER TABLE `transaction_log`
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `USER_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `USER_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
 
 --
 -- Constraints for dumped tables
