@@ -5,13 +5,12 @@ require_once __DIR__ . '/db_functions.php';
 function getAllComorbidities() {
     try {
         $conn = getConnection();
-        $sql = "SELECT COMOR_ID, COMOR_NAME, IS_ACTIVE FROM comorbidities ORDER BY COMOR_NAME ASC";
-        $result = $conn->query($sql);
-        
-        if (!$result) {
+        $stmt = $conn->prepare("CALL sp_GetAllComorbidities()");
+        if (!$stmt->execute()) {
             throw new Exception("Database query failed: " . $conn->error);
         }
         
+        $result = $stmt->get_result();
         $comorbidities = [];
         while ($row = $result->fetch_assoc()) {
             $comorbidities[] = [
@@ -33,16 +32,17 @@ function addComorbidity($name, $isActive) {
         $conn = getConnection();
         
         // Check if comorbidity already exists
-        $stmt = $conn->prepare("SELECT COMOR_ID FROM comorbidities WHERE COMOR_NAME = ?");
+        $stmt = $conn->prepare("CALL sp_CheckComorbidityExists(?)");
         $stmt->bind_param("s", $name);
         $stmt->execute();
         if ($stmt->get_result()->num_rows > 0) {
             return ['success' => false, 'message' => 'Comorbidity already exists'];
         }
+        $stmt->close();
         
-        // Use CALL to execute the stored procedure
-        $stmt = $conn->prepare("CALL sp_UpsertComorbidity(NULL, ?)");
-        $stmt->bind_param("s", $name);
+        // Add new comorbidity
+        $stmt = $conn->prepare("CALL sp_UpsertComorbidity(NULL, ?, ?)");
+        $stmt->bind_param("si", $name, $isActive);
         
         if ($stmt->execute()) {
             return ['success' => true, 'message' => 'Comorbidity added successfully'];
@@ -60,16 +60,17 @@ function updateComorbidity($id, $name, $isActive) {
         $conn = getConnection();
         
         // Check if comorbidity exists with same name but different ID
-        $stmt = $conn->prepare("SELECT COMOR_ID FROM comorbidities WHERE COMOR_NAME = ? AND COMOR_ID != ?");
+        $stmt = $conn->prepare("CALL sp_CheckComorbidityExistsForUpdate(?, ?)");
         $stmt->bind_param("si", $name, $id);
         $stmt->execute();
         if ($stmt->get_result()->num_rows > 0) {
             return ['success' => false, 'message' => 'Another comorbidity with this name already exists'];
         }
+        $stmt->close();
         
-        // Update including IS_ACTIVE status
-        $stmt = $conn->prepare("UPDATE comorbidities SET COMOR_NAME = ?, IS_ACTIVE = ? WHERE COMOR_ID = ?");
-        $stmt->bind_param("sii", $name, $isActive, $id);
+        // Update comorbidity
+        $stmt = $conn->prepare("CALL sp_UpsertComorbidity(?, ?, ?)");
+        $stmt->bind_param("isi", $id, $name, $isActive);
         
         if ($stmt->execute()) {
             return ['success' => true, 'message' => 'Comorbidity updated successfully'];
@@ -86,12 +87,7 @@ function deleteComorbidity($id) {
     try {
         $conn = getConnection();
         
-        // Since there's no stored procedure for delete, we'll keep the direct SQL
-        $stmt = $conn->prepare("DELETE FROM comorbidities WHERE COMOR_ID = ?");
-        if (!$stmt) {
-            throw new Exception("Database error: " . $conn->error);
-        }
-        
+        $stmt = $conn->prepare("CALL sp_DeleteComorbidity(?)");
         $stmt->bind_param("i", $id);
         
         if ($stmt->execute()) {

@@ -220,9 +220,6 @@ if ($role === 'Administrator') $role = 'Administrator';
                     <i class="fas fa-tag text-gray-300 text-5xl mb-3"></i>
                     <h3 class="text-lg font-medium text-gray-600">No subscription plans found</h3>
                     <p class="text-gray-500 mb-4" id="emptyStateMessage">Add plans to get started or try a different search term.</p>
-                    <button id="emptyStateAddBtn" class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors">
-                        <i class="fas fa-plus mr-2"></i> Add New Plan
-                    </button>
                 </div>
                 
                 <!-- Loading state -->
@@ -469,13 +466,52 @@ if ($role === 'Administrator') $role = 'Administrator';
             };
 
             // Load subscriptions when page loads
-            function loadSubscriptions() {
-                const result = <?php echo json_encode(getAllSubscriptions()); ?>;
-                if (result.success) {
-                    updateSubscriptionTable(result.subscriptions);
-                } else {
-                    showToast(result.message, false);
+            async function loadSubscriptions() {
+                try {
+                    const response = await fetch('../../config/subscription_handler.php?action=getAll');
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        updateSubscriptionTable(result.subscriptions);
+                        
+                        // Toggle empty state
+                        const emptyState = document.getElementById('emptyState');
+                        const tableBody = document.getElementById('subscriptionTableBody');
+                        if (result.subscriptions.length === 0) {
+                            emptyState.classList.remove('hidden');
+                            tableBody.classList.add('hidden');
+                        } else {
+                            emptyState.classList.add('hidden');
+                            tableBody.classList.remove('hidden');
+                        }
+                    } else {
+                        showToast(result.message || 'Failed to load subscriptions', false);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showToast('Error loading subscriptions', false);
                 }
+            }
+
+            // Add toast function if not already present
+            function showToast(message, isSuccess) {
+                // Create toast element
+                const toast = document.createElement('div');
+                toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-md text-white ${
+                    isSuccess ? 'bg-green-500' : 'bg-red-500'
+                } transition-opacity duration-300`;
+                toast.textContent = message;
+
+                // Add to document
+                document.body.appendChild(toast);
+
+                // Remove after 3 seconds
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 300);
+                }, 3000);
             }
 
             loadSubscriptions();

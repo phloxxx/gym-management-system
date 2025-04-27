@@ -354,36 +354,46 @@ $role = ucfirst(strtolower($_SESSION['role']));
         // Refresh functions
         function refreshProgramsTable() {
             $.ajax({
-                url: 'program_coach_handler.php',
+                url: '../../config/program_coach_handler.php',  // Fixed path
                 type: 'POST',
                 data: { action: 'get_programs' },
+                dataType: 'json',
                 success: function(response) {
+                    console.log('Programs response:', response); // Debug log
                     if (response.success) {
                         updateProgramsTable(response.programs);
                     } else {
                         console.error('Error fetching programs:', response.message);
+                        updateProgramsTable([]); // Show empty state
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('AJAX error:', error);
+                    console.error('Response:', xhr.responseText); // Debug log
+                    updateProgramsTable([]); // Show empty state
                 }
             });
         }
 
         function refreshCoachesTable() {
             $.ajax({
-                url: 'program_coach_handler.php',
+                url: '../../config/program_coach_handler.php',  // Fixed path
                 type: 'POST',
                 data: { action: 'get_coaches' },
+                dataType: 'json',
                 success: function(response) {
+                    console.log('Coaches response:', response); // Debug log
                     if (response.success) {
                         updateCoachesTable(response.coaches);
                     } else {
                         console.error('Error fetching coaches:', response.message);
+                        updateCoachesTable([]); // Show empty state
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('AJAX error:', error);
+                    console.error('Response:', xhr.responseText); // Debug log
+                    updateCoachesTable([]); // Show empty state
                 }
             });
         }
@@ -412,21 +422,27 @@ $role = ucfirst(strtolower($_SESSION['role']));
             const tbody = document.querySelector('#programsTable tbody');
             tbody.innerHTML = '';
             
+            if (!programs || programs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-gray-500">No programs found</td></tr>';
+                return;
+            }
+
             programs.forEach(program => {
+                const isActive = program.IS_ACTIVE == 1; // Convert to boolean
                 const row = `
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">${program.PROGRAM_NAME}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${program.IS_ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                                <i class="fas ${program.IS_ACTIVE ? 'fa-check-circle' : 'fa-times-circle'} mr-1.5"></i>
-                                ${program.IS_ACTIVE ? 'Active' : 'Inactive'}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                <i class="fas ${isActive ? 'fa-check-circle' : 'fa-times-circle'} mr-1.5"></i>
+                                ${isActive ? 'Active' : 'Inactive'}
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             <div class="flex space-x-2 justify-center">
-                                <button onclick="editProgram(${program.PROGRAM_ID}, '${program.PROGRAM_NAME}', ${program.IS_ACTIVE})" 
+                                <button onclick="editProgram(${program.PROGRAM_ID}, '${program.PROGRAM_NAME}', ${isActive})" 
                                     class="text-primary-dark hover:text-primary-light h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200">
                                     <i class="fas fa-edit text-lg"></i>
                                 </button>
@@ -446,7 +462,14 @@ $role = ucfirst(strtolower($_SESSION['role']));
             const tbody = document.querySelector('#coachesTable tbody');
             tbody.innerHTML = '';
             
+            if (!coaches || coaches.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No coaches found</td></tr>';
+                return;
+            }
+
             coaches.forEach(coach => {
+                const isActive = coach.IS_ACTIVE == 1;
+                const programNames = coach.PROGRAM_NAMES ? coach.PROGRAM_NAMES.split(',') : [];
                 const row = `
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -455,22 +478,25 @@ $role = ucfirst(strtolower($_SESSION['role']));
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex flex-wrap gap-1">
-                                ${coach.SPECIALIZATION ? coach.SPECIALIZATION.split(',').map(spec => `
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        <i class="fas fa-dumbbell mr-1"></i>${spec.trim()}
-                                    </span>
-                                `).join('') : ''}
+                                ${programNames.length > 0 ? 
+                                    programNames.map(program => `
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            <i class="fas fa-dumbbell mr-1"></i>${program.trim()}
+                                        </span>
+                                    `).join('') : 
+                                    '<span class="text-gray-500">No programs assigned</span>'
+                                }
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${coach.IS_ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                                <i class="fas ${coach.IS_ACTIVE ? 'fa-check-circle' : 'fa-times-circle'} mr-1.5"></i>
-                                ${coach.IS_ACTIVE ? 'Active' : 'Inactive'}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                <i class="fas ${isActive ? 'fa-check-circle' : 'fa-times-circle'} mr-1.5"></i>
+                                ${isActive ? 'Active' : 'Inactive'}
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             <div class="flex space-x-2 justify-center">
-                                <button onclick="editCoach(${JSON.stringify(coach)})" 
+                                <button onclick='editCoach(${JSON.stringify(coach).replace(/'/g, "&#39;")})' 
                                     class="text-primary-dark hover:text-primary-light h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200">
                                     <i class="fas fa-edit text-lg"></i>
                                 </button>
@@ -502,16 +528,17 @@ $role = ucfirst(strtolower($_SESSION['role']));
             document.getElementById('coachEmail').value = coach.EMAIL;
             document.getElementById('coachPhone').value = coach.PHONE_NUMBER;
             document.querySelector(`input[name="GENDER"][value="${coach.GENDER}"]`).checked = true;
-            document.getElementById('coachStatus').checked = coach.IS_ACTIVE;
+            document.getElementById('coachStatus').checked = coach.IS_ACTIVE == 1;
 
             // Reset and set program assignments
             document.querySelectorAll('input[name="PROGRAM_ASSIGNMENTS[]"]').forEach(checkbox => {
                 checkbox.checked = false;
             });
-            if (coach.SPECIALIZATION) {
-                const assignments = coach.SPECIALIZATION.split(',').map(p => p.trim());
+            
+            if (coach.PROGRAM_IDS) {
+                const assignedPrograms = coach.PROGRAM_IDS.split(',');
                 document.querySelectorAll('input[name="PROGRAM_ASSIGNMENTS[]"]').forEach(checkbox => {
-                    if (assignments.includes(checkbox.nextElementSibling.textContent.trim())) {
+                    if (assignedPrograms.includes(checkbox.value)) {
                         checkbox.checked = true;
                     }
                 });
@@ -525,7 +552,7 @@ $role = ucfirst(strtolower($_SESSION['role']));
         function deleteProgram(id) {
             if (confirm('Are you sure you want to delete this program?')) {
                 $.ajax({
-                    url: 'program_coach_handler.php',
+                    url: '../../config/program_coach_handler.php',  // Fixed path
                     type: 'POST',
                     data: {
                         action: 'delete_program',
@@ -549,7 +576,7 @@ $role = ucfirst(strtolower($_SESSION['role']));
         function deleteCoach(id) {
             if (confirm('Are you sure you want to delete this coach?')) {
                 $.ajax({
-                    url: 'program_coach_handler.php',
+                    url: '../../config/program_coach_handler.php',  // Fixed path
                     type: 'POST',
                     data: {
                         action: 'delete_coach',
@@ -573,13 +600,13 @@ $role = ucfirst(strtolower($_SESSION['role']));
         // Save functions
         function saveProgram(formData) {
             $.ajax({
-                url: 'program_coach_handler.php',
+                url: '../../config/program_coach_handler.php',  // Fixed path
                 type: 'POST',
                 data: formData,
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        alert(response.message || 'Program saved successfully');
+                        alert(response.message);
                         document.getElementById('programModal').classList.add('hidden');
                         document.getElementById('programForm').reset();
                         refreshProgramsTable();
@@ -587,7 +614,8 @@ $role = ucfirst(strtolower($_SESSION['role']));
                         alert(response.message || 'Error saving program');
                     }
                 },
-                error: function() {
+                error: function(xhr, status, error) {
+                    console.error('Ajax error:', error);
                     alert('Error connecting to server');
                 }
             });
@@ -595,7 +623,7 @@ $role = ucfirst(strtolower($_SESSION['role']));
 
         function saveCoach(formData) {
             $.ajax({
-                url: 'program_coach_handler.php',
+                url: '../../config/program_coach_handler.php',  // Fixed path
                 type: 'POST',
                 data: formData,
                 dataType: 'json',
@@ -628,10 +656,13 @@ $role = ucfirst(strtolower($_SESSION['role']));
                 if (form.checkValidity()) {
                     const formData = {
                         action: document.getElementById('programId').value ? 'update_program' : 'add_program',
-                        PROGRAM_ID: document.getElementById('programId').value,
                         PROGRAM_NAME: document.getElementById('programName').value.trim(),
                         IS_ACTIVE: document.getElementById('programStatus').checked ? 1 : 0
                     };
+                    
+                    if (document.getElementById('programId').value) {
+                        formData.PROGRAM_ID = document.getElementById('programId').value;
+                    }
                     
                     if (!formData.PROGRAM_NAME) {
                         alert('Program name cannot be empty');

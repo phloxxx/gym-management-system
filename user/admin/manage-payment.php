@@ -1,7 +1,15 @@
-<?php 
-// Get user data from session - remove the default 'Admin' value to ensure we see the actual session data
-$fullName = $_SESSION['name'];
-$role = ucfirst(strtolower($_SESSION['role']));
+<?php
+session_start();
+
+// Check if user is logged in
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+    header("Location: ../../login.php");
+    exit();
+}
+
+// Get user data from session - update variable name to match what's stored in session
+$fullName = isset($_SESSION['name']) ? $_SESSION['name'] : 'Unknown User';
+$role = isset($_SESSION['role']) ? ucfirst(strtolower($_SESSION['role'])) : 'Unknown Role';
 ?>
 
 <!DOCTYPE html>
@@ -135,7 +143,7 @@ $role = ucfirst(strtolower($_SESSION['role']));
                         <!-- Divider -->
                         <div class="h-8 w-px bg-gray-200 mx-2"></div>
                         
-                        <!-- User Profile - Direct link to edit profile -->
+                        <!-- User Profile -->
                         <a href="edit-profile.php" class="flex items-center space-x-3 pr-2 cursor-pointer">
                             <div class="text-right hidden sm:block">
                                 <p class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($fullName); ?></p>
@@ -760,41 +768,161 @@ $role = ucfirst(strtolower($_SESSION['role']));
             // Save payment method button click
             savePaymentButton.addEventListener('click', function() {
                 if (paymentMethodForm.checkValidity()) {
-                    // Form is valid, can proceed with saving
-                    const id = paymentId.value;
-                    const name = payMethod.value;
-                    const selectedIcon = document.getElementById('selectedIcon').value;
-                    const isActive = document.getElementById('status').checked;
-                    
-                    // In a real app, you would send this data to your server
-                    console.log({
-                        paymentId: id || null,
-                        payMethod: name,
-                        icon: selectedIcon,
-                        isActive
+                    const formData = {
+                        payment_id: paymentId.value || null,
+                        pay_method: payMethod.value,
+                        is_active: document.getElementById('status').checked ? 1 : 0,
+                        icon: document.getElementById('selectedIcon').value
+                    };
+
+                    const url = '../../apis/payment_methods.php';
+                    const method = formData.payment_id ? 'PUT' : 'POST';
+
+                    fetch(url, {
+                        method: method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {  // Changed from data.status to data.success
+                            showToast(data.message, true);
+                            hideModal(paymentMethodModal);
+                            loadPaymentMethods(); // Refresh the table
+                            formChanged = false;
+                            paymentMethodForm.reset();
+                        } else {
+                            showToast(data.message || 'Error saving payment method', false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('Error saving payment method', false);
                     });
-                    
-                    // Show success message
-                    const message = id ? 
-                        `${name} payment method updated successfully!` : 
-                        `${name} payment method added successfully!`;
-                    showToast(message, true);
-                    
-                    // Close modal
-                    hideModal(paymentMethodModal);
-                    
-                    // Reset form change tracking
-                    formChanged = false;
-                    // Reset form
-                    paymentMethodForm.reset();
                 } else {
-                    // Trigger browser's default validation
                     const submitButton = document.createElement('button');
                     submitButton.type = 'submit';
                     paymentMethodForm.appendChild(submitButton);
                     submitButton.click();
                     paymentMethodForm.removeChild(submitButton);
                 }
+            });
+
+            // Load payment methods function
+            function loadPaymentMethods() {
+                document.getElementById('loadingState').classList.remove('hidden');
+                document.getElementById('paymentMethodTableBody').innerHTML = '';
+
+                fetch('../../apis/payment_methods.php')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('loadingState').classList.add('hidden');
+
+                        if (data.success) {  // Changed from data.status to data.success
+                            updatePaymentMethodsTable(data.data);
+                        } else {
+                            showToast(data.message || 'Error loading payment methods', false);
+                        }
+                    })
+                    .catch(error => {
+                        document.getElementById('loadingState').classList.add('hidden');
+                        showToast('Error loading payment methods', false);
+                        console.error('Error:', error);
+                    });
+            }
+
+            // Update table with payment methods
+            function updatePaymentMethodsTable(paymentMethods) {
+                const tbody = document.getElementById('paymentMethodTableBody');
+                tbody.innerHTML = '';
+
+                if (paymentMethods.length === 0) {
+                    document.getElementById('emptyState').classList.remove('hidden');
+                    return;
+                }
+
+                document.getElementById('emptyState').classList.add('hidden');
+                
+                paymentMethods.forEach(method => {
+                    const row = `
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white mr-3">
+                                        <i class="fas ${method.ICON || 'fa-credit-card'}"></i>
+                                    </div>
+                                    <div class="text-sm font-medium text-gray-900">${method.PAY_METHOD}</div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${method.IS_ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${method.IS_ACTIVE ? 'Active' : 'Inactive'}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <div class="flex space-x-2 justify-center">
+                                    <button class="text-primary-dark hover:text-primary-light edit-payment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${method.PAYMENT_ID}" data-method="${method.PAY_METHOD}" data-active="${method.IS_ACTIVE}" data-icon="${method.ICON || 'fa-credit-card'}">
+                                        <i class="fas fa-edit text-lg"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+
+                // Attach edit button listeners
+                attachEditButtonListeners();
+            }
+
+            // Function to attach edit button listeners
+            function attachEditButtonListeners() {
+                document.querySelectorAll('.edit-payment').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const id = this.getAttribute('data-id');
+                        const payMethodName = this.getAttribute('data-method');
+                        const isActive = this.getAttribute('data-active') === 'true' || this.getAttribute('data-active') === '1';
+                        const iconClass = this.getAttribute('data-icon');
+
+                        modalTitle.textContent = 'Edit Payment Method';
+                        saveButtonText.textContent = 'Update Payment Method';
+                        document.getElementById('paymentId').value = id;
+                        document.getElementById('payMethod').value = payMethodName;
+                        document.getElementById('status').checked = isActive;
+                        document.getElementById('selectedIcon').value = iconClass;
+                        
+                        // Update status label
+                        const statusLabel = document.getElementById('statusLabel');
+                        if (isActive) {
+                            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                            statusLabel.classList.remove('text-red-600');
+                            statusLabel.classList.add('text-green-600');
+                        } else {
+                            statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                            statusLabel.classList.remove('text-green-600');
+                            statusLabel.classList.add('text-red-600');
+                        }
+                        
+                        // Set the correct icon
+                        paymentIcons.forEach(i => i.classList.remove('bg-primary-light', 'text-white'));
+                        const iconElement = Array.from(paymentIcons).find(i => i.getAttribute('data-icon') === iconClass);
+                        if (iconElement) {
+                            iconElement.classList.add('bg-primary-light', 'text-white');
+                        }
+                        
+                        showModal(paymentMethodModal);
+                        formChanged = false;
+                        captureFormState();
+                    });
+                });
+            }
+
+            // Load payment methods when page loads
+            document.addEventListener('DOMContentLoaded', function() {
+                loadPaymentMethods();
+                // ...rest of your existing DOMContentLoaded code...
             });
 
             // Search functionality
