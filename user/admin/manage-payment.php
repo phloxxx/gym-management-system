@@ -200,95 +200,7 @@ $role = isset($_SESSION['role']) ? ucfirst(strtolower($_SESSION['role'])) : 'Unk
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200" id="paymentMethodTableBody">
-                            <!-- Payment method rows will be inserted here dynamically -->
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white mr-3">
-                                            <i class="fas fa-credit-card"></i>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-900">Credit Card</div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-payment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="1">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white mr-3">
-                                            <i class="fas fa-university"></i>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-900">Bank Transfer</div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-payment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="2">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white mr-3">
-                                            <i class="fas fa-money-bill-wave"></i>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-900">Cash</div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                        Inactive
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-payment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="3">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white mr-3">
-                                            <i class="fas fa-wallet"></i>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-900">Digital Wallet</div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-payment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="4">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                            <!-- Dynamic content will be loaded here -->
                         </tbody>
                     </table>
                 </div>
@@ -769,16 +681,15 @@ $role = isset($_SESSION['role']) ? ucfirst(strtolower($_SESSION['role'])) : 'Unk
             savePaymentButton.addEventListener('click', function() {
                 if (paymentMethodForm.checkValidity()) {
                     const formData = {
-                        payment_id: paymentId.value || null,
+                        payment_id: parseInt(paymentId.value) || null,
                         pay_method: payMethod.value,
-                        is_active: document.getElementById('status').checked ? 1 : 0,
-                        icon: document.getElementById('selectedIcon').value
+                        is_active: document.getElementById('status').checked ? 1 : 0
                     };
 
-                    const url = '../../apis/payment_methods.php';
-                    const method = formData.payment_id ? 'PUT' : 'POST';
+                    const isEdit = formData.payment_id !== null;
+                    const method = isEdit ? 'PUT' : 'POST';
 
-                    fetch(url, {
+                    fetch('../../config/payment_api.php', {
                         method: method,
                         headers: {
                             'Content-Type': 'application/json',
@@ -787,10 +698,10 @@ $role = isset($_SESSION['role']) ? ucfirst(strtolower($_SESSION['role'])) : 'Unk
                     })
                     .then(response => response.json())
                     .then(data => {
-                        if (data.success) {  // Changed from data.status to data.success
+                        if (data.success) {
                             showToast(data.message, true);
                             hideModal(paymentMethodModal);
-                            loadPaymentMethods(); // Refresh the table
+                            loadPaymentMethods();
                             formChanged = false;
                             paymentMethodForm.reset();
                         } else {
@@ -802,11 +713,7 @@ $role = isset($_SESSION['role']) ? ucfirst(strtolower($_SESSION['role'])) : 'Unk
                         showToast('Error saving payment method', false);
                     });
                 } else {
-                    const submitButton = document.createElement('button');
-                    submitButton.type = 'submit';
-                    paymentMethodForm.appendChild(submitButton);
-                    submitButton.click();
-                    paymentMethodForm.removeChild(submitButton);
+                    paymentMethodForm.reportValidity();
                 }
             });
 
@@ -814,35 +721,54 @@ $role = isset($_SESSION['role']) ? ucfirst(strtolower($_SESSION['role'])) : 'Unk
             function loadPaymentMethods() {
                 document.getElementById('loadingState').classList.remove('hidden');
                 document.getElementById('paymentMethodTableBody').innerHTML = '';
+                document.getElementById('emptyState').classList.add('hidden');
 
-                fetch('../../apis/payment_methods.php')
-                    .then(response => response.json())
+                fetch('../../config/payment_api.php')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        console.log('Payment methods data:', data); // Debug logging
                         document.getElementById('loadingState').classList.add('hidden');
 
-                        if (data.success) {  // Changed from data.status to data.success
-                            updatePaymentMethodsTable(data.data);
+                        if (data.success && Array.isArray(data.data)) {
+                            const paymentMethods = data.data;
+                            console.log('Number of payment methods:', paymentMethods.length); // Debug logging
+                            
+                            if (paymentMethods.length === 0) {
+                                document.getElementById('emptyState').classList.remove('hidden');
+                            } else {
+                                document.getElementById('emptyState').classList.add('hidden');
+                                updatePaymentMethodsTable(paymentMethods);
+                            }
                         } else {
-                            showToast(data.message || 'Error loading payment methods', false);
+                            throw new Error(data.message || 'Invalid response format');
                         }
                     })
                     .catch(error => {
+                        console.error('Error loading payment methods:', error);
                         document.getElementById('loadingState').classList.add('hidden');
-                        showToast('Error loading payment methods', false);
-                        console.error('Error:', error);
+                        document.getElementById('emptyState').classList.remove('hidden');
+                        showToast('Error loading payment methods: ' + error.message, false);
                     });
             }
+
+            // Remove duplicate event listener and keep only one
+            loadPaymentMethods(); // Load payment methods when page loads
 
             // Update table with payment methods
             function updatePaymentMethodsTable(paymentMethods) {
                 const tbody = document.getElementById('paymentMethodTableBody');
                 tbody.innerHTML = '';
-
-                if (paymentMethods.length === 0) {
+                
+                if (!Array.isArray(paymentMethods) || paymentMethods.length === 0) {
                     document.getElementById('emptyState').classList.remove('hidden');
                     return;
                 }
-
+                
                 document.getElementById('emptyState').classList.add('hidden');
                 
                 paymentMethods.forEach(method => {
@@ -851,7 +777,7 @@ $role = isset($_SESSION['role']) ? ucfirst(strtolower($_SESSION['role'])) : 'Unk
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white mr-3">
-                                        <i class="fas ${method.ICON || 'fa-credit-card'}"></i>
+                                        <i class="fas fa-money-bill-wave"></i>
                                     </div>
                                     <div class="text-sm font-medium text-gray-900">${method.PAY_METHOD}</div>
                                 </div>
@@ -863,7 +789,8 @@ $role = isset($_SESSION['role']) ? ucfirst(strtolower($_SESSION['role'])) : 'Unk
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <div class="flex space-x-2 justify-center">
-                                    <button class="text-primary-dark hover:text-primary-light edit-payment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${method.PAYMENT_ID}" data-method="${method.PAY_METHOD}" data-active="${method.IS_ACTIVE}" data-icon="${method.ICON || 'fa-credit-card'}">
+                                    <button class="text-primary-dark hover:text-primary-light edit-payment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" 
+                                        data-id="${method.PAYMENT_ID}">
                                         <i class="fas fa-edit text-lg"></i>
                                     </button>
                                 </div>
@@ -873,51 +800,91 @@ $role = isset($_SESSION['role']) ? ucfirst(strtolower($_SESSION['role'])) : 'Unk
                     tbody.insertAdjacentHTML('beforeend', row);
                 });
 
-                // Attach edit button listeners
                 attachEditButtonListeners();
             }
+
+            // Ensure the table loads when the page loads
+            document.addEventListener('DOMContentLoaded', function() {
+                loadPaymentMethods();
+                // ...rest of your existing DOMContentLoaded code...
+            });
 
             // Function to attach edit button listeners
             function attachEditButtonListeners() {
                 document.querySelectorAll('.edit-payment').forEach(button => {
                     button.addEventListener('click', function() {
                         const id = this.getAttribute('data-id');
-                        const payMethodName = this.getAttribute('data-method');
-                        const isActive = this.getAttribute('data-active') === 'true' || this.getAttribute('data-active') === '1';
-                        const iconClass = this.getAttribute('data-icon');
-
                         modalTitle.textContent = 'Edit Payment Method';
                         saveButtonText.textContent = 'Update Payment Method';
-                        document.getElementById('paymentId').value = id;
-                        document.getElementById('payMethod').value = payMethodName;
-                        document.getElementById('status').checked = isActive;
-                        document.getElementById('selectedIcon').value = iconClass;
                         
-                        // Update status label
-                        const statusLabel = document.getElementById('statusLabel');
-                        if (isActive) {
-                            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
-                            statusLabel.classList.remove('text-red-600');
-                            statusLabel.classList.add('text-green-600');
-                        } else {
-                            statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
-                            statusLabel.classList.remove('text-green-600');
-                            statusLabel.classList.add('text-red-600');
-                        }
-                        
-                        // Set the correct icon
-                        paymentIcons.forEach(i => i.classList.remove('bg-primary-light', 'text-white'));
-                        const iconElement = Array.from(paymentIcons).find(i => i.getAttribute('data-icon') === iconClass);
-                        if (iconElement) {
-                            iconElement.classList.add('bg-primary-light', 'text-white');
-                        }
-                        
-                        showModal(paymentMethodModal);
-                        formChanged = false;
-                        captureFormState();
+                        // Load payment method data from the API
+                        fetch(`../../config/payment_api.php?id=${id}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    const method = data.data;
+                                    // Set form values
+                                    document.getElementById('paymentId').value = method.PAYMENT_ID;
+                                    document.getElementById('payMethod').value = method.PAY_METHOD;
+                                    document.getElementById('status').checked = Boolean(method.IS_ACTIVE);
+                                    
+                                    // Update status label
+                                    const statusLabel = document.getElementById('statusLabel');
+                                    if (method.IS_ACTIVE) {
+                                        statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                                        statusLabel.classList.remove('text-red-600');
+                                        statusLabel.classList.add('text-green-600');
+                                    } else {
+                                        statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                                        statusLabel.classList.remove('text-green-600');
+                                        statusLabel.classList.add('text-red-600');
+                                    }
+                                    
+                                    showModal(paymentMethodModal);
+                                    formChanged = false;
+                                    captureFormState();
+                                } else {
+                                    showToast('Error loading payment method details', false);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                showToast('Error loading payment method details', false);
+                            });
                     });
                 });
             }
+
+            // Add delete functionality
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.delete-payment')) {
+                    const button = e.target.closest('.delete-payment');
+                    const paymentId = button.getAttribute('data-id');
+                    
+                    if (confirm('Are you sure you want to delete this payment method?')) {
+                        fetch('../../config/payment_api.php', {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ payment_id: paymentId })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showToast(data.message, true);
+                                loadPaymentMethods(); // Refresh the table
+                            } else {
+                                showToast(data.message || 'Error deleting payment method', false);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showToast('Error deleting payment method', false);
+                        });
+                    }
+                }
+            });
 
             // Load payment methods when page loads
             document.addEventListener('DOMContentLoaded', function() {

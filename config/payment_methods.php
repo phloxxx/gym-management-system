@@ -3,28 +3,41 @@ require_once dirname(__DIR__) . '/connection/database.php';
 require_once __DIR__ . '/db_functions.php';
 
 function getAllPaymentMethods() {
+    $conn = null;
     try {
         $conn = getConnection();
-        $stmt = $conn->prepare("CALL sp_get_payment_methods()");
-        if (!$stmt->execute()) {
-            throw new Exception("Database query failed: " . $conn->error);
+        if (!$conn) {
+            throw new Exception("Database connection failed");
         }
+
+        error_log("Database connection established successfully");
+
+        $result = $conn->query("CALL sp_get_payment_methods()");
         
-        $result = $stmt->get_result();
+        if ($result === false) {
+            throw new Exception("Failed to execute stored procedure: " . $conn->error);
+        }
+
         $methods = [];
         while ($row = $result->fetch_assoc()) {
             $methods[] = [
                 'PAYMENT_ID' => $row['PAYMENT_ID'],
                 'PAY_METHOD' => $row['PAY_METHOD'],
-                'IS_ACTIVE' => (bool)$row['IS_ACTIVE'],
-                'ICON' => $row['ICON'] ?? 'fa-credit-card'
+                'IS_ACTIVE' => (bool)$row['IS_ACTIVE']
             ];
         }
         
+        error_log("Retrieved " . count($methods) . " payment methods");
         return ['success' => true, 'data' => $methods];
+
     } catch (Exception $e) {
-        error_log("Error getting payment methods: " . $e->getMessage());
+        error_log("Error in getAllPaymentMethods: " . $e->getMessage());
         return ['success' => false, 'message' => $e->getMessage()];
+    } finally {
+        if ($conn) {
+            $conn->close();
+            error_log("Database connection closed");
+        }
     }
 }
 
@@ -41,6 +54,12 @@ function getPaymentMethodById($paymentId) {
         $result = $stmt->get_result();
         $method = $result->fetch_assoc();
         
+        if (!$method) {
+            throw new Exception("Payment method not found");
+        }
+        
+        $method['IS_ACTIVE'] = (bool)$method['IS_ACTIVE'];
+        
         return ['success' => true, 'data' => $method];
     } catch (Exception $e) {
         error_log("Error getting payment method: " . $e->getMessage());
@@ -54,82 +73,67 @@ function createPaymentMethod($payMethod, $isActive) {
         $stmt = $conn->prepare("CALL sp_create_payment_method(?, ?)");
         $stmt->bind_param("si", $payMethod, $isActive);
         
-        if ($stmt->execute()) {
-            $result = $stmt->get_result();
-            $paymentId = $result->fetch_assoc()['payment_id'];
-            return ['success' => true, 'data' => ['payment_id' => $paymentId], 'message' => 'Payment method created successfully'];
-        } else {
-            return ['success' => false, 'message' => 'Failed to create payment method'];
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to create payment method: " . $conn->error);
         }
+        
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $paymentId = $row['payment_id'];
+        
+        return [
+            'success' => true,
+            'message' => 'Payment method created successfully',
+            'data' => [
+                'PAYMENT_ID' => $paymentId,
+                'PAY_METHOD' => $payMethod,
+                'IS_ACTIVE' => (bool)$isActive
+            ]
+        ];
     } catch (Exception $e) {
         error_log("Error creating payment method: " . $e->getMessage());
-        return ['success' => false, 'message' => 'Database error occurred'];
+        return ['success' => false, 'message' => $e->getMessage()];
     }
 }
 
-function updatePaymentMethod($paymentId, $payMethod, $isActive, $icon = null) {
+function updatePaymentMethod($paymentId, $payMethod, $isActive) {
     try {
         $conn = getConnection();
-        $stmt = $conn->prepare("CALL sp_update_payment_method(?, ?, ?, ?)");
-        $stmt->bind_param("isis", $paymentId, $payMethod, $isActive, $icon);
+        $stmt = $conn->prepare("CALL sp_update_payment_method(?, ?, ?)");
+        $stmt->bind_param("isi", $paymentId, $payMethod, $isActive);
         
         if (!$stmt->execute()) {
             throw new Exception("Failed to update payment method: " . $conn->error);
         }
         
-        return ['success' => true, 'message' => 'Payment method updated successfully'];
+        return [
+            'success' => true,
+            'message' => 'Payment method updated successfully',
+            'data' => [
+                'PAYMENT_ID' => $paymentId,
+                'PAY_METHOD' => $payMethod,
+                'IS_ACTIVE' => (bool)$isActive
+            ]
+        ];
     } catch (Exception $e) {
         error_log("Error updating payment method: " . $e->getMessage());
         return ['success' => false, 'message' => $e->getMessage()];
     }
 }
 
-// API endpoint handling
-if ($_SERVER['REQUEST_METHOD']) {
-    header('Content-Type: application/json');
-    
-    switch ($_SERVER['REQUEST_METHOD']) {
-        case 'GET':
-            $response = isset($_GET['payment_id']) 
-                ? getPaymentMethodById($_GET['payment_id'])
-                : getAllPaymentMethods();
-            echo json_encode($response);
-            break;
-            
-        case 'POST':
-            $data = json_decode(file_get_contents("php://input"));
-            if (!isset($data->pay_method)) {
-                echo json_encode(['success' => false, 'message' => 'Payment method name is required']);
-                break;
-            }
-            $response = createPaymentMethod($data->pay_method, $data->is_active);
-            echo json_encode($response);
-            break;
-            
-        case 'PUT':
-            $data = json_decode(file_get_contents("php://input"));
-            if (!isset($data->payment_id)) {
-                echo json_encode(['success' => false, 'message' => 'Payment ID is required']);
-                break;
-            }
-            
-            if (!isset($data->pay_method)) {
-                echo json_encode(['success' => false, 'message' => 'Payment method name is required']);
-                break;
-            }
-            
-            $response = updatePaymentMethod(
-                $data->payment_id,
-                $data->pay_method,
-                $data->is_active,
-                $data->icon ?? null
-            );
-            echo json_encode($response);
-            break;
-            
-        default:
-            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-            break;
+function deletePaymentMethod($paymentId) {
+    try {
+        $conn = getConnection();
+        $stmt = $conn->prepare("CALL sp_delete_payment_method(?)");
+        $stmt->bind_param("i", $paymentId);
+        
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to delete payment method: " . $conn->error);
+        }
+        
+        return ['success' => true, 'message' => 'Payment method deleted successfully'];
+    } catch (Exception $e) {
+        error_log("Error deleting payment method: " . $e->getMessage());
+        return ['success' => false, 'message' => $e->getMessage()];
     }
 }
-?>

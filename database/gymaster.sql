@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 27, 2025 at 01:40 PM
+-- Generation Time: Apr 30, 2025 at 07:05 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -133,6 +133,7 @@ END$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_create_payment_method` (IN `p_pay_method` VARCHAR(20), IN `p_is_active` TINYINT)   BEGIN
     INSERT INTO payment (PAY_METHOD, IS_ACTIVE)
     VALUES (p_pay_method, p_is_active);
+    
     SELECT LAST_INSERT_ID() as payment_id;
 END$$
 
@@ -155,6 +156,11 @@ END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_DeleteSubscription` (IN `p_sub_id` INT)   BEGIN
     DELETE FROM subscription WHERE SUB_ID = p_sub_id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_delete_payment_method` (IN `p_payment_id` INT)   BEGIN
+    DELETE FROM payment 
+    WHERE PAYMENT_ID = p_payment_id;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_EditCoach` (IN `p_coach_id` INT, IN `p_fname` VARCHAR(255), IN `p_lname` VARCHAR(255), IN `p_email` VARCHAR(255), IN `p_phone` VARCHAR(20), IN `p_gender` VARCHAR(10), IN `p_is_active` TINYINT)   BEGIN
@@ -228,10 +234,12 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetUsers` ()   BEGIN
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_payment_methods` ()   BEGIN
-    SELECT PAYMENT_ID, PAY_METHOD, IS_ACTIVE FROM payment ORDER BY PAY_METHOD ASC;
+    SELECT PAYMENT_ID, PAY_METHOD, IS_ACTIVE 
+    FROM payment 
+    ORDER BY PAY_METHOD ASC;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_payment_method_by_id` (IN `p_payment_id` SMALLINT)   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_payment_method_by_id` (IN `p_payment_id` INT)   BEGIN
     SELECT PAYMENT_ID, PAY_METHOD, IS_ACTIVE 
     FROM payment 
     WHERE PAYMENT_ID = p_payment_id;
@@ -252,7 +260,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_UpdateSubscription` (IN `p_sub_i
     WHERE SUB_ID = p_sub_id;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_update_payment_method` (IN `p_payment_id` SMALLINT, IN `p_pay_method` VARCHAR(20), IN `p_is_active` TINYINT)   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_update_payment_method` (IN `p_payment_id` INT, IN `p_pay_method` VARCHAR(20), IN `p_is_active` TINYINT)   BEGIN
     UPDATE payment 
     SET PAY_METHOD = p_pay_method,
         IS_ACTIVE = p_is_active
@@ -389,6 +397,16 @@ CREATE TABLE `payment` (
   `PAY_METHOD` varchar(20) NOT NULL,
   `IS_ACTIVE` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `payment`
+--
+
+INSERT INTO `payment` (`PAYMENT_ID`, `PAY_METHOD`, `IS_ACTIVE`) VALUES
+(8, 'Credit Card', 1),
+(9, 'Bank Transfer', 1),
+(10, 'BDO', 1),
+(11, 'E-Wallet', 1);
 
 -- --------------------------------------------------------
 
@@ -616,7 +634,7 @@ ALTER TABLE `member`
 -- AUTO_INCREMENT for table `payment`
 --
 ALTER TABLE `payment`
-  MODIFY `PAYMENT_ID` smallint(6) NOT NULL AUTO_INCREMENT;
+  MODIFY `PAYMENT_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `program`
