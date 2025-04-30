@@ -1,0 +1,53 @@
+DELIMITER //
+
+CREATE PROCEDURE sp_GetAllSubscriptions()
+BEGIN
+    SELECT * FROM subscription ORDER BY SUB_ID DESC;
+END //
+
+CREATE PROCEDURE sp_GetSubscriptionById(IN p_sub_id INT)
+BEGIN
+    SELECT * FROM subscription WHERE SUB_ID = p_sub_id;
+END //
+
+CREATE PROCEDURE sp_AddSubscription(
+    IN p_sub_name VARCHAR(255),
+    IN p_duration INT,
+    IN p_price DECIMAL(10,2),
+    IN p_is_active BOOLEAN
+)
+BEGIN
+    INSERT INTO subscription (SUB_NAME, DURATION, PRICE, IS_ACTIVE)
+    VALUES (p_sub_name, p_duration, p_price, p_is_active);
+    SELECT LAST_INSERT_ID() as SUB_ID;
+END //
+
+CREATE PROCEDURE sp_UpdateSubscription(
+    IN p_sub_id INT,
+    IN p_sub_name VARCHAR(255),
+    IN p_duration INT,
+    IN p_price DECIMAL(10,2),
+    IN p_is_active BOOLEAN
+)
+BEGIN
+    UPDATE subscription 
+    SET SUB_NAME = p_sub_name,
+        DURATION = p_duration,
+        PRICE = p_price,
+        IS_ACTIVE = p_is_active
+    WHERE SUB_ID = p_sub_id;
+END //
+
+CREATE PROCEDURE sp_DeleteSubscription(IN p_sub_id INT)
+BEGIN
+    DELETE FROM subscription WHERE SUB_ID = p_sub_id;
+END //
+
+CREATE PROCEDURE sp_ToggleSubscriptionStatus(IN p_sub_id INT)
+BEGIN
+    UPDATE subscription 
+    SET IS_ACTIVE = NOT IS_ACTIVE 
+    WHERE SUB_ID = p_sub_id;
+END //
+
+DELIMITER ;

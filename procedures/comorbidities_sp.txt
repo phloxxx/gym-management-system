@@ -1,0 +1,51 @@
+DELIMITER //
+
+CREATE PROCEDURE sp_GetAllComorbidities()
+BEGIN
+    SELECT COMOR_ID, COMOR_NAME, IS_ACTIVE 
+    FROM comorbidities 
+    ORDER BY COMOR_NAME ASC;
+END //
+
+CREATE PROCEDURE sp_CheckComorbidityExists(IN p_name VARCHAR(255))
+BEGIN
+    SELECT COMOR_ID 
+    FROM comorbidities 
+    WHERE COMOR_NAME = p_name;
+END //
+
+CREATE PROCEDURE sp_CheckComorbidityExistsForUpdate(
+    IN p_name VARCHAR(255),
+    IN p_id INT
+)
+BEGIN
+    SELECT COMOR_ID 
+    FROM comorbidities 
+    WHERE COMOR_NAME = p_name 
+    AND COMOR_ID != p_id;
+END //
+
+CREATE PROCEDURE sp_UpsertComorbidity(
+    IN p_id INT,
+    IN p_name VARCHAR(255),
+    IN p_is_active TINYINT
+)
+BEGIN
+    IF p_id IS NULL THEN
+        INSERT INTO comorbidities (COMOR_NAME, IS_ACTIVE) 
+        VALUES (p_name, p_is_active);
+    ELSE
+        UPDATE comorbidities 
+        SET COMOR_NAME = p_name, 
+            IS_ACTIVE = p_is_active 
+        WHERE COMOR_ID = p_id;
+    END IF;
+END //
+
+CREATE PROCEDURE sp_DeleteComorbidity(IN p_id INT)
+BEGIN
+    DELETE FROM comorbidities 
+    WHERE COMOR_ID = p_id;
+END //
+
+DELIMITER ;
