@@ -64,49 +64,37 @@ function updateUser($data) {
     try {
         $conn = getConnection();
         
-        // Check if username exists for other users
-        $stmt = $conn->prepare("SELECT COUNT(*) FROM user WHERE USERNAME = ? AND USER_ID != ?");
-        $stmt->bind_param("si", $data['USERNAME'], $data['USER_ID']);
+        // Check username using stored procedure
+        $stmt = $conn->prepare("CALL sp_check_username(?)");
+        $stmt->bind_param("s", $data['USERNAME']);
         $stmt->execute();
         $result = $stmt->get_result();
-        if ($result->fetch_row()[0] > 0) {
-            return ['success' => false, 'message' => 'Username already exists'];
+        if ($result->num_rows > 0) {
+            $user = $result->fetch_assoc();
+            if ($user['USER_ID'] != $data['USER_ID']) {
+                return ['success' => false, 'message' => 'Username already exists'];
+            }
         }
         
         // Convert user type
         $userType = strtoupper($data['USER_TYPE']);
         if ($userType === 'ADMIN') $userType = 'ADMINISTRATOR';
         
-        // Build update query
-        $sql = "UPDATE user SET 
-                USER_FNAME = ?, 
-                USER_LNAME = ?, 
-                USERNAME = ?, 
-                USER_TYPE = ?, 
-                IS_ACTIVE = ?";
+        $stmt = $conn->prepare("CALL sp_UpsertUser(?, ?, ?, ?, ?, ?, ?)");
+        $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
+        $password = !empty($data['PASSWORD']) ? 
+                   password_hash($data['PASSWORD'], PASSWORD_DEFAULT) : 
+                   '';
         
-        // Add password to update if provided
-        $params = [
+        $stmt->bind_param("isssssi", 
+            $data['USER_ID'],
             $data['USER_FNAME'],
             $data['USER_LNAME'],
             $data['USERNAME'],
+            $password,
             $userType,
-            isset($data['IS_ACTIVE']) ? 1 : 0
-        ];
-        $types = "ssssi";
-        
-        if (!empty($data['PASSWORD'])) {
-            $sql .= ", PASSWORD = ?";
-            $params[] = password_hash($data['PASSWORD'], PASSWORD_DEFAULT);
-            $types .= "s";
-        }
-        
-        $sql .= " WHERE USER_ID = ?";
-        $params[] = $data['USER_ID'];
-        $types .= "i";
-        
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param($types, ...$params);
+            $isActive
+        );
         
         if ($stmt->execute()) {
             return ['success' => true, 'message' => 'User updated successfully'];
@@ -123,38 +111,36 @@ function updateUserProfile($data) {
     try {
         $conn = getConnection();
         
-        // First verify the current password if attempting to change password
-        if (!empty($data['currentPassword'])) {
-            $stmt = $conn->prepare("SELECT PASSWORD FROM user WHERE USER_ID = ?");
-            $stmt->bind_param("i", $data['USER_ID']);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $user = $result->fetch_assoc();
-            
-            if (!password_verify($data['currentPassword'], $user['PASSWORD'])) {
-                return ['success' => false, 'message' => 'Current password is incorrect'];
-            }
+        // Get user info using stored procedure
+        $stmt = $conn->prepare("CALL sp_GetUsers()");
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $users = $result->fetch_all(MYSQLI_ASSOC);
+        $user = array_filter($users, function($u) use ($data) {
+            return $u['USER_ID'] == $data['USER_ID'];
+        });
+        $user = reset($user);
+        
+        if (!empty($data['currentPassword']) && 
+            !password_verify($data['currentPassword'], $user['PASSWORD'])) {
+            return ['success' => false, 'message' => 'Current password is incorrect'];
         }
         
-        // Build update query
-        $sql = "UPDATE user SET USER_FNAME = ?, USER_LNAME = ?";
-        $params = [$data['USER_FNAME'], $data['USER_LNAME']];
-        $types = "ss";
+        // Use sp_UpsertUser for profile update
+        $stmt = $conn->prepare("CALL sp_UpsertUser(?, ?, ?, ?, ?, ?, ?)");
+        $password = !empty($data['PASSWORD']) ? 
+                   password_hash($data['PASSWORD'], PASSWORD_DEFAULT) : 
+                   $user['PASSWORD'];
         
-        // Add password to update if provided
-        if (!empty($data['PASSWORD'])) {
-            $sql .= ", PASSWORD = ?";
-            $hashedPassword = password_hash($data['PASSWORD'], PASSWORD_DEFAULT);
-            $params[] = $hashedPassword;
-            $types .= "s";
-        }
-        
-        $sql .= " WHERE USER_ID = ?";
-        $params[] = $data['USER_ID'];
-        $types .= "i";
-        
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param($types, ...$params);
+        $stmt->bind_param("isssssi", 
+            $data['USER_ID'],
+            $data['USER_FNAME'],
+            $data['USER_LNAME'],
+            $user['USERNAME'],  // Keep existing username
+            $password,
+            $user['USER_TYPE'], // Keep existing user type
+            $user['IS_ACTIVE']  // Keep existing active status
+        );
         
         if ($stmt->execute()) {
             return ['success' => true, 'message' => 'Profile updated successfully'];
@@ -170,11 +156,13 @@ function updateUserProfile($data) {
 function getUserProfile($userId) {
     try {
         $conn = getConnection();
-        $stmt = $conn->prepare("SELECT USER_FNAME, USER_LNAME, USERNAME, USER_TYPE FROM user WHERE USER_ID = ?");
-        $stmt->bind_param("i", $userId);
+        $stmt = $conn->prepare("CALL sp_GetUsers()");
         $stmt->execute();
         $result = $stmt->get_result();
-        return $result->fetch_assoc();
+        $users = $result->fetch_all(MYSQLI_ASSOC);
+        return array_filter($users, function($user) use ($userId) {
+            return $user['USER_ID'] == $userId;
+        })[0] ?? false;
     } catch (Exception $e) {
         error_log("Error getting user profile: " . $e->getMessage());
         return false;

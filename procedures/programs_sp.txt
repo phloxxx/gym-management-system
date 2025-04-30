@@ -30,11 +30,25 @@ BEGIN
 END //
 
 -- Delete Program
-CREATE PROCEDURE sp_DeleteProgram(
-    IN p_program_id INT
-)
+DELIMITER //
+CREATE PROCEDURE `sp_DeleteProgram` (IN `p_program_id` INT)   
 BEGIN
-    DELETE FROM program WHERE PROGRAM_ID = p_program_id;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot delete program. It may be in use by members.';
+    END;
+    
+    START TRANSACTION;
+        -- First delete from program_coach
+        DELETE FROM program_coach 
+        WHERE PROGRAM_ID = p_program_id;
+        
+        -- Then delete the program
+        DELETE FROM program 
+        WHERE PROGRAM_ID = p_program_id;
+    COMMIT;
 END //
 
 DELIMITER ;

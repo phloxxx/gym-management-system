@@ -86,34 +86,18 @@ function editProgram($data) {
 function deleteProgram($id) {
     global $conn;
     try {
-        $conn->begin_transaction();
-
-        // First delete the program-coach relationships
-        $stmt = $conn->prepare("DELETE FROM program_coach WHERE PROGRAM_ID = ?");
+        $stmt = $conn->prepare("CALL sp_DeleteProgram(?)");
         if (!$stmt) {
-            throw new Exception("Prepare failed for program_coach: " . $conn->error);
-        }
-        $stmt->bind_param("i", $id);
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to delete program_coach relationships: " . $stmt->error);
-        }
-        $stmt->close();
-
-        // Then delete the program
-        $stmt = $conn->prepare("DELETE FROM program WHERE PROGRAM_ID = ?");
-        if (!$stmt) {
-            throw new Exception("Prepare failed for program: " . $conn->error);
+            throw new Exception("Prepare failed: " . $conn->error);
         }
         $stmt->bind_param("i", $id);
         if (!$stmt->execute()) {
             throw new Exception("Failed to delete program: " . $stmt->error);
         }
         $stmt->close();
-
-        $conn->commit();
+        
         return ['success' => true, 'message' => 'Program deleted successfully'];
     } catch (Exception $e) {
-        $conn->rollback();
         error_log("Error in deleteProgram: " . $e->getMessage());
         return ['success' => false, 'message' => 'Cannot delete program. It may be in use.'];
     }
@@ -172,71 +156,36 @@ function editCoach($data) {
     $conn->begin_transaction();
     
     try {
-        // First update the coach's basic information
-        $stmt = $conn->prepare("UPDATE coach SET 
-            COACH_FNAME = ?, 
-            COACH_LNAME = ?, 
-            EMAIL = ?, 
-            PHONE_NUMBER = ?, 
-            GENDER = ?,
-            IS_ACTIVE = ?
-            WHERE COACH_ID = ?");
-            
+        // Update coach's basic information using sp_EditCoach
+        $stmt = $conn->prepare("CALL sp_EditCoach(?, ?, ?, ?, ?, ?, ?)");
         $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
-        $stmt->bind_param("sssssii", 
+        $stmt->bind_param("isssssi", 
+            $data['COACH_ID'],
             $data['COACH_FNAME'], 
             $data['COACH_LNAME'], 
             $data['EMAIL'], 
             $data['PHONE_NUMBER'], 
             $data['GENDER'],
-            $isActive,
-            $data['COACH_ID']
+            $isActive
         );
         
         if (!$stmt->execute()) {
             throw new Exception("Error updating coach: " . $stmt->error);
         }
         $stmt->close();
+        $conn->next_result();
         
-        // Delete existing program assignments
-        $stmt = $conn->prepare("DELETE FROM program_coach WHERE COACH_ID = ?");
-        $stmt->bind_param("i", $data['COACH_ID']);
-        if (!$stmt->execute()) {
-            throw new Exception("Error removing old program assignments");
-        }
-        $stmt->close();
-        
-        // Add new program assignments
-        if (!empty($data['PROGRAM_ASSIGNMENTS'])) {
-            $assignments = json_decode($data['PROGRAM_ASSIGNMENTS'], true);
-            $stmt = $conn->prepare("INSERT INTO program_coach (COACH_ID, PROGRAM_ID) VALUES (?, ?)");
-            
-            foreach ($assignments as $programId) {
-                $stmt->bind_param("ii", $data['COACH_ID'], $programId);
-                if (!$stmt->execute()) {
-                    throw new Exception("Error adding program assignment");
-                }
+        // Update program assignments using sp_EditCoachPrograms
+        if (isset($data['PROGRAM_ASSIGNMENTS'])) {
+            // Convert JSON array to comma-separated string
+            $programIds = implode(',', json_decode($data['PROGRAM_ASSIGNMENTS']));
+            $stmt = $conn->prepare("CALL sp_EditCoachPrograms(?, ?)");
+            $stmt->bind_param("is", $data['COACH_ID'], $programIds);
+            if (!$stmt->execute()) {
+                throw new Exception("Error updating program assignments: " . $stmt->error);
             }
             $stmt->close();
-            
-            // Update coach's specialization
-            $programsStmt = $conn->prepare("SELECT GROUP_CONCAT(PROGRAM_NAME) as SPECIALIZATION 
-                                          FROM program WHERE PROGRAM_ID IN (" . implode(',', $assignments) . ")");
-            $programsStmt->execute();
-            $result = $programsStmt->get_result();
-            $specialization = $result->fetch_assoc()['SPECIALIZATION'];
-            $programsStmt->close();
-            
-            $updateSpecStmt = $conn->prepare("UPDATE coach SET SPECIALIZATION = ? WHERE COACH_ID = ?");
-            $updateSpecStmt->bind_param("si", $specialization, $data['COACH_ID']);
-            $updateSpecStmt->execute();
-            $updateSpecStmt->close();
-        } else {
-            // Clear specialization if no programs assigned
-            $updateSpecStmt = $conn->prepare("UPDATE coach SET SPECIALIZATION = NULL WHERE COACH_ID = ?");
-            $updateSpecStmt->bind_param("i", $data['COACH_ID']);
-            $updateSpecStmt->execute();
-            $updateSpecStmt->close();
+            $conn->next_result();
         }
         
         $conn->commit();

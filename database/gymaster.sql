@@ -150,9 +150,28 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_DeleteComorbidity` (IN `p_id` IN
     WHERE COMOR_ID = p_id;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_DeleteProgram` (IN `p_program_id` INT)   BEGIN
-    DELETE FROM program WHERE PROGRAM_ID = p_program_id;
+DROP PROCEDURE IF EXISTS `sp_DeleteProgram`;
+DELIMITER $$
+CREATE PROCEDURE `sp_DeleteProgram` (IN `p_program_id` INT)   
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot delete program. It may be in use by members.';
+    END;
+    
+    START TRANSACTION;
+        -- First delete from program_coach
+        DELETE FROM program_coach 
+        WHERE PROGRAM_ID = p_program_id;
+        
+        -- Then delete the program
+        DELETE FROM program 
+        WHERE PROGRAM_ID = p_program_id;
+    COMMIT;
 END$$
+DELIMITER ;
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_DeleteSubscription` (IN `p_sub_id` INT)   BEGIN
     DELETE FROM subscription WHERE SUB_ID = p_sub_id;
@@ -295,6 +314,41 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_UpsertUser` (IN `p_user_id` SMAL
     END IF;
 END$$
 
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_EditCoachPrograms` (
+    IN `p_coach_id` INT, 
+    IN `p_program_ids` TEXT
+)   
+BEGIN
+    -- Delete existing program assignments
+    DELETE FROM program_coach WHERE COACH_ID = p_coach_id;
+    
+    -- Insert new program assignments if any provided
+    IF p_program_ids IS NOT NULL AND p_program_ids != '' THEN
+        SET @sql = CONCAT('INSERT INTO program_coach (COACH_ID, PROGRAM_ID) 
+                          SELECT ', p_coach_id, ', PROGRAM_ID 
+                          FROM program 
+                          WHERE PROGRAM_ID IN (', p_program_ids, ')');
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+        
+        -- Update coach's specialization
+        UPDATE coach c
+        SET c.SPECIALIZATION = (
+            SELECT GROUP_CONCAT(p.PROGRAM_NAME)
+            FROM program p
+            WHERE p.PROGRAM_ID IN (
+                SELECT pc.PROGRAM_ID 
+                FROM program_coach pc 
+                WHERE pc.COACH_ID = p_coach_id
+            )
+        )
+        WHERE c.COACH_ID = p_coach_id;
+    ELSE
+        -- Clear specialization if no programs assigned
+        UPDATE coach SET SPECIALIZATION = NULL WHERE COACH_ID = p_coach_id;
+    END IF;
+END$$
 DELIMITER ;
 
 -- --------------------------------------------------------
