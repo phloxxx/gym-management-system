@@ -18,8 +18,9 @@ function deactivateSubscription($memberId, $subId) {
         
         // Update the subscription status in member_subscription table
         $updateSql = "UPDATE member_subscription 
-                      SET IS_ACTIVE = 0 
-                      WHERE MEMBER_ID = ? AND SUB_ID = ?";
+                      SET IS_ACTIVE = 0,
+                          MODIFIED_DATE = CURRENT_DATE() 
+                      WHERE MEMBER_ID = ? AND SUB_ID = ? AND IS_ACTIVE = 1";
         
         $stmt = $conn->prepare($updateSql);
         $stmt->bind_param("ii", $memberId, $subId);
@@ -30,22 +31,29 @@ function deactivateSubscription($memberId, $subId) {
                 $success = true;
                 
                 // Log the deactivation in transaction_log table
-                $logSql = "INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, MODIFIEDDATE) 
-                           SELECT t.TRANSACTION_ID, 'DEACTIVATED', CURRENT_DATE()
+                $logSql = "INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, DESCRIPTION, MODIFIEDDATE) 
+                           SELECT 
+                               t.TRANSACTION_ID, 
+                               'DEACTIVATED', 
+                               CONCAT('Subscription ID: ', ?, ' deactivated for Member ID: ', ?),
+                               CURRENT_DATE()
                            FROM transaction t
                            WHERE t.MEMBER_ID = ? AND t.SUB_ID = ?
                            ORDER BY t.TRANSACTION_ID DESC
                            LIMIT 1";
                            
                 $logStmt = $conn->prepare($logSql);
-                $logStmt->bind_param("ii", $memberId, $subId);
+                $logStmt->bind_param("iiii", $subId, $memberId, $memberId, $subId);
                 $logStmt->execute();
+                
+                // Log this action to system logs
+                error_log("Subscription deactivated: Member ID $memberId, Subscription ID $subId");
             } else {
                 // No subscription found or it was already inactive
-                throw new Exception("No active subscription found for this member");
+                error_log("No active subscription found for Member ID $memberId, Subscription ID $subId");
             }
         } else {
-            throw new Exception("Failed to execute database query");
+            throw new Exception("Failed to execute database query: " . $stmt->error);
         }
         
         // Commit transaction if everything is successful
@@ -54,7 +62,8 @@ function deactivateSubscription($memberId, $subId) {
     } catch (Exception $e) {
         // Roll back transaction on error
         $conn->rollback();
-        throw new Exception("Failed to deactivate subscription: " . $e->getMessage());
+        error_log("Failed to deactivate subscription: " . $e->getMessage());
+        throw $e;
     } finally {
         // Close connection
         if ($conn) {

@@ -3685,16 +3685,10 @@ function updateRowAfterDeactivation(row) {
         daysLeftEl.textContent = 'Subscription inactive';
     }
     
-    // Replace deactivate button with "Deactivated" text or hide it
+    // Remove the deactivate button completely
     const deactivateButton = row.querySelector('[data-action="deactivate"]');
     if (deactivateButton) {
-        const actionsCell = deactivateButton.closest('td');
-        const deactivatedSpan = document.createElement('span');
-        deactivatedSpan.className = 'text-gray-500 text-xs';
-        deactivatedSpan.innerHTML = '<i class="fas fa-ban mr-1"></i> Deactivated';
-        
-        // Replace the button with the span
-        deactivateButton.replaceWith(deactivatedSpan);
+        deactivateButton.remove(); // Completely remove the button
     }
     
     // If there's a renew button, make it more prominent
@@ -3780,6 +3774,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     }
 });
+</script>
+<script>
+// ...existing code...
+
+// Function to update the row UI after deactivation
+function updateRowAfterDeactivation(row) {
+    // Update the status badge to "Inactive"
+    const statusCell = row.querySelector('td:nth-child(6) span');
+    if (statusCell) {
+        statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+        statusCell.textContent = 'Inactive';
+    }
+    
+    // Update days left text if exists
+    const daysLeftEl = row.querySelector('.days-left');
+    if (daysLeftEl) {
+        daysLeftEl.textContent = 'Subscription inactive';
+    }
+    
+    // IMPORTANT: Completely remove the deactivate button directly from DOM
+    const actionsContainer = row.querySelector('td:nth-child(7) .flex');
+    if (actionsContainer) {
+        const deactivateButton = actionsContainer.querySelector('[data-action="deactivate"]');
+        if (deactivateButton) {
+            deactivateButton.parentNode.removeChild(deactivateButton);
+        }
+    }
+    
+    // Add a subtle background to indicate inactive status
+    row.classList.add('bg-gray-50');
+}
+
+// ...existing code...
 </script>
 </body>
 </html>

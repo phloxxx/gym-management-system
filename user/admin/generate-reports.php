@@ -693,7 +693,7 @@ try {
             // Function to handle generating reports
             function generateReport() {
                 // Show loading indicator, hide results and no-results sections
-                document.getElementById('reportResults').classList.add('hidden');
+                document.getElementById('reportResults').classList.add('hidden', 'opacity-0');
                 document.getElementById('noReportResults').classList.add('hidden');
                 document.getElementById('loadingReport').classList.remove('hidden');
 
@@ -727,27 +727,49 @@ try {
                         currentReportData = data.data;
                         currentPage = 1;
                         
-                        // Update the UI with the report data
-                        updateReportUI(data);
-                        
-                        // Show the report section
+                        // Hide loading indicator
                         document.getElementById('loadingReport').classList.add('hidden');
+                        
+                        // Check if we have any data
                         if (currentReportData.length === 0) {
-                            document.getElementById('noReportResults').classList.remove('hidden');
+                            // Show the no results message with custom text for date range
+                            const noResultsElement = document.getElementById('noReportResults');
+                            const noResultsTitle = noResultsElement.querySelector('h3');
+                            const noResultsText = noResultsElement.querySelector('p');
+                            
+                            noResultsTitle.textContent = 'No Data Found';
+                            noResultsText.textContent = `No ${reportType} data found for the selected date range (${formatDate(startDate)} - ${formatDate(endDate)}). Try adjusting your filters or selecting a different date range.`;
+                            
+                            noResultsElement.classList.remove('hidden');
                             document.getElementById('reportResults').classList.add('hidden');
                         } else {
+                            // Update the UI with the report data
+                            updateReportUI(data);
+                            
+                            // Show the report section
                             document.getElementById('noReportResults').classList.add('hidden');
                             document.getElementById('reportResults').classList.remove('hidden');
-                            document.getElementById('reportResults').classList.add('opacity-100');
+                            setTimeout(() => {
+                                document.getElementById('reportResults').classList.add('opacity-100');
+                            }, 10);
+                            
+                            // Show success notification
+                            showSuccessNotification('Report generated successfully');
                         }
-
-                        // Show success notification
-                        showSuccessNotification('Report generated successfully');
                     })
                     .catch(error => {
                         console.error('Error generating report:', error);
                         document.getElementById('loadingReport').classList.add('hidden');
-                        document.getElementById('noReportResults').classList.remove('hidden');
+                        
+                        // Show error in the no results element
+                        const noResultsElement = document.getElementById('noReportResults');
+                        const noResultsTitle = noResultsElement.querySelector('h3');
+                        const noResultsText = noResultsElement.querySelector('p');
+                        
+                        noResultsTitle.textContent = 'Error Generating Report';
+                        noResultsText.textContent = `An error occurred: ${error.message}. Please try again or contact support if the problem persists.`;
+                        
+                        noResultsElement.classList.remove('hidden');
                         document.getElementById('reportResults').classList.add('hidden');
                         
                         // Show error notification
@@ -847,7 +869,7 @@ try {
                     const cell = document.createElement('td');
                     cell.colSpan = columns.length;
                     cell.className = 'px-6 py-4 whitespace-nowrap text-center text-gray-500';
-                    cell.textContent = 'No data available for the selected filters';
+                    cell.textContent = `No data available for the selected date range (${formatDate(document.getElementById('startDate').value)} - ${formatDate(document.getElementById('endDate').value)})`;
                     emptyRow.appendChild(cell);
                     tableBody.appendChild(emptyRow);
                 } else {
@@ -990,34 +1012,34 @@ try {
                 const startDateInput = document.getElementById('startDate');
                 const endDateInput = document.getElementById('endDate');
                 
-                const today = new Date();
-                let startDate;
-                
-                switch (dateRange) {
-                    case 'last7days':
-                        startDate = new Date(today);
-                        startDate.setDate(today.getDate() - 7);
-                        break;
-                    case 'last30days':
-                        startDate = new Date(today);
-                        startDate.setDate(today.getDate() - 30);
-                        break;
-                    case 'lastYear':
-                        startDate = new Date(today);
-                        startDate.setFullYear(today.getFullYear() - 1);
-                        break;
-                    case 'custom':
-                        // Do nothing, keep existing dates
-                        return;
+                // Only update the date values if not "custom" range
+                if (dateRange !== 'custom') {
+                    const today = new Date();
+                    let startDate;
+                    
+                    switch (dateRange) {
+                        case 'last7days':
+                            startDate = new Date(today);
+                            startDate.setDate(today.getDate() - 7);
+                            break;
+                        case 'last30days':
+                            startDate = new Date(today);
+                            startDate.setDate(today.getDate() - 30);
+                            break;
+                        case 'lastYear':
+                            startDate = new Date(today);
+                            startDate.setFullYear(today.getFullYear() - 1);
+                            break;
+                    }
+                    
+                    startDateInput.value = formatDateForApi(startDate);
+                    endDateInput.value = formatDateForApi(today);
                 }
                 
-                startDateInput.value = formatDateForApi(startDate);
-                endDateInput.value = formatDateForApi(today);
-
-                // Enable/disable date inputs based on selection
-                const isCustomRange = dateRange === 'custom';
-                startDateInput.disabled = !isCustomRange;
-                endDateInput.disabled = !isCustomRange;
+                // Always ensure date inputs are enabled regardless of selection
+                // This allows admin to manually adjust dates after selecting a preset range
+                startDateInput.disabled = false;
+                endDateInput.disabled = false;
             }
 
             // Export to Excel
