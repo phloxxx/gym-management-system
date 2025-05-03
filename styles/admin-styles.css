@@ -668,3 +668,113 @@ body {
     transform: translateY(-3px);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
+
+/* Custom scrollbar styling for modals and content areas */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #c5c5c5;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+}
+
+/* Member autocomplete dropdown styling */
+.member-autocomplete-container {
+    position: relative;
+}
+
+.member-autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0 0 0.5rem 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 50;
+}
+
+.member-autocomplete-item {
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.member-autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.member-autocomplete-item:hover {
+    background-color: #f9fafb;
+}
+
+.member-autocomplete-item.selected {
+    background-color: rgba(92, 108, 144, 0.1);
+}
+
+.member-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    background-color: var(--primary-light);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.member-info-main {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.member-info-secondary {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+/* Transaction result highlighting */
+.search-highlight {
+    background-color: rgba(253, 224, 71, 0.3);
+    padding: 0.1em 0;
+    border-radius: 0.2em;
+}
+
+/* Custom scrollbar styling for modals */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #c5c5c5;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+}
