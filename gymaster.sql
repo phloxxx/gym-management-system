@@ -259,7 +259,8 @@ CREATE TABLE `user` (
 --
 
 INSERT INTO `user` (`USER_ID`, `USER_FNAME`, `USER_LNAME`, `USERNAME`, `PASSWORD`, `USER_TYPE`, `IS_ACTIVE`) VALUES
-(1, 'Admin', 'User', 'admin', 'admin123', 'ADMINISTRATOR', 1);
+(1, 'Admin', 'User', 'admin', 'admin123', 'ADMINISTRATOR', 1),
+(2, 'Staff', 'User', 'staff', 'staff123', 'STAFF', 1);
 
 --
 -- Indexes for dumped tables
@@ -405,7 +406,7 @@ ALTER TABLE `transaction_log`
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `USER_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `USER_ID` smallint(6) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables
@@ -446,6 +447,14 @@ ALTER TABLE `transaction`
   ADD CONSTRAINT `transaction_ibfk_1` FOREIGN KEY (`MEMBER_ID`) REFERENCES `member` (`MEMBER_ID`),
   ADD CONSTRAINT `transaction_ibfk_2` FOREIGN KEY (`SUB_ID`) REFERENCES `subscription` (`SUB_ID`),
   ADD CONSTRAINT `transaction_ibfk_3` FOREIGN KEY (`PAYMENT_ID`) REFERENCES `payment` (`PAYMENT_ID`);
+
+--
+-- Add TRANSAC_TYPE column to transaction table
+--
+
+ALTER TABLE `transaction` 
+ADD COLUMN `TRANSAC_TYPE` enum('NEW','RENEWAL','UPGRADE','DOWNGRADE') DEFAULT 'NEW' AFTER `PAYMENT_ID`;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

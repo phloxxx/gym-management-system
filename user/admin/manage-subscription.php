@@ -218,6 +218,9 @@
                                         <button class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="1">
                                             <i class="fas fa-edit text-lg"></i>
                                         </button>
+                                        <button class="status-toggle-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200 text-red-600 hover:text-red-800" data-id="1" data-active="1">
+                                            <i class="fas fa-toggle-on text-lg"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -252,6 +255,9 @@
                                         <button class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="2">
                                             <i class="fas fa-edit text-lg"></i>
                                         </button>
+                                        <button class="status-toggle-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200 text-red-600 hover:text-red-800" data-id="2" data-active="1">
+                                            <i class="fas fa-toggle-on text-lg"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -285,6 +291,9 @@
                                     <div class="flex space-x-2 justify-center">
                                         <button class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="5">
                                             <i class="fas fa-edit text-lg"></i>
+                                        </button>
+                                        <button class="status-toggle-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200 text-green-600 hover:text-green-800" data-id="5" data-active="0">
+                                            <i class="fas fa-toggle-off text-lg"></i>
                                         </button>
                                     </div>
                                 </td>
@@ -875,6 +884,22 @@
                     statusElement.classList.add('bg-red-100', 'text-red-800');
                 }
                 
+                // If status changed, update toggle button
+                const toggleButton = row.querySelector('.status-toggle-button');
+                if (toggleButton) {
+                    toggleButton.setAttribute('data-active', subscription.IS_ACTIVE ? '1' : '0');
+                    
+                    if (subscription.IS_ACTIVE) {
+                        toggleButton.innerHTML = '<i class="fas fa-toggle-on text-lg"></i>';
+                        toggleButton.classList.remove('text-green-600', 'hover:text-green-800');
+                        toggleButton.classList.add('text-red-600', 'hover:text-red-800');
+                    } else {
+                        toggleButton.innerHTML = '<i class="fas fa-toggle-off text-lg"></i>';
+                        toggleButton.classList.remove('text-red-600', 'hover:text-red-800');
+                        toggleButton.classList.add('text-green-600', 'hover:text-green-800');
+                    }
+                }
+                
                 // If status changed to inactive, make the row text gray
                 if (!subscription.IS_ACTIVE) {
                     titleElement.classList.add('text-gray-500');
@@ -926,6 +951,9 @@
                             <button class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${subscription.SUB_ID}">
                                 <i class="fas fa-edit text-lg"></i>
                             </button>
+                            <button class="status-toggle-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200 ${subscription.IS_ACTIVE ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'}" data-id="${subscription.SUB_ID}" data-active="${subscription.IS_ACTIVE}">
+                                <i class="fas fa-toggle-${subscription.IS_ACTIVE ? 'on' : 'off'} text-lg"></i>
+                            </button>
                         </div>
                     </td>
                 `;
@@ -933,11 +961,16 @@
                 // Add the new row to the table
                 tbody.insertBefore(newRow, tbody.firstChild);
                 
-                // Add event listener to the edit button
+                // Add event listeners to the buttons
                 const editButton = newRow.querySelector('.edit-button');
                 editButton.addEventListener('click', function() {
                     const id = this.getAttribute('data-id');
                     editSubscription(id);
+                });
+                
+                const toggleButton = newRow.querySelector('.status-toggle-button');
+                toggleButton.addEventListener('click', function() {
+                    toggleSubscriptionStatus(this);
                 });
                 
                 // Make sure the table is visible and empty state is hidden
@@ -1075,22 +1108,47 @@
                         
                         // Set up confirm button
                         document.getElementById('confirmDelete').onclick = function() {
-                            // Update status display
-                            statusSpan.classList.remove('bg-green-100', 'text-green-800');
-                            statusSpan.classList.add('bg-red-100', 'text-red-800');
-                            statusSpan.textContent = 'Inactive';
+                            // Get subscription ID from edit button data-id attribute
+                            const subscriptionId = planElement.querySelector('.edit-button').getAttribute('data-id');
                             
-                            // Update toggle button
-                            button.innerHTML = '<i class="fas fa-toggle-off"></i>';
-                            button.classList.remove('text-red-600', 'hover:text-red-800');
-                            button.classList.add('text-green-600', 'hover:text-green-800');
-                            button.setAttribute('data-tooltip', 'Activate');
-                            
-                            // Add opacity to card
-                            planElement.classList.add('opacity-70');
-                            
-                            // Show confirmation toast
-                            showToast(`${planName} has been deactivated`, true);
+                            // Make AJAX request to update subscription status in database
+                            fetch('../../api/subscriptions/update-status.php', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    SUB_ID: subscriptionId,
+                                    IS_ACTIVE: 0
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    // Update status display
+                                    statusSpan.classList.remove('bg-green-100', 'text-green-800');
+                                    statusSpan.classList.add('bg-red-100', 'text-red-800');
+                                    statusSpan.textContent = 'Inactive';
+                                    
+                                    // Update toggle button
+                                    button.innerHTML = '<i class="fas fa-toggle-off"></i>';
+                                    button.classList.remove('text-red-600', 'hover:text-red-800');
+                                    button.classList.add('text-green-600', 'hover:text-green-800');
+                                    button.setAttribute('data-tooltip', 'Activate');
+                                    
+                                    // Add opacity to card
+                                    planElement.classList.add('opacity-70');
+                                    
+                                    // Show confirmation toast
+                                    showToast(`${planName} has been deactivated`, true);
+                                } else {
+                                    showToast('Error updating subscription status', false);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                showToast('Error updating subscription status', false);
+                            });
                             
                             // Hide modal
                             hideModal(deleteDialog);
@@ -1101,22 +1159,47 @@
                             hideModal(deleteDialog);
                         };
                     } else {
-                        // Activate without confirmation
-                        statusSpan.classList.remove('bg-red-100', 'text-red-800');
-                        statusSpan.classList.add('bg-green-100', 'text-green-800');
-                        statusSpan.textContent = 'Active';
+                        // Get subscription ID from edit button data-id attribute
+                        const subscriptionId = planElement.querySelector('.edit-button').getAttribute('data-id');
                         
-                        // Update toggle button
-                        button.innerHTML = '<i class="fas fa-toggle-on"></i>';
-                        button.classList.remove('text-green-600', 'hover:text-green-800');
-                        button.classList.add('text-red-600', 'hover:text-red-800');
-                        button.setAttribute('data-tooltip', 'Deactivate');
-                        
-                        // Remove opacity from card
-                        planElement.classList.remove('opacity-70');
-                        
-                        // Show confirmation toast
-                        showToast(`${planName} has been activated`, true);
+                        // Make AJAX request to update subscription status in database
+                        fetch('../../api/subscriptions/update-status.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                SUB_ID: subscriptionId,
+                                IS_ACTIVE: 1
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                // Update status display
+                                statusSpan.classList.remove('bg-red-100', 'text-red-800');
+                                statusSpan.classList.add('bg-green-100', 'text-green-800');
+                                statusSpan.textContent = 'Active';
+                                
+                                // Update toggle button
+                                button.innerHTML = '<i class="fas fa-toggle-on"></i>';
+                                button.classList.remove('text-green-600', 'hover:text-green-800');
+                                button.classList.add('text-red-600', 'hover:text-red-800');
+                                button.setAttribute('data-tooltip', 'Deactivate');
+                                
+                                // Remove opacity from card
+                                planElement.classList.remove('opacity-70');
+                                
+                                // Show confirmation toast
+                                showToast(`${planName} has been activated`, true);
+                            } else {
+                                showToast('Error updating subscription status', false);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showToast('Error updating subscription status', false);
+                        });
                     }
                 });
             });
@@ -1200,6 +1283,116 @@
                 
                 // Auto hide after 5 seconds
                 setTimeout(hideToast, 5000);
+            }
+
+            // Initialize status toggle buttons
+            document.addEventListener('DOMContentLoaded', function() {
+                const toggleButtons = document.querySelectorAll('.status-toggle-button');
+                toggleButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        toggleSubscriptionStatus(this);
+                    });
+                });
+            });
+            
+            // Function to toggle subscription status
+            function toggleSubscriptionStatus(button) {
+                const subscriptionId = button.getAttribute('data-id');
+                const isActive = button.getAttribute('data-active') === '1';
+                const row = button.closest('tr');
+                const planName = row.querySelector('td:first-child .text-sm.font-medium').textContent;
+                
+                if (isActive) {
+                    // Show confirmation dialog before deactivating
+                    const deleteDialog = document.getElementById('deleteConfirmDialog');
+                    showModal(deleteDialog);
+                    deleteDialog.querySelector('h3').textContent = `Deactivate ${planName}`;
+                    
+                    // Set up confirm button
+                    document.getElementById('confirmDelete').onclick = function() {
+                        updateSubscriptionStatus(subscriptionId, 0, row, button);
+                        hideModal(deleteDialog);
+                    };
+                    
+                    // Set up cancel button
+                    document.getElementById('cancelDelete').onclick = function() {
+                        hideModal(deleteDialog);
+                    };
+                } else {
+                    // For activation, no confirmation needed
+                    updateSubscriptionStatus(subscriptionId, 1, row, button);
+                }
+            }
+            
+            // Function to update subscription status via API
+            function updateSubscriptionStatus(subscriptionId, newStatus, row, button) {
+                const planName = row.querySelector('td:first-child .text-sm.font-medium').textContent;
+                const statusElement = row.querySelector('td:nth-child(4) span');
+                const iconElement = row.querySelector('td:first-child .flex-shrink-0');
+                const titleElement = row.querySelector('td:first-child .text-sm.font-medium');
+                const priceElement = row.querySelector('td:nth-child(3) div');
+                
+                // Make AJAX request to update subscription status in database
+                fetch('../../api/subscriptions/update-status.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        SUB_ID: subscriptionId,
+                        IS_ACTIVE: newStatus
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (newStatus === 1) {
+                            // Activate
+                            statusElement.textContent = 'Active';
+                            statusElement.classList.remove('bg-red-100', 'text-red-800');
+                            statusElement.classList.add('bg-green-100', 'text-green-800');
+                            button.innerHTML = '<i class="fas fa-toggle-on text-lg"></i>';
+                            button.classList.remove('text-green-600', 'hover:text-green-800');
+                            button.classList.add('text-red-600', 'hover:text-red-800');
+                            button.setAttribute('data-active', '1');
+                            
+                            // Update styling
+                            iconElement.classList.remove('bg-gray-400');
+                            iconElement.classList.add('bg-primary-light');
+                            titleElement.classList.remove('text-gray-500');
+                            titleElement.classList.add('text-gray-900');
+                            priceElement.classList.remove('text-gray-500');
+                            priceElement.classList.add('text-gray-900');
+                            
+                            showToast(`${planName} has been activated`, true);
+                        } else {
+                            // Deactivate
+                            statusElement.textContent = 'Inactive';
+                            statusElement.classList.remove('bg-green-100', 'text-green-800');
+                            statusElement.classList.add('bg-red-100', 'text-red-800');
+                            button.innerHTML = '<i class="fas fa-toggle-off text-lg"></i>';
+                            button.classList.remove('text-red-600', 'hover:text-red-800');
+                            button.classList.add('text-green-600', 'hover:text-green-800');
+                            button.setAttribute('data-active', '0');
+                            
+                            // Update styling
+                            iconElement.classList.remove('bg-primary-light');
+                            iconElement.classList.add('bg-gray-400');
+                            titleElement.classList.remove('text-gray-900');
+                            titleElement.classList.add('text-gray-500');
+                            priceElement.classList.remove('text-gray-900');
+                            priceElement.classList.add('text-gray-500');
+                            
+                            showToast(`${planName} has been deactivated`, true);
+                        }
+                    } else {
+                        showToast('Error updating subscription status', false);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error updating subscription status', false);
+                });
             }
         });
     </script>

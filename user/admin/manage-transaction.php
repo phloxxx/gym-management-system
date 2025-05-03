@@ -1,3 +1,14 @@
+<?php
+require_once '../../config/db_connection.php';
+require_once '../../functions/transaction-functions.php';
+
+// Get initial data for dropdowns and summary
+$programs = getPrograms();
+$subscriptionPlans = getSubscriptionPlans();
+$paymentMethods = getPaymentMethods();
+$transactionSummary = getTransactionSummary();
+$activeSubscriptions = getActiveSubscriptions();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -150,25 +161,29 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow duration-300">
                     <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Total Transactions</h3>
-                    <p class="text-3xl font-bold text-gray-800" id="totalTransactions">0</p>
+                    <p class="text-3xl font-bold text-gray-800" id="totalTransactions"><?php echo $transactionSummary['total']; ?></p>
                     <div class="flex items-center mt-2">
-                        <span class="text-green-600 text-sm mr-1" id="transactionGrowth">+0%</span>
+                        <span class="text-<?php echo $transactionSummary['growth']['transactions'] >= 0 ? 'green' : 'red'; ?>-600 text-sm mr-1">
+                            <?php echo ($transactionSummary['growth']['transactions'] >= 0 ? '+' : '') . $transactionSummary['growth']['transactions']; ?>%
+                        </span>
                         <span class="text-gray-500 text-sm">vs previous period</span>
                     </div>
                 </div>
                 
                 <div class="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow duration-300">
                     <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Total Revenue</h3>
-                    <p class="text-3xl font-bold text-gray-800" id="totalRevenue">$0.00</p>
+                    <p class="text-3xl font-bold text-gray-800" id="totalRevenue">$<?php echo number_format($transactionSummary['revenue'], 2); ?></p>
                     <div class="flex items-center mt-2">
-                        <span class="text-green-600 text-sm mr-1" id="revenueGrowth">+0%</span>
+                        <span class="text-<?php echo $transactionSummary['growth']['revenue'] >= 0 ? 'green' : 'red'; ?>-600 text-sm mr-1">
+                            <?php echo ($transactionSummary['growth']['revenue'] >= 0 ? '+' : '') . $transactionSummary['growth']['revenue']; ?>%
+                        </span>
                         <span class="text-gray-500 text-sm">vs previous period</span>
                     </div>
                 </div>
                 
                 <div class="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow duration-300">
                     <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Recent Transactions</h3>
-                    <p class="text-3xl font-bold text-gray-800" id="recentTransactions">0</p>
+                    <p class="text-3xl font-bold text-gray-800" id="recentTransactions"><?php echo $transactionSummary['recent']; ?></p>
                     <div class="flex items-center mt-2">
                         <span class="text-green-600 text-sm mr-1">+0%</span>
                         <span class="text-gray-500 text-sm">vs previous period</span>
@@ -224,10 +239,28 @@
                             </div>
                             <select id="subFilter" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
                                 <option value="all">All Subscriptions</option>
-                                <option value="1">Monthly</option>
-                                <option value="2">Quarterly</option>
-                                <option value="3">Annually</option>
-                                <option value="4">Trial</option>
+                                <?php 
+                                // Modify this query to only fetch active subscriptions
+                                $subscriptionPlans = []; 
+                                try {
+                                    // Include database connection
+                                    include '../../includes/db_connection.php';
+                                    
+                                    // Query to get active subscription plans
+                                    $stmt = $conn->prepare("SELECT SUB_ID, SUB_NAME FROM subscription WHERE IS_ACTIVE = 1");
+                                    $stmt->execute();
+                                    $subscriptionPlans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                } catch(PDOException $e) {
+                                    // Log error (don't show to users)
+                                    error_log("Database error: " . $e->getMessage());
+                                    // Set empty array if error occurs
+                                    $subscriptionPlans = [];
+                                }
+                                
+                                foreach ($subscriptionPlans as $sub): 
+                                ?>
+                                <option value="<?php echo $sub['SUB_ID']; ?>"><?php echo htmlspecialchars($sub['SUB_NAME']); ?></option>
+                                <?php endforeach; ?>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
                                 <i class="fas fa-chevron-down text-xs"></i>
@@ -244,12 +277,9 @@
                             </div>
                             <select id="programFilter" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
                                 <option value="all">All Programs</option>
-                                <option value="1">Weight Loss</option>
-                                <option value="2">Muscle Building</option>
-                                <option value="3">Cardio Fitness</option>
-                                <option value="4">Yoga & Flexibility</option>
-                                <option value="5">Strength Training</option>
-                                <option value="6">Personal Training</option>
+                                <?php foreach ($programs as $program): ?>
+                                <option value="<?php echo $program['PROGRAM_ID']; ?>"><?php echo htmlspecialchars($program['PROGRAM_NAME']); ?></option>
+                                <?php endforeach; ?>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
                                 <i class="fas fa-chevron-down text-xs"></i>
@@ -268,7 +298,13 @@
                                 <i class="fas fa-user"></i>
                             </div>
                             <input type="text" id="memberSearch" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" placeholder="Search by name or email">
+                            <!-- Add dropdown container for search results -->
+                            <div id="filterMemberResults" class="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto max-h-60 focus:outline-none sm:text-sm hidden">
+                                <!-- Search results will appear here -->
+                            </div>
                         </div>
+                        <!-- Hidden field to store selected member ID -->
+                        <input type="hidden" id="selectedFilterMemberId" value="">
                     </div>
 
                     <!-- Action Buttons - Moved to right side -->
@@ -320,104 +356,108 @@
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Date</th>
-                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th scope="col" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200" id="subscriptionStatusBody">
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center">
-                                            <div class="h-8 w-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs">JD</div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-medium text-gray-900">John Doe</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">Monthly Membership</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">Dec 1, 2023</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">Dec 31, 2023</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">Nov 30, 2023</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        <button class="text-red-600 hover:text-red-800 transition-colors" title="Deactivate subscription" data-sub-id="1001" data-action="deactivate">
-                                            <i class="fas fa-toggle-off"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center">
-                                            <div class="h-8 w-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs">JS</div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-medium text-gray-900">Jane Smith</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">Quarterly Membership</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">Oct 15, 2023</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">Jan 15, 2024</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">Oct 15, 2023</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Expiring Soon</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        <button class="text-red-600 hover:text-red-800 transition-colors" title="Deactivate subscription" data-sub-id="1002" data-action="deactivate">
-                                            <i class="fas fa-toggle-off"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <!-- Example of an inactive subscription -->
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center">
-                                            <div class="h-8 w-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs">RJ</div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-medium text-gray-900">Robert Johnson</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">Annual Membership</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">Jan 10, 2023</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">Dec 10, 2023</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">Jan 5, 2023</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Inactive</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        <button class="text-green-600 hover:text-green-800 transition-colors" title="Renew subscription" data-sub-id="1003" data-action="renew">
-                                            <i class="fas fa-sync-alt"></i>
-                                        </button>
-                                    </td>
-                                </tr>
+                                <?php if (empty($activeSubscriptions)): ?>
+                                    <tr>
+                                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                                            No active subscriptions found
+                                        </td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($activeSubscriptions as $sub): ?>
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="h-8 w-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs">
+                                                        <?php echo strtoupper(substr($sub['MEMBER_FNAME'], 0, 1) . substr($sub['MEMBER_LNAME'], 0, 1)); ?>
+                                                    </div>
+                                                    <div class="ml-3">
+                                                        <div class="text-sm font-medium text-gray-900">
+                                                            <?php echo htmlspecialchars($sub['MEMBER_FNAME'] . ' ' . $sub['MEMBER_LNAME']); ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="text-sm text-gray-900"><?php echo htmlspecialchars($sub['SUB_NAME']); ?></div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="text-sm text-gray-900"><?php echo date('M j, Y', strtotime($sub['START_DATE'])); ?></div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="text-sm text-gray-900"><?php echo date('M j, Y', strtotime($sub['END_DATE'])); ?></div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="text-sm text-gray-900"><?php echo $sub['PAID_DATE'] ? date('M j, Y', strtotime($sub['PAID_DATE'])) : '-'; ?></div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <?php
+                                                $today = new DateTime();
+                                                $endDate = new DateTime($sub['END_DATE']);
+                                                $daysLeft = $today->diff($endDate)->days;
+                                                $status = '';
+                                                $statusClass = '';
+                                                
+                                                if (!$sub['IS_ACTIVE']) {
+                                                    $status = 'Inactive';
+                                                    $statusClass = 'bg-red-100 text-red-800';
+                                                } elseif ($endDate < $today) {
+                                                    $status = 'Expired';
+                                                    $statusClass = 'bg-red-100 text-red-800';
+                                                } elseif ($daysLeft <= 7) {
+                                                    $status = 'Expiring Soon';
+                                                    $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                } else {
+                                                    $status = 'Active';
+                                                    $statusClass = 'bg-green-100 text-green-800';
+                                                }
+                                                ?>
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $statusClass; ?>">
+                                                    <?php echo $status; ?>
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                                <?php if ($sub['IS_ACTIVE']): ?>
+                                                    <button class="text-red-600 hover:text-red-800 transition-colors" 
+                                                            title="Deactivate subscription" 
+                                                            data-sub-id="<?php echo $sub['MEMBER_ID']; ?>" 
+                                                            data-action="deactivate">
+                                                        <i class="fas fa-toggle-off"></i>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button class="text-green-600 hover:text-green-800 transition-colors" 
+                                                            title="Renew subscription" 
+                                                            data-sub-id="<?php echo $sub['MEMBER_ID']; ?>" 
+                                                            data-action="renew">
+                                                        <i class="fas fa-sync-alt"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </tbody>
                         </table>
+                    </div>
+                    
+                    <!-- Loading state for subscription table -->
+                    <div id="subscriptionLoadingState" class="py-8 text-center hidden">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-light"></div>
+                        <p class="mt-2 text-gray-600">Loading subscriptions...</p>
+                    </div>
+                    
+                    <!-- Empty state for when no subscriptions match filters -->
+                    <div id="subscriptionEmptyState" class="py-8 text-center hidden">
+                        <i class="fas fa-filter text-gray-300 text-5xl mb-3"></i>
+                        <h3 class="text-lg font-medium text-gray-600">No subscriptions match your filters</h3>
+                        <p class="text-gray-500 mb-4">Try adjusting your filter criteria or reset filters.</p>
+                        <button id="emptyStateResetBtn" class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors">
+                            <i class="fas fa-sync-alt mr-2"></i> Reset Filters
+                        </button>
                     </div>
                 </div>
             </div>
@@ -460,7 +500,7 @@
                         <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
                     </div>
 
-                    <!-- Member Select -->
+                    <!-- Member Search -->
                     <div>
                         <label for="memberSearch" class="block text-sm font-medium text-gray-700 mb-1">Member Search</label>
                         <div class="relative rounded-md shadow-sm">
@@ -507,9 +547,13 @@
                             </div>
                             <select id="subscriptionSelect" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
                                 <option value="">Select Subscription</option>
-                                <option value="1" data-duration="1 Month" data-price="49.99">Monthly Membership ($49.99)</option>
-                                <option value="2" data-duration="3 Months" data-price="129.99">Quarterly Membership ($129.99)</option>
-                                <option value="3" data-duration="12 Months" data-price="499.99">Annual Membership ($499.99)</option>
+                                <?php foreach ($subscriptionPlans as $plan): ?>
+                                    <option value="<?php echo $plan['SUB_ID']; ?>" 
+                                            data-duration="<?php echo $plan['DURATION']; ?> Days" 
+                                            data-price="<?php echo number_format($plan['PRICE'], 2); ?>">
+                                        <?php echo $plan['SUB_NAME']; ?> ($<?php echo number_format($plan['PRICE'], 2); ?>)
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
                                 <i class="fas fa-chevron-down text-xs"></i>
@@ -535,12 +579,11 @@
                             </div>
                             <select id="paymentSelect" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
                                 <option value="">Select Payment Method</option>
-                                <option value="1">Credit Card</option>
-                                <option value="2">Debit Card</option>
-                                <option value="3">Cash</option>
-                                <option value="4">Bank Transfer</option>
-                                <option value="5">Mobile Payment</option>
-                                <option value="6">Online Payment</option>
+                                <?php foreach ($paymentMethods as $method): ?>
+                                    <option value="<?php echo $method['PAYMENT_ID']; ?>">
+                                        <?php echo $method['PAY_METHOD']; ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
                                 <i class="fas fa-chevron-down text-xs"></i>
@@ -944,16 +987,16 @@
                 return `${year}-${month}-${day}`;
             }
 
-            // Date range handling - just handle direct inputs since there's no dateRange dropdown
-            const startDateInput = document.getElementById('startDate');
-            const endDateInput = document.getElementById('endDate');
+            // Date range handling for filter inputs - use different variable names to avoid conflict
+            const filterStartDate = document.getElementById('startDate');
+            const filterEndDate = document.getElementById('endDate');
             
             // Set default date range to current month
-            if (startDateInput && endDateInput) {
+            if (filterStartDate && filterEndDate) {
                 const today = new Date();
                 const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                startDateInput.value = formatDate(firstDay);
-                endDateInput.value = formatDate(today);
+                filterStartDate.value = formatDate(firstDay);
+                filterEndDate.value = formatDate(today);
             }
 
             // Add logout confirmation functionality
@@ -1090,37 +1133,51 @@
                 });
             }
 
-            // Initialize subscription details when subscription is selected
+            // Initialize subscription details when subscription is selected - remove redeclarations
             const subscriptionSelect = document.getElementById('subscriptionSelect');
+            const startDateInput = document.getElementById('startDateInput');
+            const endDateInput = document.getElementById('endDateInput');
+            
             if (subscriptionSelect) {
                 subscriptionSelect.addEventListener('change', function() {
                     updateSubscriptionDetails();
                 });
             }
-
+            
+            if (startDateInput) {
+                startDateInput.addEventListener('change', function() {
+                    if (subscriptionSelect.value) {
+                        updateEndDate();
+                        updateSubscriptionSummary();
+                    }
+                });
+            }
+            
+            if (endDateInput) {
+                endDateInput.addEventListener('change', function() {
+                    updateSubscriptionSummary();
+                });
+            }
+            
             function updateSubscriptionDetails() {
                 const subscriptionSelect = document.getElementById('subscriptionSelect');
+                const startDateInput = document.getElementById('startDateInput');
                 const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
                 
                 if (selectedOption.value) {
-                    // Get data attributes
-                    const duration = selectedOption.getAttribute('data-duration');
-                    const price = selectedOption.getAttribute('data-price');
-                    const name = selectedOption.text.split('(')[0].trim();
-
-                    // Calculate dates
-                    const today = new Date();
-                    const startDate = formatDate(today);
-                    const endDate = calculateEndDate(today, duration);
-
-                    // Update UI
-                    document.getElementById('subName').textContent = name;
-                    document.getElementById('subDuration').textContent = duration;
-                    document.getElementById('subStartDate').textContent = startDate;
-                    document.getElementById('subEndDate').textContent = formatDate(endDate);
-                    document.getElementById('subPrice').textContent = `$${price}`;
+                    // If start date is not set yet, default to today
+                    if (!startDateInput.value) {
+                        const today = new Date();
+                        startDateInput.value = formatDate(today);
+                    }
+                    
+                    // Update the end date based on subscription duration
+                    updateEndDate();
+                    
+                    // Update the subscription summary
+                    updateSubscriptionSummary();
                 } else {
-                    // Reset values
+                    // Reset summary values if no subscription selected
                     document.getElementById('subName').textContent = '-';
                     document.getElementById('subDuration').textContent = '-';
                     document.getElementById('subStartDate').textContent = '-';
@@ -1128,25 +1185,110 @@
                     document.getElementById('subPrice').textContent = '-';
                 }
             }
-
+            
+            function updateEndDate() {
+                const subscriptionSelect = document.getElementById('subscriptionSelect');
+                const startDateInput = document.getElementById('startDateInput');
+                const endDateInput = document.getElementById('endDateInput');
+                const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
+                
+                if (selectedOption && selectedOption.value && startDateInput.value) {
+                    const duration = selectedOption.getAttribute('data-duration');
+                    const startDate = new Date(startDateInput.value);
+                    const endDate = calculateEndDateFromDuration(startDate, duration);
+                    
+                    // Set the end date input value
+                    endDateInput.value = formatDate(endDate);
+                }
+            }
+            
+            function updateSubscriptionSummary() {
+                const subscriptionSelect = document.getElementById('subscriptionSelect');
+                const startDateInput = document.getElementById('startDateInput');
+                const endDateInput = document.getElementById('endDateInput');
+                const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
+                
+                if (selectedOption && selectedOption.value && startDateInput.value) {
+                    // Get data attributes from the option
+                    const duration = selectedOption.getAttribute('data-duration');
+                    const price = selectedOption.getAttribute('data-price');
+                    const name = selectedOption.text.split('(')[0].trim();
+                    
+                    // Get dates
+                    const startDate = new Date(startDateInput.value);
+                    const endDate = new Date(endDateInput.value);
+                    
+                    // Update subscription summary fields
+                    document.getElementById('subName').textContent = name;
+                    document.getElementById('subDuration').textContent = duration;
+                    document.getElementById('subStartDate').textContent = formatDisplayDate(startDate);
+                    document.getElementById('subEndDate').textContent = formatDisplayDate(endDate);
+                    document.getElementById('subPrice').textContent = '$' + price;
+                }
+            }
+            
+            // Function to calculate end date based on start date and duration
+            function calculateEndDateFromDuration(startDate, durationString) {
+                const date = new Date(startDate);
+                
+                // Parse the duration string to get the number and unit
+                const durationMatch = durationString.match(/(\d+)\s*(Day|Days|Month|Months|Year|Years)/i);
+                
+                if (!durationMatch) {
+                    // If format is not as expected, try numeric parsing
+                    const days = parseInt(durationString);
+                    if (!isNaN(days)) {
+                        date.setDate(date.getDate() + days);
+                        return date;
+                    }
+                    return date; // Return original date if parsing fails
+                }
+                
+                const amount = parseInt(durationMatch[1]);
+                const unit = durationMatch[2].toLowerCase();
+                
+                if (unit.includes('day')) {
+                    date.setDate(date.getDate() + amount);
+                } else if (unit.includes('month')) {
+                    date.setMonth(date.getMonth() + amount);
+                } else if (unit.includes('year')) {
+                    date.setFullYear(date.getFullYear() + amount);
+                }
+                
+                return date;
+            }
+            
+            // Function to format date for input fields (YYYY-MM-DD)
             function formatDate(date) {
+                if (!(date instanceof Date) || isNaN(date)) {
+                    return '';
+                }
                 const year = date.getFullYear();
                 const month = String(date.getMonth() + 1).padStart(2, '0');
                 const day = String(date.getDate()).padStart(2, '0');
                 return `${year}-${month}-${day}`;
             }
-
-            function calculateEndDate(startDate, duration) {
-                const date = new Date(startDate);
-                if (duration.includes('Month')) {
-                    const months = parseInt(duration);
-                    date.setMonth(date.getMonth() + months);
-                } else if (duration.includes('Year')) {
-                    const years = parseInt(duration);
-                    date.setFullYear(date.getFullYear() + years);
+            
+            // Function to format date for display (readable format)
+            function formatDisplayDate(date) {
+                if (!(date instanceof Date) || isNaN(date)) {
+                    return '-';
                 }
-                return date;
+                return date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long', 
+                    day: 'numeric'
+                });
             }
+
+            // Set default start date when page loads
+            window.addEventListener('load', function() {
+                const today = new Date();
+                // Use existing variable
+                if (startDateInput) {
+                    startDateInput.value = formatDate(today);
+                }
+            });
 
             // Initialize action buttons (Deactivate, Renew, View)
             initActionButtons();
@@ -1547,14 +1689,141 @@
             const applyFiltersBtn = document.getElementById('applyFiltersBtn');
             if (applyFiltersBtn) {
                 applyFiltersBtn.addEventListener('click', function() {
-                    // In a real implementation, this would gather filter values and reload data
-                    showToast('Applying filters...', true);
-                    // Simulate filtering
-                    setTimeout(() => {
-                        // Reload transactions with filters
-                        loadTransactionData();
-                        showToast('Filters applied!', true);
-                    }, 500);
+                    // Show loading state
+                    const tableBody = document.getElementById('subscriptionStatusBody');
+                    const loadingState = document.getElementById('subscriptionLoadingState');
+                    const emptyState = document.getElementById('subscriptionEmptyState');
+                    
+                    // Hide table body and empty state, show loading
+                    tableBody.closest('table').classList.add('hidden');
+                    emptyState.classList.add('hidden');
+                    loadingState.classList.remove('hidden');
+                    
+                    // Get filter values
+                    const filterData = {
+                        startDate: document.getElementById('startDate').value,
+                        endDate: document.getElementById('endDate').value,
+                        subscription: document.getElementById('subFilter').value,
+                        program: document.getElementById('programFilter').value,
+                        memberId: document.getElementById('selectedFilterMemberId').value,
+                        memberSearch: document.getElementById('selectedFilterMemberId').value ? '' : document.getElementById('memberSearch').value
+                    };
+                    
+                    // Make API call to get filtered data
+                    fetch('../../functions/filter-transactions.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(filterData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Hide loading state
+                        loadingState.classList.add('hidden');
+                        
+                        if (data.length === 0) {
+                            // Show empty state if no results
+                            emptyState.classList.remove('hidden');
+                        } else {
+                            // Populate table with results
+                            tableBody.innerHTML = ''; // Clear existing rows
+                            
+                            data.forEach(sub => {
+                                // Calculate status class based on days left
+                                let statusClass, statusText;
+                                
+                                if (!sub.isActive) {
+                                    statusClass = 'bg-red-100 text-red-800';
+                                    statusText = 'Inactive';
+                                } else if (sub.daysLeft < 0) {
+                                    statusClass = 'bg-red-100 text-red-800';
+                                    statusText = 'Expired';
+                                } else if (sub.daysLeft <= 7) {
+                                    statusClass = 'bg-yellow-100 text-yellow-800';
+                                    statusText = daysLeft === 0 ? 'Expires Today' : 
+                                                 daysLeft === 1 ? 'Expires Tomorrow' : 
+                                                 `Expires in ${daysLeft} days`;
+                                } else {
+                                    statusClass = 'bg-green-100 text-green-800';
+                                    statusText = 'Active';
+                                }
+                                
+                                // Create row HTML
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="h-8 w-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs">
+                                                ${sub.memberInitials}
+                                            </div>
+                                            <div class="ml-3">
+                                                <div class="text-sm font-medium text-gray-900">
+                                                    ${sub.memberName}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">${sub.subscriptionName}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">${sub.startDate}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">${sub.endDate}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">${sub.paidDate || '-'}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                                            ${statusText}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                        ${sub.isActive ? 
+                                            `<button class="text-red-600 hover:text-red-800 transition-colors" 
+                                                    title="Deactivate subscription" 
+                                                    data-sub-id="${sub.memberId}" 
+                                                    data-action="deactivate">
+                                                <i class="fas fa-toggle-off"></i>
+                                            </button>` :
+                                            `<button class="text-green-600 hover:text-green-800 transition-colors" 
+                                                    title="Renew subscription" 
+                                                    data-sub-id="${sub.memberId}" 
+                                                    data-action="renew">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>`
+                                        }
+                                    </td>
+                                `;
+                                
+                                tableBody.appendChild(row);
+                            });
+                            
+                            // Show the table
+                            tableBody.closest('table').classList.remove('hidden');
+                            
+                            // Reinitialize action buttons
+                            initActionButtons();
+                        }
+                        
+                        // Update summary numbers
+                        document.getElementById('expiringSubscriptions').textContent = 
+                            data.filter(sub => sub.daysLeft >= 0 && sub.daysLeft <= 7 && sub.isActive).length;
+                            
+                        // Show success notification
+                        showToast('Filters applied successfully', true);
+                    })
+                    .catch(error => {
+                        console.error('Error applying filters:', error);
+                        loadingState.classList.add('hidden');
+                        showToast('Error applying filters. Please try again.', false);
+                        
+                        // Show table again in case of error
+                        tableBody.closest('table').classList.remove('hidden');
+                    });
                 });
             }
 
@@ -1562,19 +1831,36 @@
             const resetFiltersBtn = document.getElementById('resetFiltersBtn');
             if (resetFiltersBtn) {
                 resetFiltersBtn.addEventListener('click', function() {
-                    // Reset all filter fields
-                    document.getElementById('startDate').value = '';
-                    document.getElementById('endDate').value = '';
-                    document.getElementById('memberSearch').value = '';
-                    document.getElementById('subFilter').selectedIndex = 0;
-                    document.getElementById('programFilter').selectedIndex = 0;
-                    
-                    // Show notification
-                    showToast('Filters reset!', true);
-                    
-                    // Reload data
-                    loadTransactionData();
+                    resetFilters();
                 });
+            }
+            
+            // Also add reset functionality to the empty state button
+            const emptyStateResetBtn = document.getElementById('emptyStateResetBtn');
+            if (emptyStateResetBtn) {
+                emptyStateResetBtn.addEventListener('click', function() {
+                    resetFilters();
+                });
+            }
+            
+            // Function to reset filters
+            function resetFilters() {
+                // Reset all filter fields
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                
+                document.getElementById('startDate').value = formatDate(firstDay);
+                document.getElementById('endDate').value = formatDate(today);
+                document.getElementById('memberSearch').value = '';
+                document.getElementById('selectedFilterMemberId').value = '';
+                document.getElementById('subFilter').selectedIndex = 0;
+                document.getElementById('programFilter').selectedIndex = 0;
+                
+                // Show notification
+                showToast('Filters reset!', true);
+                
+                // Reload data with no filters
+                document.getElementById('applyFiltersBtn').click();
             }
             
             // Add refresh subscriptions functionality
@@ -1586,85 +1872,47 @@
                     this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
                     this.disabled = true;
                     
-                    // Reload subscription data
+                    // Reset filters and reload data
+                    document.getElementById('startDate').value = '';
+                    document.getElementById('endDate').value = '';
+                    document.getElementById('memberSearch').value = '';
+                    document.getElementById('subFilter').selectedIndex = 0;
+                    document.getElementById('programFilter').selectedIndex = 0;
+                    
+                    // Apply empty filters to get all data
+                    document.getElementById('applyFiltersBtn').click();
+                    
+                    // Reset button after a delay
                     setTimeout(() => {
-                        // Call function to reinitialize buttons after refresh
-                        initializeRenewButtons();
-                        
                         this.innerHTML = originalHTML;
                         this.disabled = false;
                         showToast('Subscriptions refreshed!', true);
+                        
+                        // Update expiring count
+                        fetchExpiringCount();
                     }, 800);
                 });
             }
-            
-            // Deactivate subscription notification
-            document.querySelectorAll('[data-action="deactivate"]').forEach(button => {
-                button.addEventListener('click', function() {
-                    const subId = this.getAttribute('data-sub-id');
-                    // Remove this browser confirm dialog
-                    // if (confirm('Are you sure you want to deactivate this subscription?')) {
-                    //     // ...existing code...
-                        
-                    //     // Show notification
-                    //     showToast('Subscription deactivated successfully!', true);
-                        
-                    //     // ...existing code...
-                    // }
-                });
-            });
 
-            // Add Transaction Button functionality
-            const submitTransactionBtn = document.getElementById('submitTransactionBtn');
-            if (submitTransactionBtn) {
-                submitTransactionBtn.addEventListener('click', function() {
-                    // Get form fields
-                    const memberId = document.getElementById('selectedMemberId').value;
-                    const subscriptionId = document.getElementById('subscriptionSelect').value;
-                    const paymentMethod = document.getElementById('paymentSelect').value;
-                    const startDate = document.getElementById('startDateInput').value;
-                    const endDate = document.getElementById('endDateInput').value;
-                    
-                    // Show loading state on the button
-                    const originalBtnText = this.innerHTML;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
-                    this.disabled = true;
-                    
-                    // Get subscription details for the notification
-                    const subscriptionSelect = document.getElementById('subscriptionSelect');
-                    const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
-                    const subscriptionName = selectedOption.text.split('(')[0].trim();
-                    const memberName = document.getElementById('memberName').textContent;
-                    
-                    // Simulate API call with timeout
-                    setTimeout(() => {
-                        // Close modal
-                        closeModal(document.getElementById('addTransactionModal'));
-                        
-                        // Reset form
-                        document.getElementById('addTransactionForm').reset();
-                        
-                        // Reset the UI for future new transactions
-                        resetTransactionModalUI();
-                        
-                        // Update summary cards (simulating data refresh)
-                        updateSummaryCards();
-                        
-                        // Determine if this was a renewal
-                        const isRenewal = this.innerHTML.includes('Renew');
-                        const message = isRenewal 
-                            ? `${subscriptionName} successfully renewed for ${memberName}!`
-                            : `${subscriptionName} successfully added for ${memberName}!`;
-                        
-                        // Show success notification using the toast
-                        showToast(message, true);
-                        
-                        // Reset button
-                        this.innerHTML = originalBtnText;
-                        this.disabled = false;
-                    }, 1000);
-                });
+            // ...existing code...
+            
+            // Function to fetch expiring subscriptions count
+            function fetchExpiringCount() {
+                fetch('../../functions/get-expiring-count.php')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('expiringSubscriptions').textContent = data.count;
+                    })
+                    .catch(error => console.error('Error fetching expiring count:', error));
             }
+
+            // Call this on page load
+            fetchExpiringCount();
+            
+            // Initialize action buttons
+            initActionButtons();
+            
+            // ...existing code...
         });
 
         // Functions for the toast notification (matching member UI)
@@ -1766,12 +2014,11 @@
         
         // Enhanced form validation with visual error indicators - modified to show only inline errors
         document.addEventListener('DOMContentLoaded', function() {
-            // Get references to form fields
+            // Get references to form fields - reuse the existing variables, don't redeclare
             const memberSearchInput = document.getElementById('memberSearch').closest('#addTransactionForm #memberSearch');
-            const subscriptionSelect = document.getElementById('subscriptionSelect');
+            // Don't redeclare these variables, they're already defined above
+            // const subscriptionSelect = document.getElementById('subscriptionSelect');
             const paymentSelect = document.getElementById('paymentSelect');
-            const startDateInput = document.getElementById('startDateInput');
-            const endDateInput = document.getElementById('endDateInput');
             const submitTransactionBtn = document.getElementById('submitTransactionBtn');
             
             if (submitTransactionBtn) {
@@ -1781,6 +2028,7 @@
                     const memberId = document.getElementById('selectedMemberId').value;
                     const subscriptionId = subscriptionSelect.value;
                     const paymentMethod = paymentSelect.value;
+                    // Use the existing variables without redeclaration
                     const startDate = startDateInput.value;
                     const endDate = endDateInput.value;
                     
@@ -1833,44 +2081,105 @@
                         return;
                     }
                     
-                    // If all validations pass, proceed with form submission
                     // Show loading state on the button
                     const originalBtnText = this.innerHTML;
                     this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
                     this.disabled = true;
                     
-                    // Get subscription details for the notification
-                    const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
-                    const subscriptionName = selectedOption.text.split('(')[0].trim();
-                    const memberName = document.getElementById('memberName').textContent;
-                    
-                    // Simulate API call with timeout
-                    setTimeout(() => {
-                        // Close modal
-                        closeModal(document.getElementById('addTransactionModal'));
+                    // First check if the member already has an active subscription on the start date
+                    fetch('../../functions/check-active-subscription.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            memberId: memberId,
+                            startDate: startDate,
+                            endDate: endDate
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.hasActiveSubscription) {
+                            // Show error for overlapping subscription
+                            highlightError(startDateInput.parentElement, 'Member already has an active subscription during this period');
+                            throw new Error('Member already has an active subscription that overlaps with these dates');
+                        }
                         
-                        // Reset form
-                        document.getElementById('addTransactionForm').reset();
+                        // If no active subscription for this date, proceed with creating the transaction
+                        // Get subscription details for the notification
+                        const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
+                        const subscriptionName = selectedOption.text.split('(')[0].trim();
+                        const memberName = document.getElementById('memberName').textContent;
+                        const memberInitials = document.getElementById('memberInitials').textContent;
+                        const price = selectedOption.dataset.price;
                         
-                        // Reset the UI for future new transactions
-                        resetTransactionModalUI();
+                        // Create transaction data to send to server
+                        const transactionData = {
+                            memberId: memberId,
+                            subscriptionId: subscriptionId,
+                            paymentId: paymentMethod,
+                            startDate: startDate,
+                            endDate: endDate
+                        };
                         
-                        // Update summary cards (simulating data refresh)
-                        updateSummaryCards();
-                        
-                        // Determine if this was a renewal
-                        const isRenewal = this.innerHTML.includes('Renew');
-                        const message = isRenewal 
-                            ? `${subscriptionName} successfully renewed for ${memberName}!`
-                            : `${subscriptionName} successfully added for ${memberName}!`;
-                        
-                        // Show success notification using the toast
-                        showToast(message, true);
-                        
-                        // Reset button
+                        // Send transaction data to server
+                        return fetch('../../functions/create-transaction.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(transactionData)
+                        });
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Close modal
+                            closeModal(document.getElementById('addTransactionModal'));
+                            
+                            // Reset form
+                            document.getElementById('addTransactionForm').reset();
+                            
+                            // Reset the UI for future new transactions
+                            resetTransactionModalUI();
+                            
+                            // Update summary cards
+                            updateSummaryCards();
+                            
+                            // Get the entered dates
+                            const startDateFormatted = formatDisplayDate(new Date(startDate));
+                            const endDateFormatted = formatDisplayDate(new Date(endDate));
+                            
+                            // Add the new transaction to the table with the admin-entered dates
+                            addTransactionToTable({
+                                memberId: memberId,
+                                memberName: data.transaction.memberName,
+                                memberInitials: getInitials(data.transaction.memberName),
+                                subscriptionName: data.transaction.subscriptionName,
+                                startDate: startDateFormatted,
+                                endDate: endDateFormatted,
+                                paidDate: formatDisplayDate(new Date()),
+                                isActive: 1,
+                                daysLeft: calculateDaysLeft(endDate)
+                            });
+                            
+                            // Show success notification
+                            showToast(data.message || `${data.transaction.subscriptionName} successfully added for ${data.transaction.memberName}!`, true);
+                        } else {
+                            // Show error notification
+                            showToast(data.message || 'Transaction failed. Please try again.', false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast(error.message || 'An error occurred while processing the transaction. Please try again.', false);
+                    })
+                    .finally(() => {
+                        // Reset button state
                         this.innerHTML = originalBtnText;
                         this.disabled = false;
-                    }, 1000);
+                    });
                 });
             }
             
@@ -1907,5 +2216,1570 @@
             });
         });
     </script>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+
+    // Member search functionality
+    const memberSearchInput = document.getElementById('memberSearch');
+    const memberSearchResults = document.getElementById('memberSearchResults');
+    const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+    let searchTimeout;
+
+    memberSearchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const searchTerm = this.value.trim();
+
+        // Clear results if search term is too short
+        if (searchTerm.length < 2) {
+            memberSearchResults.classList.add('hidden');
+            return;
+        }
+
+        // Add loading indicator
+        memberSearchResults.innerHTML = `
+            <div class="px-4 py-2 text-sm text-gray-500">
+                <i class="fas fa-spinner fa-spin mr-2"></i> Searching...
+            </div>
+        `;
+        memberSearchResults.classList.remove('hidden');
+
+        // Debounce the search
+        searchTimeout = setTimeout(() => {
+            // Log the search request
+            console.log('Searching for:', searchTerm);
+
+            fetch(`../../functions/search-members.php?term=${encodeURIComponent(searchTerm)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(members => {
+                    console.log('Search results:', members); // Debug log
+
+                    if (members.length === 0) {
+                        memberSearchResults.innerHTML = `
+                            <div class="px-4 py-2 text-sm text-gray-500">
+                                No members found
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    memberSearchResults.innerHTML = members.map(member => `
+                        <div class="member-result px-4 py-2 hover:bg-gray-100 cursor-pointer" 
+                             data-member-id="${member.id}"
+                             data-member-name="${member.name}"
+                             data-member-email="${member.email}"
+                             data-member-initials="${member.initials}">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3">
+                                    ${member.initials}
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">${member.name}</div>
+                                    <div class="text-xs text-gray-500">${member.program || 'No Program'}</div>
+                                    <div class="text-xs text-gray-500">${member.subscription}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    // Add click handlers to results
+                    document.querySelectorAll('.member-result').forEach(result => {
+                        result.addEventListener('click', function() {
+                            const memberId = this.dataset.memberId;
+                            const memberName = this.dataset.memberName;
+                            const memberEmail = this.dataset.memberEmail;
+                            const memberInitials = this.dataset.memberInitials;
+
+                            // Update selected member info
+                            document.getElementById('selectedMemberId').value = memberId;
+                            document.getElementById('memberInitials').textContent = memberInitials;
+                            document.getElementById('memberName').textContent = memberName;
+                            document.getElementById('memberEmail').textContent = memberEmail;
+
+                            // Show selected member info and hide search results
+                            selectedMemberInfo.classList.remove('hidden');
+                            memberSearchResults.classList.add('hidden');
+                            memberSearchInput.value = '';
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    memberSearchResults.innerHTML = `
+                        <div class="px-4 py-2 text-sm text-red-500">
+                            Error loading results: ${error.message}
+                        </div>
+                    `;
+                });
+        }, 300); // 300ms debounce
+    });
+
+    // Close results when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!memberSearchInput.contains(e.target) && !memberSearchResults.contains(e.target)) {
+            memberSearchResults.classList.add('hidden');
+        }
+    });
+
+    // Handle the change member button
+    document.getElementById('changeMemberBtn')?.addEventListener('click', function() {
+        selectedMemberInfo.classList.add('hidden');
+        document.getElementById('selectedMemberId').value = '';
+        memberSearchInput.value = '';
+        memberSearchInput.focus();
+    });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+
+    // Initialize member search functionality for filter section
+    initFilterMemberSearch();
+
+    // Function to initialize filter member search
+    function initFilterMemberSearch() {
+        const memberSearchInput = document.getElementById('memberSearch');
+        const memberSearchResults = document.getElementById('filterMemberResults');
+        const selectedMemberId = document.getElementById('selectedFilterMemberId');
+        let searchTimeout;
+
+        if (memberSearchInput) {
+            memberSearchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                const searchTerm = this.value.trim();
+
+                // Clear results if search term is too short
+                if (searchTerm.length < 2) {
+                    memberSearchResults.classList.add('hidden');
+                    return;
+                }
+
+                // Add loading indicator
+                memberSearchResults.innerHTML = `
+                    <div class="px-4 py-2 text-sm text-gray-500">
+                        <i class="fas fa-spinner fa-spin mr-2"></i> Searching...
+                    </div>
+                `;
+                memberSearchResults.classList.remove('hidden');
+
+                // Debounce the search
+                searchTimeout = setTimeout(() => {
+                    // Make the AJAX request
+                    fetch(`../../functions/search-members.php?term=${encodeURIComponent(searchTerm)}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(members => {
+                            if (members.length === 0) {
+                                memberSearchResults.innerHTML = `
+                                    <div class="px-4 py-2 text-sm text-gray-500">
+                                        No members found
+                                    </div>
+                                `;
+                                return;
+                            }
+
+                            // Build search results HTML
+                            let resultsHtml = '';
+                            members.forEach(member => {
+                                resultsHtml += `
+                                    <div class="filter-member-result px-4 py-2 hover:bg-gray-100 cursor-pointer" 
+                                         data-member-id="${member.id}"
+                                         data-member-name="${member.name}">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3">
+                                                ${member.initials}
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-medium text-gray-900">${member.name}</div>
+                                                <div class="text-xs text-gray-500">${member.email}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            
+                            memberSearchResults.innerHTML = resultsHtml;
+
+                            // Add click handlers to results
+                            document.querySelectorAll('.filter-member-result').forEach(result => {
+                                result.addEventListener('click', function() {
+                                    const memberId = this.dataset.memberId;
+                                    const memberName = this.dataset.memberName;
+
+                                    // Update input with selected member name
+                                    memberSearchInput.value = memberName;
+                                    
+                                    // Store selected member ID in hidden field
+                                    selectedMemberId.value = memberId;
+
+                                    // Hide search results
+                                    memberSearchResults.classList.add('hidden');
+                                });
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Search error:', error);
+                            memberSearchResults.innerHTML = `
+                                <div class="px-4 py-2 text-sm text-red-500">
+                                    Error loading results: ${error.message}
+                                </div>
+                            `;
+                        });
+                }, 300); // 300ms debounce
+            });
+        }
+
+        // Close results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (memberSearchInput && memberSearchResults &&
+                !memberSearchInput.contains(e.target) && 
+                !memberSearchResults.contains(e.target)) {
+                memberSearchResults.classList.add('hidden');
+            }
+        });
+    }
+
+    // Update the apply filters function to include the selected member ID
+    const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', function() {
+            // Show loading state
+            const tableBody = document.getElementById('subscriptionStatusBody');
+            const loadingState = document.getElementById('subscriptionLoadingState');
+            const emptyState = document.getElementById('subscriptionEmptyState');
+            
+            // Hide table body and empty state, show loading
+            tableBody.closest('table').classList.add('hidden');
+            emptyState.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            
+            // Get filter values
+            const filterData = {
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+                subscription: document.getElementById('subFilter').value,
+                program: document.getElementById('programFilter').value,
+                memberId: document.getElementById('selectedFilterMemberId').value,
+                memberSearch: document.getElementById('selectedFilterMemberId').value ? '' : document.getElementById('memberSearch').value
+            };
+            
+            // Make API call to get filtered data
+            fetch('../../functions/filter-transactions.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(filterData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // ...existing code...
+            })
+            .catch(error => {
+                // ...existing code...
+            });
+        });
+    }
+
+    // Reset filters function should also clear the selected member ID
+    function resetFilters() {
+        // Reset all filter fields
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        document.getElementById('startDate').value = formatDate(firstDay);
+        document.getElementById('endDate').value = formatDate(today);
+        document.getElementById('memberSearch').value = '';
+        document.getElementById('selectedFilterMemberId').value = '';
+        document.getElementById('subFilter').selectedIndex = 0;
+        document.getElementById('programFilter').selectedIndex = 0;
+        
+        // Show notification
+        showToast('Filters reset!', true);
+        
+        // Reload data with no filters
+        document.getElementById('applyFiltersBtn').click();
+    }
+
+    // Keep the existing member search inside the modal untouched
+    // ...existing code...
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+
+    // Enhance member search functionality in the modal
+    const modalMemberSearch = document.querySelector('#addTransactionModal #memberSearch');
+    const modalMemberResults = document.querySelector('#addTransactionModal #memberSearchResults');
+    const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+    let modalSearchTimeout;
+
+    if (modalMemberSearch && modalMemberResults) {
+        modalMemberSearch.addEventListener('input', function() {
+            clearTimeout(modalSearchTimeout);
+            const searchTerm = this.value.trim();
+
+            // Clear results if search term is empty
+            if (searchTerm.length < 2) {
+                modalMemberResults.classList.add('hidden');
+                return;
+            }
+
+            // Add loading indicator
+            modalMemberResults.innerHTML = `
+                <div class="px-4 py-2 text-sm text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i> Searching...
+                </div>
+            `;
+            modalMemberResults.classList.remove('hidden');
+
+            // Debounce the search
+            modalSearchTimeout = setTimeout(() => {
+                // Make the AJAX request
+                fetch(`../../functions/search-members.php?term=${encodeURIComponent(searchTerm)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(members => {
+                        if (members.length === 0) {
+                            modalMemberResults.innerHTML = `
+                                <div class="px-4 py-2 text-sm text-gray-500">
+                                    No members found
+                                </div>
+                            `;
+                            return;
+                        }
+
+                        // Build search results HTML
+                        modalMemberResults.innerHTML = members.map(member => `
+                            <div class="modal-member-result px-4 py-2 hover:bg-gray-100 cursor-pointer" 
+                                 data-member-id="${member.id}"
+                                 data-member-name="${member.name}"
+                                 data-member-email="${member.email}"
+                                 data-member-initials="${member.initials}">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3">
+                                        ${member.initials}
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">${member.name}</div>
+                                        <div class="text-xs text-gray-500">${member.program || 'No Program'}</div>
+                                        <div class="text-xs text-gray-500">${member.subscription || 'No Subscription'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+
+                        // Add click handlers to results
+                        document.querySelectorAll('.modal-member-result').forEach(result => {
+                            result.addEventListener('click', function() {
+                                const memberId = this.dataset.memberId;
+                                const memberName = this.dataset.memberName;
+                                const memberEmail = this.dataset.memberEmail;
+                                const memberInitials = this.dataset.memberInitials;
+
+                                // Update selected member info
+                                document.getElementById('selectedMemberId').value = memberId;
+                                document.getElementById('memberInitials').textContent = memberInitials;
+                                document.getElementById('memberName').textContent = memberName;
+                                document.getElementById('memberEmail').textContent = memberEmail;
+
+                                // Show selected member info and hide search results
+                                selectedMemberInfo.classList.remove('hidden');
+                                modalMemberResults.classList.add('hidden');
+                                modalMemberSearch.value = '';
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error);
+                        modalMemberResults.innerHTML = `
+                            <div class="px-4 py-2 text-sm text-red-500">
+                                Error loading results: ${error.message}
+                            </div>
+                        `;
+                    });
+            }, 300); // 300ms debounce
+        });
+
+        // Close results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!modalMemberSearch.contains(e.target) && !modalMemberResults.contains(e.target)) {
+                modalMemberResults.classList.add('hidden');
+            }
+        });
+    }
+
+    // Handle the change member button (keep existing functionality)
+    document.getElementById('changeMemberBtn')?.addEventListener('click', function() {
+        selectedMemberInfo.classList.add('hidden');
+        document.getElementById('selectedMemberId').value = '';
+        modalMemberSearch.value = '';
+        modalMemberSearch.focus();
+    });
+
+    // ...existing code...
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+
+    // Enhanced member search functionality in the modal with 1-character search trigger
+    const modalMemberSearch = document.querySelector('#addTransactionModal #memberSearch');
+    const modalMemberResults = document.querySelector('#addTransactionModal #memberSearchResults');
+    const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+    let modalSearchTimeout;
+
+    if (modalMemberSearch && modalMemberResults) {
+        modalMemberSearch.addEventListener('input', function() {
+            clearTimeout(modalSearchTimeout);
+            const searchTerm = this.value.trim();
+
+            // Clear results if search term is empty
+            if (searchTerm.length < 1) {
+                modalMemberResults.classList.add('hidden');
+                return;
+            }
+
+            // Add loading indicator
+            modalMemberResults.innerHTML = `
+                <div class="px-4 py-2 text-sm text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i> Searching...
+                </div>
+            `;
+            modalMemberResults.classList.remove('hidden');
+
+            // Debounce the search
+            modalSearchTimeout = setTimeout(() => {
+                // Make the AJAX request
+                fetch(`../../functions/search-members.php?term=${encodeURIComponent(searchTerm)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(members => {
+                        if (members.length === 0) {
+                            modalMemberResults.innerHTML = `
+                                <div class="px-4 py-2 text-sm text-gray-500">
+                                    No members found
+                                </div>
+                            `;
+                            return;
+                        }
+
+                        // Build search results HTML
+                        modalMemberResults.innerHTML = members.map(member => `
+                            <div class="modal-member-result px-4 py-2 hover:bg-gray-100 cursor-pointer" 
+                                 data-member-id="${member.id}"
+                                 data-member-name="${member.name}"
+                                 data-member-email="${member.email}"
+                                 data-member-initials="${member.initials}">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3">
+                                        ${member.initials}
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">${member.name}</div>
+                                        <div class="text-xs text-gray-500">${member.program || 'No Program'}</div>
+                                        <div class="text-xs text-gray-500">${member.subscription || 'No Subscription'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+
+                        // Add click handlers to results
+                        document.querySelectorAll('.modal-member-result').forEach(result => {
+                            result.addEventListener('click', function() {
+                                const memberId = this.dataset.memberId;
+                                const memberName = this.dataset.memberName;
+                                const memberEmail = this.dataset.memberEmail;
+                                const memberInitials = this.dataset.memberInitials;
+
+                                // Update selected member info
+                                document.getElementById('selectedMemberId').value = memberId;
+                                document.getElementById('memberInitials').textContent = memberInitials;
+                                document.getElementById('memberName').textContent = memberName;
+                                document.getElementById('memberEmail').textContent = memberEmail;
+
+                                // Show selected member info and hide search results
+                                selectedMemberInfo.classList.remove('hidden');
+                                modalMemberResults.classList.add('hidden');
+                                modalMemberSearch.value = '';
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error);
+                        modalMemberResults.innerHTML = `
+                            <div class="px-4 py-2 text-sm text-red-500">
+                                Error loading results: ${error.message}
+                            </div>
+                        `;
+                    });
+            }, 300); // 300ms debounce
+        });
+
+        // ...existing code for closing results when clicking outside...
+    }
+
+    // Also update the filter member search to trigger after 1 character
+    function initFilterMemberSearch() {
+        const memberSearchInput = document.getElementById('memberSearch');
+        const memberSearchResults = document.getElementById('filterMemberResults');
+        const selectedMemberId = document.getElementById('selectedFilterMemberId');
+        let searchTimeout;
+
+        if (memberSearchInput) {
+            memberSearchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                const searchTerm = this.value.trim();
+
+                // Clear results if search term is empty
+                if (searchTerm.length < 1) {
+                    memberSearchResults.classList.add('hidden');
+                    return;
+                }
+
+                // Add loading indicator
+                memberSearchResults.innerHTML = `
+                    <div class="px-4 py-2 text-sm text-gray-500">
+                        <i class="fas fa-spinner fa-spin mr-2"></i> Searching...
+                    </div>
+                `;
+                memberSearchResults.classList.remove('hidden');
+
+                // Debounce the search
+                searchTimeout = setTimeout(() => {
+                    // Make the AJAX request
+                    fetch(`../../functions/search-members.php?term=${encodeURIComponent(searchTerm)}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(members => {
+                            if (members.length === 0) {
+                                memberSearchResults.innerHTML = `
+                                    <div class="px-4 py-2 text-sm text-gray-500">
+                                        No members found
+                                    </div>
+                                `;
+                                return;
+                            }
+
+                            // Build search results HTML - keep existing code
+                            // ...existing code...
+                        })
+                        .catch(error => {
+                            console.error('Search error:', error);
+                            memberSearchResults.innerHTML = `
+                                <div class="px-4 py-2 text-sm text-red-500">
+                                    Error loading results: ${error.message}
+                                </div>
+                            `;
+                        });
+                }, 300); // 300ms debounce
+            });
+        }
+
+        // ...existing code for closing results when clicking outside...
+    }
+
+    // ...existing code...
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+
+    // Helper function to determine subscription status based on days left
+    function getSubscriptionStatus(isActive, daysLeft) {
+        let statusClass, statusText;
+        
+        if (!isActive) {
+            statusClass = 'bg-red-100 text-red-800';
+            statusText = 'Inactive';
+        } else if (daysLeft < 0) {
+            statusClass = 'bg-red-100 text-red-800';
+            statusText = 'Expired';
+        } else if (daysLeft <= 7) {
+            statusClass = 'bg-yellow-100 text-yellow-800';
+            statusText = daysLeft === 0 ? 'Expires Today' : 
+                         daysLeft === 1 ? 'Expires Tomorrow' : 
+                         `Expires in ${daysLeft} days`;
+        } else {
+            statusClass = 'bg-green-100 text-green-800';
+            statusText = 'Active';
+        }
+        
+        return { statusClass, statusText };
+    }
+    
+    // Function to add a new transaction to the subscription status table
+    function addTransactionToTable(transaction) {
+        const tableBody = document.getElementById('subscriptionStatusBody');
+        const emptyState = document.getElementById('subscriptionEmptyState');
+        
+        // Hide empty state if it's visible
+        if (!emptyState.classList.contains('hidden')) {
+            emptyState.classList.add('hidden');
+            tableBody.closest('table').classList.remove('hidden');
+        }
+        
+        // Calculate status class based on days left
+        const { statusClass, statusText } = getSubscriptionStatus(transaction.isActive, transaction.daysLeft);
+        
+        // Create a new row
+        const row = document.createElement('tr');
+        
+        // Set row HTML
+        row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                    <div class="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3">
+                        ${transaction.memberInitials}
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">${transaction.memberName}</div>
+                        <div class="text-xs text-gray-500">ID: ${transaction.memberId}</div>
+                    </div>
+                </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">${transaction.subscriptionName}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">${transaction.startDate}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">${transaction.endDate}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">${transaction.paidDate}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                    ${statusText}
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                <div class="flex justify-center space-x-2">
+                    <button data-sub-id="${transaction.subscriptionId}" data-member-id="${transaction.memberId}" data-action="view" class="text-blue-600 hover:text-blue-800 transition-colors" title="View details">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button data-sub-id="${transaction.subscriptionId}" data-member-id="${transaction.memberId}" data-action="deactivate" class="text-red-600 hover:text-red-800 transition-colors" title="Deactivate subscription">
+                        <i class="fas fa-ban"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        // Add the row to the beginning of the table
+        if (tableBody.firstChild) {
+            tableBody.insertBefore(row, tableBody.firstChild);
+        } else {
+            tableBody.appendChild(row);
+        }
+        
+        // Initialize action buttons for the new row
+        initActionButtonsForRow(row);
+    }
+
+// ...existing code...
+});
+</script>
+<script>
+// ...existing code...
+
+function initActionButtonsForRow(row) {
+    // Find deactivate button in this row
+    const deactivateButton = row.querySelector('[data-action="deactivate"]');
+    if (deactivateButton) {
+        deactivateButton.addEventListener('click', function() {
+            const subId = this.getAttribute('data-sub-id');
+            const memberId = this.getAttribute('data-member-id');
+            
+            // Validate that we have both IDs
+            if (!subId || !memberId) {
+                console.error("Missing required data attributes for deactivation:", { subId, memberId });
+                showToast('Error: Missing required data for deactivation', false);
+                return;
+            }
+            
+            // Show confirmation dialog for deactivation
+            showConfirmationDialog(
+                'Confirm Deactivation',
+                'Are you sure you want to deactivate this subscription?',
+                () => {
+                    // Show loading state
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    this.disabled = true;
+
+                    // Make actual API call to deactivate subscription
+                    fetch('../../functions/deactivate-subscription.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            memberId: memberId,
+                            subId: subId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update UI
+                            const statusCell = row.querySelector('td:nth-child(6) span');
+                            statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+                            statusCell.textContent = 'Inactive';
+                            
+                            // Hide the deactivate button
+                            this.style.display = 'none';
+
+                            // Add renew button if it doesn't exist
+                            const actionsCell = row.querySelector('td:nth-child(7) .flex');
+                            if (!actionsCell.querySelector('[data-action="renew"]')) {
+                                const renewButton = document.createElement('button');
+                                renewButton.setAttribute('data-sub-id', subId);
+                                renewButton.setAttribute('data-member-id', memberId);
+                                renewButton.setAttribute('data-action', 'renew');
+                                renewButton.className = 'text-green-600 hover:text-green-800 transition-colors ml-2';
+                                renewButton.title = 'Renew subscription';
+                                renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                                
+                                // Add event listener for the renew button
+                                renewButton.addEventListener('click', function() {
+                                    const memberId = this.getAttribute('data-member-id');
+                                    const subId = this.getAttribute('data-sub-id');
+                                    const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+                                    const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+                                    
+                                    // Open renewal form modal with this data
+                                    openRenewModal(memberId, subId, memberName, subscriptionName);
+                                });
+                                
+                                actionsCell.appendChild(renewButton);
+                            }
+
+                            // Show notification
+                            showToast('Subscription deactivated successfully!', true);
+                            
+                            // Update any counters or badges
+                            updateExpiringCount();
+                        } else {
+                            // Show error
+                            showToast(data.message || 'Failed to deactivate subscription', false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('An error occurred while deactivating subscription', false);
+                    })
+                    .finally(() => {
+                        // Reset button
+                        this.innerHTML = originalHTML;
+                        this.disabled = false;
+                    });
+                }
+            );
+        });
+    }
+    
+    // Find view button in this row
+    const viewButton = row.querySelector('[data-action="view"]');
+    if (viewButton) {
+        // ...existing code...
+    }
+    
+    // Find renew button in this row if it exists
+    const renewButton = row.querySelector('[data-action="renew"]');
+    if (renewButton) {
+        renewButton.addEventListener('click', function() {
+            const memberId = this.getAttribute('data-member-id');
+            const subId = this.getAttribute('data-sub-id');
+            const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+            const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+            
+            // Open renewal form modal with this data
+            openRenewModal(memberId, subId, memberName, subscriptionName);
+        });
+    }
+}
+
+// Modified function to handle renewal with database IDs
+function openRenewModal(memberId, subId, memberName, subscriptionName) {
+    console.log(`Opening renewal modal for member ID: ${memberId}, subscription ID: ${subId}`);
+    
+    if (!memberId) {
+        showToast('Error: Member ID is missing', false);
+        return;
+    }
+    
+    const modal = document.getElementById('addTransactionModal');
+    if (modal) {
+        // Show the modal first
+        openModal(modal);
+        
+        // Get member search section and completely remove it for renewal modal
+        const memberSearchContainer = document.getElementById('memberSearch').parentElement.parentElement;
+        memberSearchContainer.classList.add('hidden');
+        
+        // Show member info without the search UI or change option
+        const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+        selectedMemberInfo.classList.remove('hidden');
+        
+        // Replace the heading to indicate member is fixed for renewal
+        const memberInfoSection = document.querySelector('.mb-1');
+        if (memberInfoSection) {
+            const memberHeading = memberInfoSection.querySelector('span');
+            if (memberHeading) {
+                memberHeading.textContent = "Member (Fixed for Renewal)";
+            }
+        }
+        
+        // Set member information in the static display
+        const memberInitials = document.getElementById('memberInitials');
+        const memberNameElement = document.getElementById('memberName');
+        const memberEmail = document.getElementById('memberEmail');
+        const selectedMemberId = document.getElementById('selectedMemberId');
+        const changeMemberBtn = document.getElementById('changeMemberBtn');
+        
+        // Set member details
+        const initials = memberName.split(' ').map(n => n[0]).join('');
+        memberInitials.textContent = initials;
+        memberNameElement.textContent = memberName;
+        
+        // IMPORTANT: Set the actual member ID from the parameter, not hardcoded
+        selectedMemberId.value = memberId;
+        
+        // Fetch actual member email from database
+        fetch(`../../functions/get-member-details.php?id=${memberId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    memberEmail.textContent = data.member.email;
+                } else {
+                    memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+                    console.warn(`Could not fetch email for member ID ${memberId}: ${data.message}`);
+                }
+            })
+            .catch((error) => {
+                console.error('Error fetching member details:', error);
+                memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+            });
+        
+        // Add data attribute to form to indicate this is a renewal
+        document.getElementById('addTransactionForm').setAttribute('data-is-renewal', 'true');
+        document.getElementById('addTransactionForm').setAttribute('data-previous-sub-id', subId);
+        
+        // Completely hide the change button for renewals
+        if (changeMemberBtn) {
+            changeMemberBtn.classList.add('hidden');
+        }
+        
+        // Pre-fill subscription select
+        const subscriptionSelect = document.getElementById('subscriptionSelect');
+        for (let i = 0; i < subscriptionSelect.options.length; i++) {
+            if (subscriptionSelect.options[i].text.includes(subscriptionName)) {
+                subscriptionSelect.selectedIndex = i;
+                // Update subscription details
+                updateSubscriptionDetails();
+                break;
+            }
+        }
+        
+        // Set start date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('startDateInput').valueAsDate = tomorrow;
+        
+        // Calculate and set end date based on subscription
+        updateEndDate();
+        
+        // Change modal title to indicate renewal
+        const modalTitle = modal.querySelector('.text-lg.font-medium.text-white');
+        if (modalTitle) {
+            modalTitle.textContent = "Renew Subscription";
+        }
+        const modalSubtitle = modal.querySelector('.text-xs.text-white/90');
+        if (modalSubtitle) {
+            modalSubtitle.textContent = "Renew subscription for " + memberName;
+        }
+        
+        // Change submit button text
+        const submitButton = document.getElementById('submitTransactionBtn');
+        if (submitButton) {
+            submitButton.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Renew Subscription';
+        }
+    }
+}
+
+// ...existing code...
+
+// Function to add a new transaction to the subscription status table
+function addTransactionToTable(transaction) {
+    const tableBody = document.getElementById('subscriptionStatusBody');
+    const emptyState = document.getElementById('subscriptionEmptyState');
+    
+    // Hide empty state if it's visible
+    if (!emptyState.classList.contains('hidden')) {
+        emptyState.classList.add('hidden');
+        tableBody.closest('table').classList.remove('hidden');
+    }
+    
+    // Calculate status class based on days left
+    const { statusClass, statusText } = getSubscriptionStatus(transaction.isActive, transaction.daysLeft);
+    
+    // Create a new row
+    const row = document.createElement('tr');
+    
+    // Set row HTML - adding data-member-id attribute to buttons
+    row.innerHTML = `
+        <td class="px-6 py-4 whitespace-nowrap">
+            <div class="flex items-center">
+                <div class="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3">
+                    ${transaction.memberInitials}
+                </div>
+                <div>
+                    <div class="text-sm font-medium text-gray-900">${transaction.memberName}</div>
+                    <div class="text-xs text-gray-500">ID: ${transaction.memberId}</div>
+                </div>
+            </div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${transaction.subscriptionName}</div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${transaction.startDate}</div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${transaction.endDate}</div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${transaction.paidDate}</div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                ${statusText}
+            </span>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+            <div class="flex justify-center space-x-2">
+                <button data-sub-id="${transaction.subscriptionId}" data-member-id="${transaction.memberId}" data-action="view" class="text-blue-600 hover:text-blue-800 transition-colors" title="View details">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button data-sub-id="${transaction.subscriptionId}" data-member-id="${transaction.memberId}" data-action="deactivate" class="text-red-600 hover:text-red-800 transition-colors" title="Deactivate subscription">
+                    <i class="fas fa-ban"></i>
+                </button>
+            </div>
+        </td>
+    `;
+    
+    // Add the row to the beginning of the table
+    if (tableBody.firstChild) {
+        tableBody.insertBefore(row, tableBody.firstChild);
+    } else {
+        tableBody.appendChild(row);
+    }
+    
+    // Initialize action buttons for the new row
+    initActionButtonsForRow(row);
+}
+
+// ...existing code...
+
+// Ensure the table rows in the template have the data-member-id attribute
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+    
+    // Add data-member-id to existing subscription table rows
+    const subscriptionRows = document.querySelectorAll('#subscriptionStatusBody tr');
+    subscriptionRows.forEach(row => {
+        const memberIdText = row.querySelector('td:nth-child(1) .text-xs.text-gray-500');
+        if (memberIdText) {
+            const memberId = memberIdText.textContent.replace('ID: ', '').trim();
+            const actionButtons = row.querySelectorAll('button[data-action]');
+            actionButtons.forEach(button => {
+                button.setAttribute('data-member-id', memberId);
+            });
+        }
+    });
+    
+    // ...existing code...
+});
+</script>
+<script>
+// ...existing code...
+
+// Modified function to handle renewal with database IDs
+function openRenewModal(memberId, subId, memberName, subscriptionName) {
+    console.log(`Opening renewal modal for member ID: ${memberId}, subscription ID: ${subId}`);
+    
+    if (!memberId) {
+        showToast('Error: Member ID is missing', false);
+        return;
+    }
+    
+    const modal = document.getElementById('addTransactionModal');
+    if (modal) {
+        // Show the modal first
+        openModal(modal);
+        
+        // Get member search section and completely remove it for renewal modal
+        const memberSearchContainer = document.getElementById('memberSearch').parentElement.parentElement;
+        memberSearchContainer.classList.add('hidden');
+        
+        // Show member info without the search UI or change option
+        const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+        selectedMemberInfo.classList.remove('hidden');
+        
+        // Replace the heading to indicate member is fixed for renewal
+        const memberInfoSection = document.querySelector('.mb-1');
+        if (memberInfoSection) {
+            const memberHeading = memberInfoSection.querySelector('span');
+            if (memberHeading) {
+                memberHeading.textContent = "Member (Fixed for Renewal)";
+            }
+        }
+        
+        // Set member information in the static display
+        const memberInitials = document.getElementById('memberInitials');
+        const memberNameElement = document.getElementById('memberName');
+        const memberEmail = document.getElementById('memberEmail');
+        const selectedMemberId = document.getElementById('selectedMemberId');
+        const changeMemberBtn = document.getElementById('changeMemberBtn');
+        
+        // Set member details
+        const initials = memberName.split(' ').map(n => n[0]).join('');
+        memberInitials.textContent = initials;
+        memberNameElement.textContent = memberName;
+        
+        // IMPORTANT: Set the actual member ID from the parameter, not hardcoded
+        selectedMemberId.value = memberId;
+        
+        // Fetch actual member email from database
+        fetch(`../../functions/get-member-details.php?id=${memberId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    memberEmail.textContent = data.member.email;
+                } else {
+                    memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+                    console.warn(`Could not fetch email for member ID ${memberId}: ${data.message}`);
+                }
+            })
+            .catch((error) => {
+                console.error('Error fetching member details:', error);
+                memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+            });
+        
+        // Add data attribute to form to indicate this is a renewal
+        document.getElementById('addTransactionForm').setAttribute('data-is-renewal', 'true');
+        document.getElementById('addTransactionForm').setAttribute('data-previous-sub-id', subId);
+        
+        // Completely hide the change button for renewals
+        if (changeMemberBtn) {
+            changeMemberBtn.classList.add('hidden');
+        }
+        
+        // Pre-fill subscription select
+        const subscriptionSelect = document.getElementById('subscriptionSelect');
+        for (let i = 0; i < subscriptionSelect.options.length; i++) {
+            if (subscriptionSelect.options[i].text.includes(subscriptionName)) {
+                subscriptionSelect.selectedIndex = i;
+                // Update subscription details
+                updateSubscriptionDetails();
+                break;
+            }
+        }
+        
+        // Set start date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('startDateInput').valueAsDate = tomorrow;
+        
+        // Calculate and set end date based on subscription
+        updateEndDate();
+        
+        // Change modal title to indicate renewal
+        const modalTitle = modal.querySelector('.text-lg.font-medium.text-white');
+        if (modalTitle) {
+            modalTitle.textContent = "Renew Subscription";
+        }
+        const modalSubtitle = modal.querySelector('.text-xs.text-white/90');
+        if (modalSubtitle) {
+            modalSubtitle.textContent = "Renew subscription for " + memberName;
+        }
+        
+        // Change submit button text
+        const submitButton = document.getElementById('submitTransactionBtn');
+        if (submitButton) {
+            submitButton.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Renew Subscription';
+        }
+    }
+}
+
+function initActionButtonsForRow(row) {
+    // Find deactivate button in this row
+    const deactivateButton = row.querySelector('[data-action="deactivate"]');
+    if (deactivateButton) {
+        deactivateButton.addEventListener('click', function() {
+            const subId = this.getAttribute('data-sub-id');
+            const memberId = this.getAttribute('data-member-id');
+            
+            // Validate that we have both IDs
+            if (!subId || !memberId) {
+                console.error("Missing required data attributes for deactivation:", { subId, memberId });
+                showToast('Error: Missing required data for deactivation', false);
+                return;
+            }
+            
+            // Show confirmation dialog for deactivation
+            showConfirmationDialog(
+                'Confirm Deactivation',
+                'Are you sure you want to deactivate this subscription?',
+                () => {
+                    // Show loading state
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    this.disabled = true;
+
+                    // Make actual API call to deactivate subscription
+                    fetch('../../functions/deactivate-subscription.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            memberId: memberId,
+                            subId: subId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update UI
+                            const statusCell = row.querySelector('td:nth-child(6) span');
+                            statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+                            statusCell.textContent = 'Inactive';
+                            
+                            // Hide the deactivate button
+                            this.style.display = 'none';
+
+                            // Add renew button if it doesn't exist
+                            const actionsCell = row.querySelector('td:nth-child(7) .flex');
+                            if (!actionsCell.querySelector('[data-action="renew"]')) {
+                                const renewButton = document.createElement('button');
+                                renewButton.setAttribute('data-sub-id', subId);
+                                renewButton.setAttribute('data-member-id', memberId);
+                                renewButton.setAttribute('data-action', 'renew');
+                                renewButton.className = 'text-green-600 hover:text-green-800 transition-colors ml-2';
+                                renewButton.title = 'Renew subscription';
+                                renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                                
+                                // Add event listener for the renew button
+                                renewButton.addEventListener('click', function() {
+                                    const memberId = this.getAttribute('data-member-id');
+                                    const subId = this.getAttribute('data-sub-id');
+                                    const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+                                    const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+                                    
+                                    // Open renewal form modal with this data
+                                    openRenewModal(memberId, subId, memberName, subscriptionName);
+                                });
+                                
+                                actionsCell.appendChild(renewButton);
+                            }
+
+                            // Show notification
+                            showToast('Subscription deactivated successfully!', true);
+                            
+                            // Update any counters or badges
+                            updateExpiringCount();
+                            
+                            // Save deactivation state in localStorage to persist across page refreshes
+                            saveDeactivationState(memberId, subId);
+                        } else {
+                            // Show error
+                            showToast(data.message || 'Failed to deactivate subscription', false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('An error occurred while deactivating subscription', false);
+                    })
+                    .finally(() => {
+                        // Reset button
+                        this.innerHTML = originalHTML;
+                        this.disabled = false;
+                    });
+                }
+            );
+        });
+    }
+    
+    // Find view button in this row
+    const viewButton = row.querySelector('[data-action="view"]');
+    if (viewButton) {
+        viewButton.addEventListener('click', function() {
+            // ...existing code...
+        });
+    }
+    
+    // Find renew button in this row if it exists
+    const renewButton = row.querySelector('[data-action="renew"]');
+    if (renewButton) {
+        renewButton.addEventListener('click', function() {
+            const memberId = this.getAttribute('data-member-id');
+            const subId = this.getAttribute('data-sub-id');
+            const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+            const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+            
+            // Open renewal form modal with this data
+            openRenewModal(memberId, subId, memberName, subscriptionName);
+        });
+    }
+}
+
+// Add function to save deactivation state in localStorage
+function saveDeactivationState(memberId, subId) {
+    // Get existing deactivated subscriptions from localStorage
+    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
+    
+    // Add this subscription to the deactivated list
+    if (!deactivatedSubs[memberId]) {
+        deactivatedSubs[memberId] = [];
+    }
+    
+    if (!deactivatedSubs[memberId].includes(subId)) {
+        deactivatedSubs[memberId].push(subId);
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem('deactivatedSubscriptions', JSON.stringify(deactivatedSubs));
+    console.log(`Saved deactivation state for member ${memberId}, subscription ${subId}`);
+}
+
+// Add function to check if a subscription is deactivated
+function isSubscriptionDeactivated(memberId, subId) {
+    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
+    return deactivatedSubs[memberId] && deactivatedSubs[memberId].includes(subId);
+}
+
+// Add function to restore UI state after page refresh
+function restoreDeactivationStates() {
+    console.log("Restoring deactivation states...");
+    const subscriptionRows = document.querySelectorAll('#subscriptionStatusBody tr');
+    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
+    
+    subscriptionRows.forEach(row => {
+        const memberIdText = row.querySelector('td:nth-child(1) .text-xs.text-gray-500');
+        if (!memberIdText) return;
+        
+        const memberId = memberIdText.textContent.replace('ID: ', '').trim();
+        const deactivateButton = row.querySelector('[data-action="deactivate"]');
+        
+        if (deactivateButton) {
+            const subId = deactivateButton.getAttribute('data-sub-id');
+            
+            // Check if this subscription should be marked as deactivated
+            if (deactivatedSubs[memberId] && deactivatedSubs[memberId].includes(subId)) {
+                console.log(`Restoring deactivated state for member ${memberId}, subscription ${subId}`);
+                
+                // Update UI to show deactivated state
+                const statusCell = row.querySelector('td:nth-child(6) span');
+                if (statusCell) {
+                    statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+                    statusCell.textContent = 'Inactive';
+                    
+                    // Hide deactivate button
+                    deactivateButton.style.display = 'none';
+                    
+                    // Add renew button if it doesn't exist
+                    const actionsCell = row.querySelector('td:nth-child(7) .flex');
+                    if (actionsCell && !actionsCell.querySelector('[data-action="renew"]')) {
+                        const renewButton = document.createElement('button');
+                        renewButton.setAttribute('data-sub-id', subId);
+                        renewButton.setAttribute('data-member-id', memberId);
+                        renewButton.setAttribute('data-action', 'renew');
+                        renewButton.className = 'text-green-600 hover:text-green-800 transition-colors ml-2';
+                        renewButton.title = 'Renew subscription';
+                        renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                        
+                        // Add click event listener for the renew button
+                        renewButton.addEventListener('click', function() {
+                            const memberId = this.getAttribute('data-member-id');
+                            const subId = this.getAttribute('data-sub-id');
+                            const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+                            const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+                            
+                            // Open renewal form modal with this data
+                            openRenewModal(memberId, subId, memberName, subscriptionName);
+                        });
+                        
+                        actionsCell.appendChild(renewButton);
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Add a document ready hook to restore UI state when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+    
+    // Restore deactivation states after subscription table is loaded
+    const refreshSubsBtn = document.getElementById('refreshSubsBtn');
+    if (refreshSubsBtn) {
+        const originalClick = refreshSubsBtn.onclick;
+        refreshSubsBtn.onclick = function(e) {
+            if (originalClick) originalClick.call(this, e);
+            
+            // Wait a bit for the table to update
+            setTimeout(() => {
+                restoreDeactivationStates();
+            }, 1000);
+        };
+        
+        // Also restore states on initial page load
+        setTimeout(() => {
+            restoreDeactivationStates();
+        }, 1000);
+    }
+});
+
+// ...existing code...
+</script>
+<script>
+// ...existing code...
+
+function initActionButtonsForRow(row) {
+    // Find deactivate button in this row
+    const deactivateButton = row.querySelector('[data-action="deactivate"]');
+    if (deactivateButton) {
+        deactivateButton.addEventListener('click', function() {
+            const subId = this.getAttribute('data-sub-id');
+            const memberId = this.getAttribute('data-member-id');
+            const memberName = this.getAttribute('data-member-name') || 
+                               row.querySelector('td:nth-child(1) .text-sm.font-medium')?.textContent || 
+                               'this member';
+            const subscriptionName = this.getAttribute('data-subscription-name') || 
+                                    row.querySelector('td:nth-child(2) .text-sm')?.textContent || 
+                                    'the subscription';
+            
+            // Validate that we have both IDs
+            if (!subId || !memberId) {
+                showToast('Missing subscription or member information', false);
+                return;
+            }
+            
+            // Show confirmation dialog for deactivation
+            showConfirmationDialog(
+                'Deactivate Subscription',
+                `Are you sure you want to deactivate ${subscriptionName} for ${memberName}?`,
+                function() {
+                    // Send deactivation request to server
+                    deactivateSubscription(memberId, subId, row);
+                }
+            );
+        });
+    }
+    
+    // Find view button in this row
+    const viewButton = row.querySelector('[data-action="view"]');
+    if (viewButton) {
+        // ...existing code...
+    }
+    
+    // Find renew button in this row if it exists
+    const renewButton = row.querySelector('[data-action="renew"]');
+    if (renewButton) {
+        // ...existing code...
+    }
+}
+
+// Function to handle the deactivation request
+function deactivateSubscription(memberId, subId, row) {
+    // Show "processing" state on the button
+    const deactivateButton = row.querySelector('[data-action="deactivate"]');
+    const originalButtonHTML = deactivateButton.innerHTML;
+    deactivateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    deactivateButton.disabled = true;
+    
+    // Send AJAX request to deactivate subscription
+    fetch('../../functions/deactivate-subscription.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            memberId: memberId,
+            subId: subId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the UI
+            updateRowAfterDeactivation(row);
+            
+            // Store deactivation state in localStorage for persistence across page reloads
+            saveDeactivationState(memberId, subId);
+            
+            // Show success message
+            showToast(data.message || 'Subscription deactivated successfully', true);
+        } else {
+            // Show error message
+            showToast(data.message || 'Failed to deactivate subscription', false);
+            
+            // Restore the button
+            deactivateButton.innerHTML = originalButtonHTML;
+            deactivateButton.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('An error occurred while deactivating the subscription', false);
+        
+        // Restore the button
+        deactivateButton.innerHTML = originalButtonHTML;
+        deactivateButton.disabled = false;
+    });
+}
+
+// Function to update the row UI after deactivation
+function updateRowAfterDeactivation(row) {
+    // Find the status badge element
+    const statusBadge = row.querySelector('.status-badge');
+    if (statusBadge) {
+        // Update the status badge to "Inactive"
+        statusBadge.textContent = 'Inactive';
+        statusBadge.classList.remove('bg-green-100', 'text-green-800', 'bg-yellow-100', 'text-yellow-800');
+        statusBadge.classList.add('bg-red-100', 'text-red-800');
+    }
+    
+    // Update days left text if exists
+    const daysLeftEl = row.querySelector('.days-left');
+    if (daysLeftEl) {
+        daysLeftEl.textContent = 'Subscription inactive';
+    }
+    
+    // Replace deactivate button with "Deactivated" text or hide it
+    const deactivateButton = row.querySelector('[data-action="deactivate"]');
+    if (deactivateButton) {
+        const actionsCell = deactivateButton.closest('td');
+        const deactivatedSpan = document.createElement('span');
+        deactivatedSpan.className = 'text-gray-500 text-xs';
+        deactivatedSpan.innerHTML = '<i class="fas fa-ban mr-1"></i> Deactivated';
+        
+        // Replace the button with the span
+        deactivateButton.replaceWith(deactivatedSpan);
+    }
+    
+    // If there's a renew button, make it more prominent
+    const renewButton = row.querySelector('[data-action="renew"]');
+    if (renewButton) {
+        renewButton.classList.remove('bg-gray-100', 'hover:bg-gray-200');
+        renewButton.classList.add('bg-blue-500', 'hover:bg-blue-600', 'text-white');
+    }
+    
+    // Add a subtle background to indicate inactive status
+    row.classList.add('bg-gray-50');
+}
+
+// Add function to save deactivation state in localStorage
+function saveDeactivationState(memberId, subId) {
+    // Get existing deactivated subscriptions from localStorage
+    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
+    
+    // Add this subscription to the deactivated list
+    if (!deactivatedSubs[memberId]) {
+        deactivatedSubs[memberId] = [];
+    }
+    
+    if (!deactivatedSubs[memberId].includes(subId)) {
+        deactivatedSubs[memberId].push(subId);
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem('deactivatedSubscriptions', JSON.stringify(deactivatedSubs));
+    console.log(`Saved deactivation state for member ${memberId}, subscription ${subId}`);
+}
+
+// Add function to check if a subscription is deactivated
+function isSubscriptionDeactivated(memberId, subId) {
+    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
+    return deactivatedSubs[memberId] && deactivatedSubs[memberId].includes(subId);
+}
+
+// Add function to restore UI state after page refresh
+function restoreDeactivationStates() {
+    console.log("Restoring deactivation states...");
+    const subscriptionRows = document.querySelectorAll('#subscriptionStatusBody tr');
+    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
+    
+    subscriptionRows.forEach(row => {
+        const memberIdText = row.querySelector('td:nth-child(1) .text-xs.text-gray-500');
+        if (!memberIdText) return;
+        
+        const memberId = memberIdText.textContent.replace('ID: ', '').trim();
+        const deactivateButton = row.querySelector('[data-action="deactivate"]');
+        
+        if (deactivateButton) {
+            const subId = deactivateButton.getAttribute('data-sub-id');
+            
+            // Check if this subscription should be marked as deactivated
+            if (deactivatedSubs[memberId] && deactivatedSubs[memberId].includes(subId)) {
+                updateRowAfterDeactivation(row);
+            }
+        }
+    });
+}
+
+// Add a document ready hook to restore UI state when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+    
+    // Restore deactivation states after subscription table is loaded
+    const refreshSubsBtn = document.getElementById('refreshSubsBtn');
+    if (refreshSubsBtn) {
+        const originalClick = refreshSubsBtn.onclick;
+        refreshSubsBtn.onclick = function(e) {
+            if (originalClick) originalClick.call(this, e);
+            
+            // Wait a bit for the table to update
+            setTimeout(() => {
+                restoreDeactivationStates();
+            }, 1000);
+        };
+        
+        // Also restore states on initial page load
+        setTimeout(() => {
+            restoreDeactivationStates();
+        }, 1000);
+    }
+});
+</script>
 </body>
 </html>

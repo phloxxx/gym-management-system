@@ -186,100 +186,12 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200" id="paymentMethodTableBody">
-                            <!-- Payment method rows will be inserted here dynamically -->
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white mr-3">
-                                            <i class="fas fa-credit-card"></i>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-900">Credit Card</div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-payment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="1">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white mr-3">
-                                            <i class="fas fa-university"></i>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-900">Bank Transfer</div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-payment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="2">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white mr-3">
-                                            <i class="fas fa-money-bill-wave"></i>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-900">Cash</div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                        Inactive
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-payment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="3">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white mr-3">
-                                            <i class="fas fa-wallet"></i>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-900">Digital Wallet</div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light edit-payment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="4">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                            <!-- Payment methods will be loaded dynamically -->
                         </tbody>
                     </table>
                 </div>
-                
-                <!-- Empty state -->
+
+                <!-- Single Empty state -->
                 <div id="emptyState" class="py-8 text-center hidden">
                     <i class="fas fa-credit-card text-gray-300 text-5xl mb-3"></i>
                     <h3 class="text-lg font-medium text-gray-600">No payment methods found</h3>
@@ -288,12 +200,28 @@
                         <i class="fas fa-plus mr-2"></i> Add New Payment Method
                     </button>
                 </div>
-                
+
                 <!-- Loading state -->
                 <div id="loadingState" class="py-8 text-center hidden">
                     <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-light"></div>
                     <p class="mt-2 text-gray-600">Loading payment methods...</p>
                 </div>
+            </div>
+
+            <!-- Empty state -->
+            <div id="emptyState" class="py-8 text-center hidden">
+                <i class="fas fa-credit-card text-gray-300 text-5xl mb-3"></i>
+                <h3 class="text-lg font-medium text-gray-600">No payment methods found</h3>
+                <p class="text-gray-500 mb-4" id="emptyStateMessage">Add payment methods to get started or try a different search term.</p>
+                <button id="emptyStateAddBtn" class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors">
+                    <i class="fas fa-plus mr-2"></i> Add New Payment Method
+                </button>
+            </div>
+
+            <!-- Loading state -->
+            <div id="loadingState" class="py-8 text-center hidden">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-light"></div>
+                <p class="mt-2 text-gray-600">Loading payment methods...</p>
             </div>
         </div>
     </div>
@@ -320,7 +248,7 @@
                 <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-white/10 rounded-full"></div>
                 <div class="absolute -top-6 -left-6 w-24 h-24 bg-white/5 rounded-full"></div>
             </div>
-            
+
             <!-- Modal Body -->
             <div class="p-6 pt-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
                 <form id="paymentMethodForm" class="space-y-3">
@@ -334,7 +262,6 @@
                         </h4>
                         <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
                     </div>
-                    
                     <div>
                         <label for="payMethod" class="block text-sm font-medium text-gray-700 mb-1">Payment Method Name</label>
                         <div class="relative rounded-md shadow-sm">
@@ -346,7 +273,6 @@
                         </div>
                         <p class="text-xs text-gray-500 mt-1">Maximum 20 characters</p>
                     </div>
-                    
                     <div>
                         <label for="methodIcon" class="block text-sm font-medium text-gray-700 mb-1">Method Icon</label>
                         <div class="grid grid-cols-5 gap-2 mt-1">
@@ -368,7 +294,7 @@
                         </div>
                         <input type="hidden" id="selectedIcon" name="ICON" value="fa-credit-card">
                     </div>
-
+                    
                     <!-- Status Section -->
                     <div class="mb-1 mt-6">
                         <h4 class="text-base font-semibold text-gray-800 flex items-center">
@@ -393,7 +319,7 @@
                     </div>
                 </form>
             </div>
-            
+
             <!-- Modal Footer -->
             <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
                 <button type="button" id="cancelButton" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none transition-colors duration-300 shadow-sm font-medium cursor-pointer relative z-10">
@@ -452,12 +378,10 @@
                 }, 300);
             }
 
-            // Show success toast
             function showToast(message, isSuccess = true) {
                 const toast = document.getElementById('toast');
                 const toastMessage = document.getElementById('toastMessage');
                 const toastIcon = document.getElementById('toastIcon');
-                
                 toastMessage.textContent = message;
                 
                 if (isSuccess) {
@@ -471,16 +395,16 @@
                     toastIcon.classList.remove('fa-check-circle');
                     toastIcon.classList.add('fa-times-circle');
                 }
-                
+
                 toast.style.display = 'flex';
                 setTimeout(() => {
                     toast.classList.remove('translate-x-full', 'opacity-0');
                 }, 10);
-                
+
                 // Auto hide after 5 seconds
                 setTimeout(hideToast, 5000);
             }
-            
+
             // Initialize dropdown toggle functionality for sidebar
             const dropdownButtons = document.querySelectorAll('[data-collapse-toggle]');
             dropdownButtons.forEach(button => {
@@ -534,7 +458,7 @@
             const discardChangesDialog = document.getElementById('discardChangesDialog');
             const continueEditingBtn = document.getElementById('continueEditing');
             const discardChangesBtn = document.getElementById('discardChanges');
-            
+                    
             // Track form changes
             let originalFormState = {};
             let formChanged = false;
@@ -552,7 +476,6 @@
             function hasFormChanged() {
                 // Only check if there's something to compare against
                 if (Object.keys(originalFormState).length === 0) return false;
-                
                 return payMethod.value !== originalFormState.name || 
                        document.getElementById('selectedIcon').value !== originalFormState.icon ||
                        document.getElementById('status').checked !== originalFormState.status;
@@ -566,7 +489,7 @@
             paymentMethodForm.addEventListener('change', function() {
                 formChanged = true;
             });
-            
+
             // Icon selection functionality
             const paymentIcons = document.querySelectorAll('.payment-icon');
             paymentIcons.forEach(icon => {
@@ -589,20 +512,16 @@
                 paymentId.value = '';
                 payMethod.value = '';
                 document.getElementById('status').checked = true;
-                
                 // Update status label
                 const statusLabel = document.getElementById('statusLabel');
                 statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
                 statusLabel.classList.remove('text-red-600');
                 statusLabel.classList.add('text-green-600');
-                
                 // Reset payment icons
                 paymentIcons.forEach(i => i.classList.remove('bg-primary-light', 'text-white'));
                 paymentIcons[0].classList.add('bg-primary-light', 'text-white');
                 document.getElementById('selectedIcon').value = 'fa-credit-card';
-                
                 showModal(paymentMethodModal);
-
                 // Reset form change tracking
                 formChanged = false;
                 captureFormState();
@@ -616,20 +535,16 @@
                     paymentId.value = '';
                     payMethod.value = '';
                     document.getElementById('status').checked = true;
-                    
                     // Update status label
                     const statusLabel = document.getElementById('statusLabel');
                     statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
                     statusLabel.classList.remove('text-red-600');
                     statusLabel.classList.add('text-green-600');
-                    
                     // Reset payment icons
                     paymentIcons.forEach(i => i.classList.remove('bg-primary-light', 'text-white'));
                     paymentIcons[0].classList.add('bg-primary-light', 'text-white');
                     document.getElementById('selectedIcon').value = 'fa-credit-card';
-                    
                     showModal(paymentMethodModal);
-                    
                     // Reset form change tracking
                     formChanged = false;
                     captureFormState();
@@ -644,65 +559,51 @@
                     modalTitle.textContent = 'Edit Payment Method';
                     saveButtonText.textContent = 'Update Payment Method';
                     document.getElementById('paymentId').value = id;
-                    
-                    // For demo purposes, populate with sample data
-                    let payMethodName = '';
-                    let iconClass = '';
-                    let isActive = true;
-                    
-                    if (id === '1') {
-                        payMethodName = 'Credit Card';
-                        iconClass = 'fa-credit-card';
-                        isActive = true;
-                    } else if (id === '2') {
-                        payMethodName = 'Bank Transfer';
-                        iconClass = 'fa-university';
-                        isActive = true;
-                    } else if (id === '3') {
-                        payMethodName = 'Cash';
-                        iconClass = 'fa-money-bill-wave';
-                        isActive = false;
-                    } else if (id === '4') {
-                        payMethodName = 'Digital Wallet';
-                        iconClass = 'fa-wallet';
-                        isActive = true;
-                    }
-                    
-                    document.getElementById('payMethod').value = payMethodName;
-                    document.getElementById('status').checked = isActive;
-                    
-                    // Update status label
-                    const statusLabel = document.getElementById('statusLabel');
-                    if (isActive) {
-                        statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
-                        statusLabel.classList.remove('text-red-600');
-                        statusLabel.classList.add('text-green-600');
-                    } else {
-                        statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
-                        statusLabel.classList.remove('text-green-600');
-                        statusLabel.classList.add('text-red-600');
-                    }
-                    
-                    // Set the correct icon
-                    paymentIcons.forEach(i => i.classList.remove('bg-primary-light', 'text-white'));
-                    const iconElement = Array.from(paymentIcons).find(i => i.getAttribute('data-icon') === iconClass);
-                    if (iconElement) {
-                        iconElement.classList.add('bg-primary-light', 'text-white');
-                        document.getElementById('selectedIcon').value = iconClass;
-                    }
-                    
-                    showModal(paymentMethodModal);
-                    
-                    // Reset form change tracking AFTER we've set all the values
-                    formChanged = false;
-                    captureFormState();
+                    // Fetch payment method data from API
+                    fetch(`../../api/payment/view.php?id=${id}`)
+                        .then(response => response.json())
+                        .then(paymentMethod => {
+                            if (paymentMethod) {
+                                document.getElementById('payMethod').value = paymentMethod.PAY_METHOD;
+                                document.getElementById('status').checked = paymentMethod.IS_ACTIVE == 1;
+                                // Update status label
+                                const statusLabel = document.getElementById('statusLabel');
+                                if (paymentMethod.IS_ACTIVE == 1) {
+                                    statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                                    statusLabel.classList.remove('text-red-600');
+                                    statusLabel.classList.add('text-green-600');
+                                } else {
+                                    statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                                    statusLabel.classList.remove('text-green-600');
+                                    statusLabel.classList.add('text-red-600');
+                                }
+                                // Set the correct icon
+                                const iconClass = paymentMethod.ICON;
+                                paymentIcons.forEach(i => i.classList.remove('bg-primary-light', 'text-white'));
+                                const selectedIcon = Array.from(paymentIcons).find(i => i.getAttribute('data-icon') === iconClass);
+                                if (selectedIcon) {
+                                    selectedIcon.classList.add('bg-primary-light', 'text-white');
+                                    document.getElementById('selectedIcon').value = iconClass;
+                                } else {
+                                    paymentIcons[0].classList.add('bg-primary-light', 'text-white');
+                                    document.getElementById('selectedIcon').value = 'fa-credit-card';
+                                }
+                                showModal(paymentMethodModal);
+                                // Reset form change tracking AFTER we've set all the values
+                                formChanged = false;
+                                captureFormState();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showToast('Error loading payment method details', false);
+                        });
                 });
             });
 
             // Toggle status in add/edit form
             const statusToggle = document.getElementById('status');
             const statusLabel = document.getElementById('statusLabel');
-            
             if (statusToggle && statusLabel) {
                 statusToggle.addEventListener('change', function() {
                     if (this.checked) {
@@ -751,36 +652,41 @@
                 formChanged = false;
             });
 
-            // Save payment method button click
+            // Update the savePaymentButton click handler
             savePaymentButton.addEventListener('click', function() {
                 if (paymentMethodForm.checkValidity()) {
-                    // Form is valid, can proceed with saving
                     const id = paymentId.value;
                     const name = payMethod.value;
-                    const selectedIcon = document.getElementById('selectedIcon').value;
                     const isActive = document.getElementById('status').checked;
                     
-                    // In a real app, you would send this data to your server
-                    console.log({
-                        paymentId: id || null,
-                        payMethod: name,
-                        icon: selectedIcon,
-                        isActive
+                    // Send data to server
+                    fetch('../../api/payment/save.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            paymentId: id || null,
+                            payMethod: name,
+                            isActive: isActive
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'success') {
+                            showToast(result.message, true);
+                            hideModal(paymentMethodModal);
+                            loadPaymentMethods(); // Reload the table
+                            formChanged = false;
+                            paymentMethodForm.reset();
+                        } else {
+                            throw new Error(result.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast(error.message || 'Error saving payment method', false);
                     });
-                    
-                    // Show success message
-                    const message = id ? 
-                        `${name} payment method updated successfully!` : 
-                        `${name} payment method added successfully!`;
-                    showToast(message, true);
-                    
-                    // Close modal
-                    hideModal(paymentMethodModal);
-                    
-                    // Reset form change tracking
-                    formChanged = false;
-                    // Reset form
-                    paymentMethodForm.reset();
                 } else {
                     // Trigger browser's default validation
                     const submitButton = document.createElement('button');
@@ -843,6 +749,210 @@
                     document.body.classList.remove('overflow-hidden');
                 }, 200);
             }
+
+            // Add this at the start to load payment methods when page loads
+            loadPaymentMethods();
+
+            // Add this function to load payment methods
+            function loadPaymentMethods() {
+                const tableBody = document.getElementById('paymentMethodTableBody');
+                const emptyState = document.getElementById('emptyState');
+                const loadingState = document.getElementById('loadingState');
+                const tableContainer = document.getElementById('paymentMethodsTable').closest('.overflow-x-auto');
+                
+                // Show loading state
+                loadingState.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+                tableContainer.classList.add('hidden');
+                
+                fetch('../../api/payment/get-all.php')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success' && Array.isArray(data.payments)) {
+                            if (data.payments.length > 0) {
+                                tableBody.innerHTML = '';
+                                
+                                data.payments.forEach(payment => {
+                                    const row = document.createElement('tr');
+                                    row.innerHTML = `
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white mr-3">
+                                                    <i class="fas ${getPaymentIcon(payment.PAY_METHOD)}"></i>
+                                                </div>
+                                                <div class="text-sm font-medium text-gray-900">${payment.PAY_METHOD}</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${payment.IS_ACTIVE == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                                ${payment.IS_ACTIVE == 1 ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                            <div class="flex space-x-2 justify-center">
+                                                <button class="text-primary-dark hover:text-primary-light edit-payment h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${payment.PAYMENT_ID}">
+                                                    <i class="fas fa-edit text-lg"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    `;
+                                    
+                                    tableBody.appendChild(row);
+                                });
+                                
+                                // Show table, hide empty state
+                                emptyState.classList.add('hidden');
+                                tableContainer.classList.remove('hidden');
+                                
+                                // Re-attach edit button event listeners
+                                attachEditButtonListeners();
+                            } else {
+                                // Show empty state, hide table
+                                emptyState.classList.remove('hidden');
+                                tableContainer.classList.add('hidden');
+                            }
+                        } else {
+                            throw new Error('Invalid data format received from server');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Only show error toast for network/server errors, not empty results
+                        if (error.message !== 'Invalid data format received from server') {
+                            showToast('Error loading payment methods', false);
+                        }
+                    })
+                    .finally(() => {
+                        // Hide loading state
+                        loadingState.classList.add('hidden');
+                    });
+            }
+
+            // Add this function to handle edit button event listeners
+            function attachEditButtonListeners() {
+                const editButtons = document.querySelectorAll('.edit-payment');
+                editButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const id = this.getAttribute('data-id');
+                        handleEditPayment(id);
+                    });
+                });
+            }
+
+            function getPaymentIcon(paymentMethod) {
+                // Map payment methods to their corresponding icons
+                const iconMap = {
+                    'Cash': 'fa-money-bill-wave',
+                    'Bank Transfer': 'fa-university',
+                    'Credit Card': 'fa-credit-card',
+                    'Debit Card': 'fa-credit-card',
+                    'Digital Wallet': 'fa-wallet',
+                    'GCash': 'fa-mobile-alt',  // Changed to mobile icon for GCash
+                    'Online Banking': 'fa-university'
+                };
+                return iconMap[paymentMethod] || 'fa-credit-card'; // Default to credit card icon
+            }
+
+            // Handle edit payment method
+            function handleEditPayment(id) {
+                // Reset form change tracking
+                formChanged = false;
+                
+                // Update modal title and button
+                modalTitle.textContent = 'Edit Payment Method';
+                saveButtonText.textContent = 'Update Payment Method';
+                
+                // Set the payment ID in the form
+                document.getElementById('paymentId').value = id;
+                
+                // Show loading state within modal
+                document.getElementById('payMethod').disabled = true;
+                document.getElementById('status').disabled = true;
+                
+                // Fetch payment method details from API
+                fetch(`../../api/payment/get.php?id=${id}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch payment method details');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success' && data.payment) {
+                            const payment = data.payment;
+                            
+                            // Populate form fields
+                            document.getElementById('payMethod').value = payment.PAY_METHOD;
+                            document.getElementById('status').checked = payment.IS_ACTIVE == 1;
+                            
+                            // Update status label
+                            const statusLabel = document.getElementById('statusLabel');
+                            if (payment.IS_ACTIVE == 1) {
+                                statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                                statusLabel.classList.remove('text-red-600');
+                                statusLabel.classList.add('text-green-600');
+                            } else {
+                                statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                                statusLabel.classList.remove('text-green-600');
+                                statusLabel.classList.add('text-red-600');
+                            }
+                            
+                            // Set the correct icon if ICON is available in the API response
+                            const iconClass = payment.ICON || getPaymentIconFromName(payment.PAY_METHOD);
+                            paymentIcons.forEach(i => i.classList.remove('bg-primary-light', 'text-white'));
+                            const selectedIcon = Array.from(paymentIcons).find(i => i.getAttribute('data-icon') === iconClass);
+                            if (selectedIcon) {
+                                selectedIcon.classList.add('bg-primary-light', 'text-white');
+                                document.getElementById('selectedIcon').value = iconClass;
+                            } else {
+                                // Default to the first icon if the icon is not found
+                                paymentIcons[0].classList.add('bg-primary-light', 'text-white');
+                                document.getElementById('selectedIcon').value = 'fa-credit-card';
+                            }
+                            
+                            // Re-enable form fields
+                            document.getElementById('payMethod').disabled = false;
+                            document.getElementById('status').disabled = false;
+                            
+                            // Reset form change tracking AFTER we've set all the values
+                            captureFormState();
+                            
+                            // Show the modal
+                            showModal(paymentMethodModal);
+                        } else {
+                            throw new Error(data.message || 'Failed to fetch payment method details');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('Failed to load payment method details: ' + error.message, false);
+                        
+                        // Re-enable form fields
+                        document.getElementById('payMethod').disabled = false;
+                        document.getElementById('status').disabled = false;
+                    });
+            }
+            
+            // Helper function to map payment method names to icon classes
+            function getPaymentIconFromName(methodName) {
+                const nameToIcon = {
+                    'Cash': 'fa-money-bill-wave',
+                    'Bank Transfer': 'fa-university',
+                    'Credit Card': 'fa-credit-card',
+                    'Debit Card': 'fa-credit-card',
+                    'Digital Wallet': 'fa-wallet',
+                    'GCash': 'fa-mobile-alt',
+                    'Online Banking': 'fa-university'
+                };
+                return nameToIcon[methodName] || 'fa-credit-card';
+            }
+
+            // ...rest of your existing code...
         });
     </script>
 </body>

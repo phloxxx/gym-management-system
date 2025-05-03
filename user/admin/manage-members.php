@@ -55,7 +55,7 @@
                 <ul class="space-y-1 font-medium">
                     <!-- Dashboard -->
                     <li>
-                        <a href="admin-dashboard.php" class="sidebar-menu-item">
+                        <a href="admin-dashboard.html" class="sidebar-menu-item">
                             <i class="fas fa-home"></i>
                             <span>Dashboard</span>
                         </a>
@@ -204,89 +204,13 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200" id="memberTableBody">
-                            <!-- Member rows will be inserted here dynamically -->
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white text-xs">
-                                            JS
-                                        </div>
-                                        <div class="ml-3">
-                                            <div class="text-sm font-medium text-gray-900">John Smith</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">john.smith@example.com</div>
-                                    <div class="text-sm text-gray-500">+1 (555) 123-4567</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                        bg-blue-100 text-blue-800">
-                                        Strength Training
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                        bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light view-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="1">
-                                            <i class="fas fa-eye text-lg"></i>
-                                        </button>
-                                        <button class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="1">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white text-xs">
-                                            JD
-                                        </div>
-                                        <div class="ml-3">
-                                            <div class="text-sm font-medium text-gray-900">Jane Doe</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">jane.doe@example.com</div>
-                                    <div class="text-sm text-gray-500">+1 (555) 987-6543</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                        bg-blue-100 text-blue-800">
-                                        Cardio
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                        bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex space-x-2 justify-center">
-                                        <button class="text-primary-dark hover:text-primary-light view-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="2">
-                                            <i class="fas fa-eye text-lg"></i>
-                                        </button>
-                                        <button class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="2">
-                                            <i class="fas fa-edit text-lg"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                            <!-- Member rows will be dynamically populated from database -->
                         </tbody>
                     </table>
                 </div>
                 
                 <!-- Empty state -->
-                <div id="emptyState" class="py-8 text-center hidden">
+                <div id="emptyState" class="py-8 text-center">
                     <i class="fas fa-users text-gray-300 text-5xl mb-3"></i>
                     <h3 class="text-lg font-medium text-gray-600">No members found</h3>
                     <p class="text-gray-500 mb-4" id="emptyStateMessage">Add members to get started or try a different search term.</p>
@@ -1098,47 +1022,75 @@
             
             // Save member
             saveMemberButton.addEventListener('click', function() {
-                // Check if we're in edit mode
-                const isEditMode = document.getElementById('memberId').value !== '';
-                
                 if (memberForm.checkValidity()) {
-                    // Form is valid, can proceed with saving
-                    
-                    // If in edit mode, we need to handle subscription differently
-                    if (isEditMode) {
-                        // In edit mode, subscription fields are disabled but we need to make sure they're included in the form data
-                        // This would typically be handled by your backend which would preserve existing subscription details
-                        
-                        // Display a specific message for edit mode
-                        showToast('Member information updated successfully!', true);
+                    // Show loading state
+                    saveMemberButton.disabled = true;
+                    saveMemberButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+
+                    // Collect form data
+                    const formData = new FormData(memberForm);
+                    const memberId = document.getElementById('memberId').value;
+                    const data = {
+                        MEMBER_FNAME: formData.get('MEMBER_FNAME'),
+                        MEMBER_LNAME: formData.get('MEMBER_LNAME'),
+                        EMAIL: formData.get('EMAIL'),
+                        PHONE_NUMBER: formData.get('PHONE_NUMBER'),
+                        IS_ACTIVE: document.getElementById('status').checked ? 1 : 0,
+                        PROGRAM_ID: document.getElementById('program').value,
+                        USER_ID: 1, // Current logged in user ID
+                        COMORBIDITIES: Array.from(document.getElementById('comorbidities').selectedOptions).map(opt => opt.value)
+                    };
+
+                    // Determine if this is an add or edit operation
+                    const url = memberId ? 
+                        `../../api/members/update.php?id=${memberId}` : 
+                        '../../api/members/create.php';
+
+                    const method = memberId ? 'PUT' : 'POST';
+
+                    // If editing, include subscription data but don't allow changes
+                    if (memberId) {
+                        data.MEMBER_ID = memberId;
                     } else {
-                        // In add mode, make sure subscription info is validated
-                        const subscriptionType = document.getElementById('subscriptionType');
-                        const paymentMethod = document.getElementById('paymentMethod');
-                        
-                        if (!subscriptionType.value || !paymentMethod.value) {
-                            showToast('Please complete all subscription details', false);
-                            return;
-                        }
-                        
-                        // Show success message for new member
-                        showToast('New member added successfully!', true);
+                        // Only include subscription data for new members
+                        data.SUB_ID = document.getElementById('subscriptionType').value;
+                        data.START_DATE = document.getElementById('startDate').value;
+                        data.END_DATE = document.getElementById('endDate').value;
+                        data.PAYMENT_ID = document.getElementById('paymentMethod').value;
+                        data.TRANSAC_DATE = document.getElementById('transactionDate').value;
                     }
-                    
-                    closeModalDirectly();
-                    
-                    // Reset form
-                    memberForm.reset();
-                    
-                    // Set today's date again
-                    const today = new Date();
-                    document.getElementById('startDate').value = today.toISOString().split('T')[0];
+
+                    fetch(url, {
+                        method: method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'success') {
+                            showToast(memberId ? 'Member updated successfully!' : 'New member added successfully!', true);
+                            closeModalDirectly();
+                            loadMembers(); // Reload the members table
+                        } else {
+                            throw new Error(result.message || 'Failed to save member');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast(error.message || 'Failed to save member. Please try again.', false);
+                    })
+                    .finally(() => {
+                        // Reset button state
+                        saveMemberButton.disabled = false;
+                        saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                    });
                 } else {
-                    // Trigger browser's default validation
                     memberForm.reportValidity();
                 }
             });
-            
+
             // Function to close modal directly
             function closeModalDirectly() {
                 memberModal.classList.add('hidden');
@@ -1150,6 +1102,23 @@
                 
                 // Reset subscription fields to editable state
                 toggleSubscriptionEditMode(false);
+                
+                // Enable program and coach fields
+                document.getElementById('program').disabled = false;
+                document.getElementById('program').classList.remove('bg-gray-100', 'cursor-not-allowed');
+                document.getElementById('coach').disabled = false;
+                document.getElementById('coach').classList.remove('bg-gray-100', 'cursor-not-allowed');
+                
+                // Remove any info notes
+                const programEditInfo = document.getElementById('programEditInfo');
+                if (programEditInfo) {
+                    programEditInfo.remove();
+                }
+                
+                const subscriptionEditInfo = document.getElementById('subscriptionEditInfo');
+                if (subscriptionEditInfo) {
+                    subscriptionEditInfo.remove();
+                }
                 
                 // Set today's date again
                 const today = new Date();
@@ -1265,359 +1234,725 @@
             
             // View member function with subscription data
             function viewMember(id) {
-                // In a real application, you would fetch member data from the server
-                // For demonstration, we'll use sample data
-                const memberData = {
-                    1: {
-                        firstName: "John",
-                        lastName: "Smith",
-                        email: "john.smith@example.com",
-                        phone: "+1 (555) 123-4567",
-                        programId: "1",
-                        programName: "Strength Training",
-                        coach: "Michael Johnson",
-                        isActive: true,
-                        comorbidities: [],
-                        joinDate: "2023-05-15", // Added joined date
-                        // Add subscription data
-                        subscriptionName: "Quarterly Plan",
-                        subscriptionStart: "2023-10-15",
-                        subscriptionEnd: "2024-01-13",
-                        paymentMethod: "Cash"
-                    },
-                    2: {
-                        firstName: "Jane",
-                        lastName: "Doe",
-                        email: "jane.doe@example.com",
-                        phone: "+1 (555) 987-6543",
-                        programId: "2",
-                        programName: "Cardio",
-                        coach: "Sarah Williams",
-                        isActive: true,
-                        comorbidities: ["Asthma"],
-                        joinDate: "2023-03-10", // Added joined date
-                        // Add subscription data
-                        subscriptionName: "Monthly Plan",
-                        subscriptionStart: "2023-11-01", 
-                        subscriptionEnd: "2023-12-01",
-                        paymentMethod: "GCash"
-                    }
-                };
-                
-                // Get the member data
-                const member = memberData[id];
-                
-                if (member) {
-                    // Set member information in the view modal
-                    document.getElementById('viewMemberName').textContent = `${member.firstName} ${member.lastName}`;
-                    document.getElementById('viewFullName').textContent = `${member.firstName} ${member.lastName}`;
-                    document.getElementById('viewEmail').textContent = member.email;
-                    document.getElementById('viewPhone').textContent = member.phone;
-                    
-                    // Display joined date
-                    const joinDate = new Date(member.joinDate);
-                    document.getElementById('viewJoinDate').textContent = formatDate(joinDate);
-                    
-                    document.getElementById('viewProgramDetail').textContent = member.programName;
-                    document.getElementById('viewCoach').textContent = member.coach;
-                    
-                    // Populate subscription details
-                    document.getElementById('viewSubscriptionPlan').textContent = member.subscriptionName;
-                    
-                    // Format subscription period
-                    const startDate = new Date(member.subscriptionStart);
-                    const endDate = new Date(member.subscriptionEnd);
-                    document.getElementById('viewSubscriptionPeriod').textContent = 
-                        `${formatDate(startDate)} - ${formatDate(endDate)}`;
-                    
-                    document.getElementById('viewPaymentMethod').textContent = member.paymentMethod;
-                    
-                    // Status
-                    const viewStatus = document.getElementById('viewStatus');
-                    if (member.isActive) {
-                        viewStatus.innerHTML = `
-                            <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                <i class="fas fa-check-circle mr-1"></i> Active
-                            </span>
-                        `;
-                    } else {
-                        viewStatus.innerHTML = `
-                            <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800">
-                                <i class="fas fa-times-circle mr-1"></i> Inactive
-                            </span>
-                        `;
-                    }
-                    
-                    // Comorbidities
-                    const viewComorbidities = document.getElementById('viewComorbidities');
-                    viewComorbidities.innerHTML = '';
-                    
-                    if (member.comorbidities.length > 0) {
-                        member.comorbidities.forEach(comorbidity => {
-                            const span = document.createElement('span');
-                            span.className = 'px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800';
-                            span.textContent = comorbidity;
-                            viewComorbidities.appendChild(span);
-                        });
-                    } else {
-                        const span = document.createElement('span');
-                        span.className = 'px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800';
-                        span.textContent = 'None';
-                        viewComorbidities.appendChild(span);
-                    }
-                    
-                    // Set member ID for edit button in view modal
-                    document.getElementById('viewEditButton').setAttribute('data-id', id);
-                    
-                    // Show the view modal
-                    document.getElementById('viewMemberModal').classList.remove('hidden');
-                    document.body.classList.add('overflow-hidden');
-                    
-                    // Add event listener to edit button in view modal
-                    document.getElementById('viewEditButton').addEventListener('click', function() {
-                        const memberId = this.getAttribute('data-id');
-                        // Hide view modal
-                        document.getElementById('viewMemberModal').classList.add('hidden');
-                        // Edit member
-                        editMember(memberId);
+                // Fetch member data from the database instead of static data
+                fetch(`/api/members/${id}/details`)
+                    .then(response => response.json())
+                    .then(member => {
+                        if (member) {
+                            // Rest of the view member logic remains the same
+                            document.getElementById('viewMemberName').textContent = `${member.firstName} ${member.lastName}`;
+                            document.getElementById('viewFullName').textContent = `${member.firstName} ${member.lastName}`;
+                            document.getElementById('viewEmail').textContent = member.email;
+                            document.getElementById('viewPhone').textContent = member.phone;
+                            
+                            // Display joined date
+                            const joinDate = new Date(member.joinDate);
+                            document.getElementById('viewJoinDate').textContent = formatDate(joinDate);
+                            
+                            document.getElementById('viewProgramDetail').textContent = member.programName;
+                            document.getElementById('viewCoach').textContent = member.coach;
+                            
+                            // Populate subscription details
+                            document.getElementById('viewSubscriptionPlan').textContent = member.subscriptionName;
+                            
+                            // Format subscription period
+                            const startDate = new Date(member.subscriptionStart);
+                            const endDate = new Date(member.subscriptionEnd);
+                            document.getElementById('viewSubscriptionPeriod').textContent = 
+                                `${formatDate(startDate)} - ${formatDate(endDate)}`;
+                            
+                            document.getElementById('viewPaymentMethod').textContent = member.paymentMethod;
+                            
+                            // Status
+                            const viewStatus = document.getElementById('viewStatus');
+                            if (member.isActive) {
+                                viewStatus.innerHTML = `
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i> Active
+                                    </span>
+                                `;
+                            } else {
+                                viewStatus.innerHTML = `
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                                        <i class="fas fa-times-circle mr-1"></i> Inactive
+                                    </span>
+                                `;
+                            }
+                            
+                            // Comorbidities
+                            const viewComorbidities = document.getElementById('viewComorbidities');
+                            viewComorbidities.innerHTML = '';
+                            
+                            if (member.comorbidities.length > 0) {
+                                member.comorbidities.forEach(comorbidity => {
+                                    const span = document.createElement('span');
+                                    span.className = 'px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800';
+                                    span.textContent = comorbidity;
+                                    viewComorbidities.appendChild(span);
+                                });
+                            } else {
+                                const span = document.createElement('span');
+                                span.className = 'px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800';
+                                span.textContent = 'None';
+                                viewComorbidities.appendChild(span);
+                            }
+                            
+                            // Set member ID for edit button in view modal
+                            document.getElementById('viewEditButton').setAttribute('data-id', id);
+                            
+                            // Show the view modal
+                            document.getElementById('viewMemberModal').classList.remove('hidden');
+                            document.body.classList.add('overflow-hidden');
+                            
+                            // Add event listener to edit button in view modal
+                            document.getElementById('viewEditButton').addEventListener('click', function() {
+                                const memberId = this.getAttribute('data-id');
+                                // Hide view modal
+                                document.getElementById('viewMemberModal').classList.add('hidden');
+                                // Edit member
+                                editMember(memberId);
+                            });
+                            
+                            // Add event listener to close button in view modal
+                            document.getElementById('viewCloseButton').addEventListener('click', function() {
+                                document.getElementById('viewMemberModal').classList.add('hidden');
+                                document.body.classList.remove('overflow-hidden');
+                            });
+                            
+                            // Add event listener to X button in view modal
+                            document.getElementById('closeViewModal').addEventListener('click', function() {
+                                document.getElementById('viewMemberModal').classList.add('hidden');
+                                document.body.classList.remove('overflow-hidden');
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching member details:', error);
+                        showToast('Error loading member details', false);
                     });
-                    
-                    // Add event listener to close button in view modal
-                    document.getElementById('viewCloseButton').addEventListener('click', function() {
-                        document.getElementById('viewMemberModal').classList.add('hidden');
-                        document.body.classList.remove('overflow-hidden');
-                    });
-                    
-                    // Add event listener to X button in view modal
-                    document.getElementById('closeViewModal').addEventListener('click', function() {
-                        document.getElementById('viewMemberModal').classList.add('hidden');
-                        document.body.classList.remove('overflow-hidden');
-                    });
-                }
             }
             
             // Edit member function
             function editMember(id) {
-                // In a real application, you would fetch member data from the server
-                // For demonstration, we'll use sample data
-                const memberData = {
-                    1: {
-                        firstName: "John",
-                        lastName: "Smith",
-                        email: "john.smith@example.com",
-                        phone: "+1 (555) 123-4567",
-                        programId: "1",
-                        programName: "Strength Training",
-                        coachId: "1",
-                        isActive: true,
-                        comorbidities: [],
-                        // Add subscription and payment details (for display only)
-                        subscriptionId: "2",
-                        subscriptionName: "Quarterly Plan - ₱4,000",
-                        startDate: "2023-10-15",
-                        endDate: "2024-01-13", // 90 days from start
-                        paymentMethod: "Cash"
-                    },
-                    2: {
-                        firstName: "Jane",
-                        lastName: "Doe",
-                        email: "jane.doe@example.com",
-                        phone: "+1 (555) 987-6543",
-                        programId: "2",
-                        programName: "Cardio",
-                        coachId: "3",
-                        isActive: true,
-                        comorbidities: ["4"], // Asthma
-                        // Add subscription and payment details (for display only)
-                        subscriptionId: "1",
-                        subscriptionName: "Monthly Plan - ₱1,500",
-                        startDate: "2023-11-01",
-                        endDate: "2023-12-01", // 30 days from start
-                        paymentMethod: "GCash"
-                    }
-                };
-                
-                // Get the member data
-                const member = memberData[id];
-                
-                if (member) {
-                    // Set member ID in the form
-                    document.getElementById('memberId').value = id;
-                    
-                    // Update modal title and add edit indicator
-                    document.getElementById('modalTitle').textContent = 'Edit Member';
-                    document.getElementById('modalIcon').className = 'fas fa-user-edit text-xl';
-                    
-                    // Set form values
-                    document.getElementById('firstName').value = member.firstName;
-                    document.getElementById('lastName').value = member.lastName;
-                    document.getElementById('email').value = member.email;
-                    document.getElementById('phoneNumber').value = member.phone;
-                    
-                    // Set program and trigger change event to load coaches
-                    const programSelect = document.getElementById('program');
-                    programSelect.value = member.programId;
-                    
-                    // Dispatch change event to load coaches
-                    const event = new Event('change');
-                    programSelect.dispatchEvent(event);
-                    
-                    // Set coach (with a slight delay to ensure coaches are loaded)
-                    setTimeout(() => {
-                        const coachSelect = document.getElementById('coach');
-                        coachSelect.value = member.coachId;
-                    }, 100);
-                    
-                    // Handle subscription section for edit mode - make read-only
-                    toggleSubscriptionEditMode(true, member);
-                    
-                    // Set status
-                    document.getElementById('status').checked = member.isActive;
-                    const statusLabel = document.getElementById('statusLabel');
-                    if (member.isActive) {
-                        statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
-                        statusLabel.classList.remove('text-red-600');
-                        statusLabel.classList.add('text-green-600');
-                    } else {
-                        statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
-                        statusLabel.classList.remove('text-green-600');
-                        statusLabel.classList.add('text-red-600');
-                    }
-                    
-                    // Set comorbidities
-                    const comorbidities = document.getElementById('comorbidities');
-                    // Reset selection
-                    for (let i = 0; i < comorbidities.options.length; i++) {
-                        comorbidities.options[i].selected = false;
-                    }
-                    // Set selected comorbidities
-                    member.comorbidities.forEach(comorbidity => {
-                        for (let i = 0; i < comorbidities.options.length; i++) {
-                            if (comorbidities.options[i].value === comorbidity) {
-                                comorbidities.options[i].selected = true;
+                // Fetch member data from the database instead of static data
+                fetch(`/api/members/${id}`)
+                    .then(response => response.json())
+                    .then(member => {
+                        if (member) {
+                            // Rest of the edit member logic remains the same
+                            document.getElementById('memberId').value = id;
+                            document.getElementById('modalTitle').textContent = 'Edit Member';
+                            document.getElementById('modalIcon').className = 'fas fa-user-edit text-xl';
+                            
+                            // Populate form fields with member data
+                            document.getElementById('firstName').value = member.firstName;
+                            document.getElementById('lastName').value = member.lastName;
+                            document.getElementById('email').value = member.email;
+                            document.getElementById('phoneNumber').value = member.phone;
+                            
+                            // Set program and trigger change event to load coaches
+                            const programSelect = document.getElementById('program');
+                            programSelect.value = member.programId;
+                            
+                            // Dispatch change event to load coaches
+                            const event = new Event('change');
+                            programSelect.dispatchEvent(event);
+                            
+                            // Set coach (with a slight delay to ensure coaches are loaded)
+                            setTimeout(() => {
+                                const coachSelect = document.getElementById('coach');
+                                coachSelect.value = member.coachId;
+                            }, 100);
+                            
+                            // Handle subscription section for edit mode - make read-only
+                            toggleSubscriptionEditMode(true, member);
+                            
+                            // Set status
+                            document.getElementById('status').checked = member.isActive;
+                            const statusLabel = document.getElementById('statusLabel');
+                            if (member.isActive) {
+                                statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                                statusLabel.classList.remove('text-red-600');
+                                statusLabel.classList.add('text-green-600');
+                            } else {
+                                statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                                statusLabel.classList.remove('text-green-600');
+                                statusLabel.classList.add('text-red-600');
                             }
+                            
+                            // Set comorbidities
+                            const comorbidities = document.getElementById('comorbidities');
+                            // Reset selection
+                            for (let i = 0; i < comorbidities.options.length; i++) {
+                                comorbidities.options[i].selected = false;
+                            }
+                            // Set selected comorbidities
+                            member.comorbidities.forEach(comorbidity => {
+                                for (let i = 0; i < comorbidities.options.length; i++) {
+                                    if (comorbidities.options[i].value === comorbidity) {
+                                        comorbidities.options[i].selected = true;
+                                    }
+                                }
+                            });
+                            
+                            // Show the modal
+                            document.getElementById('memberModal').classList.remove('hidden');
+                            document.body.classList.add('overflow-hidden');
+                            
+                            // Store the initial state of the form after populating it
+                            // and reset the form dirty state since we're just loading data
+                            setTimeout(() => {
+                                captureFormState();
+                                isFormDirty = false;
+                            }, 200);
                         }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching member data:', error);
+                        showToast('Error loading member data', false);
                     });
-                    
-                    // Show the modal
-                    document.getElementById('memberModal').classList.remove('hidden');
-                    document.body.classList.add('overflow-hidden');
-                    
-                    // Store the initial state of the form after populating it
-                    // and reset the form dirty state since we're just loading data
-                    setTimeout(() => {
-                        captureFormState();
-                        isFormDirty = false;
-                    }, 200);
-                }
             }
+        }
+        
+        // Add this function at the top level of your script section
+        function toggleSubscriptionEditMode(isEdit, memberData) {
+            // Get subscription elements
+            const subscriptionType = document.getElementById('subscriptionType');
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            const paymentMethod = document.getElementById('paymentMethod');
+            const subscriptionStatus = document.getElementById('subscriptionStatus');
+            const subscriptionSummary = document.getElementById('subscriptionSummary');
+            const subscriptionPrice = document.getElementById('subscriptionPrice');
             
-            // Toggle subscription and payment fields for edit mode
-            function toggleSubscriptionEditMode(isEdit, memberData) {
-                // Get subscription elements
-                const subscriptionType = document.getElementById('subscriptionType');
-                const startDate = document.getElementById('startDate');
-                const endDate = document.getElementById('endDate');
-                const paymentMethod = document.getElementById('paymentMethod');
-                const subscriptionStatus = document.getElementById('subscriptionStatus');
-                const subscriptionSummary = document.getElementById('subscriptionSummary');
-                const subscriptionPrice = document.getElementById('subscriptionPrice');
+            if (isEdit) {
+                // Set subscription display info can't be edited
+                const start = new Date(memberData.startDate);
+                const end = new Date(memberData.endDate);
                 
-                if (isEdit) {
-                    // Set subscription display info
-                    const start = new Date(memberData.startDate);
-                    const end = new Date(memberData.endDate);
-                    
-                    // Disable the subscription fields
-                    subscriptionType.disabled = true;
-                    subscriptionType.classList.add('bg-gray-100');
-                    startDate.readOnly = true;
-                    startDate.classList.add('bg-gray-100');
-                    paymentMethod.disabled = true;
-                    paymentMethod.classList.add('bg-gray-100');
-                    
-                    // Show subscription info in read-only mode
-                    subscriptionStatus.classList.remove('hidden');
-                    
-                    // Add an info note that subscription can't be edited
-                    const infoNote = document.createElement('div');
-                    infoNote.id = 'subscriptionEditInfo';
-                    infoNote.className = 'mt-2 p-3 bg-yellow-50 rounded-md border border-yellow-100 text-sm text-yellow-800';
-                    infoNote.innerHTML = `
-                        <div class="flex items-start">
-                            <i class="fas fa-info-circle mt-0.5 mr-2"></i>
-                            <div>
-                                <p class="font-medium">Subscription Information</p>
-                                <p class="text-xs mt-1">Subscription and payment details cannot be modified in edit mode. To change a subscription, please create a new transaction in the Transactions section.</p>
-                            </div>
+                // Disable the subscription fields
+                subscriptionType.disabled = true;
+                subscriptionType.classList.add('bg-gray-100');
+                startDate.readOnly = true;
+                startDate.classList.add('bg-gray-100');
+                paymentMethod.disabled = true;
+                paymentMethod.classList.add('bg-gray-100');
+                
+                // Show subscription info in read-only mode
+                subscriptionStatus.classList.remove('hidden');
+                
+                // Add an info note that subscription can't be edited
+                const infoNote = document.createElement('div');
+                infoNote.id = 'subscriptionEditInfo';
+                infoNote.className = 'mt-2 p-3 bg-yellow-50 rounded-md border border-yellow-100 text-sm text-yellow-800';
+                infoNote.innerHTML = `
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle mt-0.5 mr-2"></i>
+                        <div>
+                            <p class="font-medium">Subscription Information</p>
+                            <p class="text-xs mt-1">Subscription and payment details cannot be modified in edit mode. To change a subscription, please create a new transaction in the Transactions section.</p>
                         </div>
-                    `;
-                    
-                    // Add the note after the subscription section if it doesn't exist yet
-                    if (!document.getElementById('subscriptionEditInfo')) {
-                        subscriptionStatus.parentNode.insertBefore(infoNote, subscriptionStatus.nextSibling);
-                    }
-                    
-                    // Set values for display
-                    startDate.value = memberData.startDate;
-                    endDate.value = memberData.endDate;
-                    
-                    // Set subscription plan and payment method for display
-                    for (let i = 0; i < subscriptionType.options.length; i++) {
-                        if (subscriptionType.options[i].value === memberData.subscriptionId) {
-                            subscriptionType.selectedIndex = i;
-                            break;
-                        }
-                    }
-                    
-                    for (let i = 0; i < paymentMethod.options.length; i++) {
-                        if (paymentMethod.options[i].text === memberData.paymentMethod) {
-                            paymentMethod.selectedIndex = i;
-                            break;
-                        }
-                    }
-                    
-                    // Update the summary
-                    subscriptionSummary.textContent = `${memberData.subscriptionName} from ${formatDate(start)} to ${formatDate(end)}`;
-                    subscriptionPrice.textContent = `Payment Method: ${memberData.paymentMethod}`;
-                } else {
-                    // Enable fields for new member
-                    subscriptionType.disabled = false;
-                    subscriptionType.classList.remove('bg-gray-100');
-                    startDate.readOnly = false;
-                    startDate.classList.remove('bg-gray-100');
-                    paymentMethod.disabled = false;
-                    paymentMethod.classList.remove('bg-gray-100');
-                    
-                    // Reset values
-                    subscriptionType.selectedIndex = 0;
-                    startDate.value = '';
-                    endDate.value = '';
-                    paymentMethod.selectedIndex = 0;
-                    
-                    // Set today's date for start date
-                    const today = new Date();
-                    startDate.value = today.toISOString().split('T')[0];
-                    
-                    // Hide subscription summary
-                    subscriptionStatus.classList.add('hidden');
-                    
-                    // Remove info note if exists
-                    const infoNote = document.getElementById('subscriptionEditInfo');
-                    if (infoNote) {
-                        infoNote.remove();
+                    </div>
+                `;
+                
+                // Add the note after the subscription section if it doesn't exist yet
+                if (!document.getElementById('subscriptionEditInfo')) {
+                    subscriptionStatus.parentNode.insertBefore(infoNote, subscriptionStatus.nextSibling);
+                }
+                
+                // Set values for display
+                startDate.value = memberData.startDate;
+                endDate.value = memberData.endDate;
+                
+                // Set subscription plan and payment method for display
+                for (let i = 0; i < subscriptionType.options.length; i++) {
+                    if (subscriptionType.options[i].value === memberData.subscriptionId) {
+                        subscriptionType.selectedIndex = i;
+                        break;
                     }
                 }
+                
+                for (let i = 0; i < paymentMethod.options.length; i++) {
+                    if (paymentMethod.options[i].text === memberData.paymentMethod) {
+                        paymentMethod.selectedIndex = i;
+                        break;
+                    }
+                }
+                
+                // Update the summary
+                subscriptionSummary.textContent = `${memberData.subscriptionName} from ${formatDate(start)} to ${formatDate(end)}`;
+                subscriptionPrice.textContent = `Payment Method: ${memberData.paymentMethod}`;
+            } else {
+                // Enable fields for new member
+                subscriptionType.disabled = false;
+                subscriptionType.classList.remove('bg-gray-100');
+                startDate.readOnly = false;
+                startDate.classList.remove('bg-gray-100');
+                paymentMethod.disabled = false;
+                paymentMethod.classList.remove('bg-gray-100');
+                
+                // Reset values
+                subscriptionType.selectedIndex = 0;
+                startDate.value = '';
+                endDate.value = '';
+                paymentMethod.selectedIndex = 0;
+                
+                // Set today's date for start date
+                const today = new Date();
+                startDate.value = today.toISOString().split('T')[0];
+                
+                // Hide subscription summary
+                subscriptionStatus.classList.add('hidden');
+                
+                // Remove info note if exists
+                const infoNote = document.getElementById('subscriptionEditInfo');
+                if (infoNote) {
+                    infoNote.remove();
+                }
+            }
+        }
+        
+        // ...existing initialization code...
+        
+        // Helper function to format date
+        function formatDate(date) {
+            return date.toLocaleDateString('en-PH', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Add this after your existing DOMContentLoaded event listener
+        document.addEventListener('DOMContentLoaded', function() {
+            // ...existing initialization code...
+            
+            // Initialize the program filter dropdown
+            initProgramFilter();
+            
+            // Load members when page loads
+            loadMembers();
+        });
+
+        // Global variable to track current program filter
+        let currentProgramFilter = '';
+        let currentSearchTerm = '';
+
+        // Add function to initialize program filter
+        function initProgramFilter() {
+            const programFilter = document.getElementById('programFilter');
+            const searchInput = document.getElementById('searchMembers');
+            
+            // Load available programs from database
+            fetch('../../api/programs/get-all.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Clear existing options except the first one
+                        while (programFilter.options.length > 1) {
+                            programFilter.remove(1);
+                        }
+                        
+                        // Add program options
+                        data.programs.forEach(program => {
+                            const option = document.createElement('option');
+                            option.value = program.PROGRAM_ID;
+                            option.textContent = program.PROGRAM_NAME;
+                            programFilter.appendChild(option);
+                        });
+                    } else {
+                        console.error('Error loading programs');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            
+            // Add event listener to program filter dropdown
+            programFilter.addEventListener('change', function() {
+                currentProgramFilter = this.value;
+                loadMembers();
+            });
+            
+            // Add event listener to search input
+            searchInput.addEventListener('input', function() {
+                currentSearchTerm = this.value.trim();
+                loadMembers();
+            });
+        }
+
+        // Modify the loadMembers function to support filtering
+        function loadMembers() {
+            const tableBody = document.getElementById('memberTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const loadingState = document.getElementById('loadingState');
+            const tableContainer = document.getElementById('membersTable').closest('.overflow-x-auto');
+            
+            // Show loading state
+            loadingState.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            tableContainer.classList.add('hidden');
+            
+            // Construct URL with filters
+            let url = '../../api/members/get-all.php';
+            const params = [];
+            
+            if (currentProgramFilter) {
+                params.push(`program_id=${currentProgramFilter}`);
             }
             
-            // Helper function to format date
-            function formatDate(date) {
-                return date.toLocaleDateString('en-PH', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
+            if (currentSearchTerm) {
+                params.push(`search=${encodeURIComponent(currentSearchTerm)}`);
             }
+            
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (data.members.length > 0) {
+                            // Clear existing table content
+                            tableBody.innerHTML = '';
+                            
+                            // Add members to table
+                            data.members.forEach(member => {
+                                const row = document.createElement('tr');
+                                const initials = `${member.MEMBER_FNAME[0]}${member.MEMBER_LNAME[0]}`;
+                                
+                                row.innerHTML = `
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-8 w-8 bg-primary-light rounded-full flex items-center justify-center text-white text-xs">
+                                                ${initials}
+                                            </div>
+                                            <div class="ml-3">
+                                                <div class="text-sm font-medium text-gray-900">
+                                                    ${member.MEMBER_FNAME} ${member.MEMBER_LNAME}
+                                                </div>
+                                                <div class="text-xs text-gray-500">Joined ${formatDate(new Date(member.JOINED_DATE))}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">${member.EMAIL}</div>
+                                        <div class="text-sm text-gray-500">${member.PHONE_NUMBER}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                            ${member.PROGRAM_NAME}
+                                        </span>
+                                        <div class="text-xs text-gray-500 mt-1">Coach: ${member.COACH_NAME || 'Not Assigned'}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${member.IS_ACTIVE == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                            ${member.IS_ACTIVE == 1 ? 'Active' : 'Inactive'}
+                                        </span>
+                                        <div class="text-xs text-gray-500 mt-1">${member.SUB_NAME || 'No subscription'}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                                        <div class="flex space-x-2 justify-center">
+                                            <button onclick="handleViewMember(${member.MEMBER_ID})" class="text-primary-dark hover:text-primary-light view-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200">
+                                                <i class="fas fa-eye text-lg"></i>
+                                            </button>
+                                            <button onclick="handleEditMember(${member.MEMBER_ID})" class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200">
+                                                <i class="fas fa-edit text-lg"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                `;
+                                tableBody.appendChild(row);
+                            });
+                            
+                            // Show table, hide empty state
+                            emptyState.classList.add('hidden');
+                            tableContainer.classList.remove('hidden');
+                        } else {
+                            // If no members found after filtering
+                            const emptyStateMessage = document.getElementById('emptyStateMessage');
+                            if (currentProgramFilter) {
+                                emptyStateMessage.textContent = `No members found for the selected program. Try another program or clear filters.`;
+                            } else {
+                                emptyStateMessage.textContent = `No members found. Add members to get started.`;
+                            }
+                            emptyState.classList.remove('hidden');
+                            tableContainer.classList.add('hidden');
+                        }
+                    } else {
+                        showToast('Failed to load members', false);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error loading members', false);
+                })
+                .finally(() => {
+                    // Hide loading state
+                    loadingState.classList.add('hidden');
+                });
+        }
+
+        // Add these global functions for handling button clicks
+        function handleViewMember(memberId) {
+            // Close edit modal if it's open
+            const memberModal = document.getElementById('memberModal');
+            if (!memberModal.classList.contains('hidden')) {
+                memberModal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }
+            
+            fetch(`../../api/members/view.php?id=${memberId}`)
+                .then(response => response.json())
+                .then(member => {
+                    if (member) {
+                        document.getElementById('viewMemberName').textContent = `${member.MEMBER_FNAME} ${member.MEMBER_LNAME}`;
+                        document.getElementById('viewFullName').textContent = `${member.MEMBER_FNAME} ${member.MEMBER_LNAME}`;
+                        document.getElementById('viewEmail').textContent = member.EMAIL;
+                        document.getElementById('viewPhone').textContent = member.PHONE_NUMBER;
+                        document.getElementById('viewJoinDate').textContent = formatDate(new Date(member.JOINED_DATE));
+                        document.getElementById('viewProgramDetail').textContent = member.PROGRAM_NAME;
+                        document.getElementById('viewCoach').textContent = member.COACH_NAME || 'Not Assigned';
+                        
+                        // Set status
+                        const viewStatus = document.getElementById('viewStatus');
+                        if (member.IS_ACTIVE == 1) {
+                            viewStatus.innerHTML = `
+                                <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i> Active
+                                </span>
+                            `;
+                        } else {
+                            viewStatus.innerHTML = `
+                                <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                                    <i class="fas fa-times-circle mr-1"></i> Inactive
+                                </span>
+                            `;
+                        }
+                        
+                        // Set Edit Member button to pass the correct member ID
+                        const viewEditButton = document.getElementById('viewEditButton');
+                        viewEditButton.setAttribute('data-id', memberId);
+                        
+                        // Add event listener to the Edit Member button
+                        viewEditButton.onclick = function() {
+                            // Close view modal
+                            document.getElementById('viewMemberModal').classList.add('hidden');
+                            // Open edit modal with this member ID
+                            handleEditMember(memberId);
+                        };
+                        
+                        // Set subscription details
+                        if (member.SUB_NAME) {
+                            document.getElementById('viewSubscriptionPlan').textContent = member.SUB_NAME;
+                            
+                            // Format subscription period from START_DATE and END_DATE
+                            if (member.START_DATE && member.END_DATE) {
+                                const startDate = new Date(member.START_DATE);
+                                const endDate = new Date(member.END_DATE);
+                                document.getElementById('viewSubscriptionPeriod').textContent = 
+                                    `${formatDate(startDate)} - ${formatDate(endDate)}`;
+                            } else {
+                                document.getElementById('viewSubscriptionPeriod').textContent = 'No active subscription';
+                            }
+                        } else {
+                            document.getElementById('viewSubscriptionPlan').textContent = 'No subscription plan';
+                            document.getElementById('viewSubscriptionPeriod').textContent = 'N/A';
+                        }
+                        
+                        // Add event listeners for closing the modal
+                        const viewCloseButton = document.getElementById('viewCloseButton');
+                        const closeViewModal = document.getElementById('closeViewModal');
+                        const viewMemberModal = document.getElementById('viewMemberModal');
+                        
+                        // Function to close view modal
+                        const closeViewModalHandler = () => {
+                            viewMemberModal.classList.add('hidden');
+                            document.body.classList.remove('overflow-hidden');
+                        };
+                        
+                        // Remove existing event listeners if any
+                        viewCloseButton.removeEventListener('click', closeViewModalHandler);
+                        closeViewModal.removeEventListener('click', closeViewModalHandler);
+                        
+                        // Add event listeners
+                        viewCloseButton.addEventListener('click', closeViewModalHandler);
+                        closeViewModal.addEventListener('click', closeViewModalHandler);
+                        
+                        // Show the view modal
+                        viewMemberModal.classList.remove('hidden');
+                        document.body.classList.add('overflow-hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error loading member details', false);
+                });
+        }
+
+        // Consolidated handleEditMember function (remove duplicate implementations)
+        function handleEditMember(memberId) {
+            // First close the view modal if it's open
+            const viewModal = document.getElementById('viewMemberModal');
+            if (!viewModal.classList.contains('hidden')) {
+                viewModal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }
+            
+            fetch(`../../api/members/view.php?id=${memberId}`)
+                .then(response => response.json())
+                .then(member => {
+                    if (member) {
+                        // Set basic info
+                        document.getElementById('memberId').value = memberId;
+                        document.getElementById('firstName').value = member.MEMBER_FNAME;
+                        document.getElementById('lastName').value = member.MEMBER_LNAME;
+                        document.getElementById('email').value = member.EMAIL;
+                        document.getElementById('phoneNumber').value = member.PHONE_NUMBER;
+                        
+                        // Set program
+                        const programSelect = document.getElementById('program');
+                        programSelect.value = member.PROGRAM_ID;
+                        
+                        // Update coach dropdown with available coaches
+                        const coachSelect = document.getElementById('coach');
+                        coachSelect.innerHTML = '<option value="">Select Coach</option>';
+                        
+                        if (member.available_coaches && member.available_coaches.length > 0) {
+                            member.available_coaches.forEach(coach => {
+                                const option = document.createElement('option');
+                                option.value = coach.COACH_ID;
+                                const genderIcon = coach.GENDER === 'MALE' ? '♂' : '♀';
+                                option.textContent = `${coach.COACH_FNAME} ${coach.COACH_LNAME} ${genderIcon}`;
+                                coachSelect.appendChild(option);
+                            });
+                        } else {
+                            // Fallback for when coaches aren't provided by the API
+                            const option = document.createElement('option');
+                            option.value = "1";  // Default coach ID
+                            option.textContent = "Default Coach";
+                            coachSelect.appendChild(option);
+                        }
+                        
+                        // Set selected coach
+                        if (member.COACH_ID) {
+                            setTimeout(() => {
+                                coachSelect.value = member.COACH_ID;
+                            }, 100);
+                        }
+                        
+                        // Set subscription details
+                        const subscriptionType = document.getElementById('subscriptionType');
+                        if (member.SUB_ID) {
+                            subscriptionType.value = member.SUB_ID;
+                            document.getElementById('startDate').value = member.START_DATE;
+                            document.getElementById('endDate').value = member.END_DATE;
+                        }
+
+                        // Set payment method
+                        if (member.PAYMENT_ID) {
+                            document.getElementById('paymentMethod').value = member.PAYMENT_ID;
+                        }
+
+                        // Set comorbidities if available
+                        if (member.comorbidities) {
+                            const comorbidities = document.getElementById('comorbidities');
+                            // Reset all selections first
+                            Array.from(comorbidities.options).forEach(option => {
+                                option.selected = false;
+                            });
+                            // Set selected comorbidities
+                            member.comorbidities.forEach(comorbidityId => {
+                                Array.from(comorbidities.options).forEach(option => {
+                                    if (option.value == comorbidityId) {
+                                        option.selected = true;
+                                    }
+                                });
+                            });
+                        }
+
+                        // Set status
+                        document.getElementById('status').checked = member.IS_ACTIVE == 1;
+                        const statusLabel = document.getElementById('statusLabel');
+                        if (member.IS_ACTIVE == 1) {
+                            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                            statusLabel.classList.remove('text-red-600');
+                            statusLabel.classList.add('text-green-600');
+                        } else {
+                            statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                            statusLabel.classList.remove('text-green-600');
+                            statusLabel.classList.add('text-red-600');
+                        }
+
+                        // Update subscription summary if exists
+                        if (member.SUB_NAME) {
+                            document.getElementById('subscriptionStatus').classList.remove('hidden');
+                            document.getElementById('subscriptionSummary').textContent = 
+                                `${member.SUB_NAME} from ${formatDate(new Date(member.START_DATE))} to ${formatDate(new Date(member.END_DATE))}`;
+                        }
+
+                        // Disable program, coach and subscription fields when editing
+                        document.getElementById('program').disabled = true;
+                        document.getElementById('program').classList.add('bg-gray-100', 'cursor-not-allowed');
+                        document.getElementById('coach').disabled = true;
+                        document.getElementById('coach').classList.add('bg-gray-100', 'cursor-not-allowed');
+                        document.getElementById('subscriptionType').disabled = true;
+                        document.getElementById('subscriptionType').classList.add('bg-gray-100', 'cursor-not-allowed');
+                        document.getElementById('startDate').readOnly = true;
+                        document.getElementById('startDate').classList.add('bg-gray-100', 'cursor-not-allowed');
+                        document.getElementById('endDate').readOnly = true;
+                        document.getElementById('endDate').classList.add('bg-gray-100', 'cursor-not-allowed');
+                        document.getElementById('paymentMethod').disabled = true;
+                        document.getElementById('paymentMethod').classList.add('bg-gray-100', 'cursor-not-allowed');
+
+                        // Add info message about non-editable fields
+                        const programContainer = document.getElementById('program').closest('div').parentNode;
+                        if (!document.getElementById('programEditInfo')) {
+                            const infoNote = document.createElement('div');
+                            infoNote.id = 'programEditInfo';
+                            infoNote.className = 'mt-3 p-3 bg-blue-50 rounded-md border border-blue-100 text-sm text-blue-800';
+                            infoNote.innerHTML = `
+                                <div class="flex items-start">
+                                    <i class="fas fa-info-circle mt-0.5 mr-2"></i>
+                                    <div>
+                                        <p class="font-medium">Program & Coach Information</p>
+                                        <p class="text-xs mt-1">Program and coach selections cannot be modified. To change these, please create a new member record.</p>
+                                    </div>
+                                </div>
+                            `;
+                            programContainer.appendChild(infoNote);
+                        }
+
+                        // Add info message about non-editable subscription
+                        const subscriptionContainer = document.getElementById('subscriptionType').closest('div').parentNode;
+                        if (!document.getElementById('subscriptionEditInfo')) {
+                            const infoNote = document.createElement('div');
+                            infoNote.id = 'subscriptionEditInfo';
+                            infoNote.className = 'mt-3 p-3 bg-yellow-50 rounded-md border border-yellow-100 text-sm text-yellow-800';
+                            infoNote.innerHTML = `
+                                <div class="flex items-start">
+                                    <i class="fas fa-info-circle mt-0.5 mr-2"></i>
+                                    <div>
+                                        <p class="font-medium">Subscription Information</p>
+                                        <p class="text-xs mt-1">Subscription plan details cannot be modified in edit mode. To change a subscription, please use the Transaction section.</p>
+                                    </div>
+                                </div>
+                            `;
+                            subscriptionContainer.appendChild(infoNote);
+                        }
+
+                        // Show edit modal with appropriate title
+                        document.getElementById('modalTitle').textContent = 'Edit Member';
+                        document.getElementById('modalIcon').className = 'fas fa-user-edit text-xl';
+                        document.getElementById('memberModal').classList.remove('hidden');
+                        document.body.classList.add('overflow-hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error loading member details', false);
+                });
         }
     </script>
 </body>

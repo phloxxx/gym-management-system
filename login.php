@@ -1,3 +1,77 @@
+<?php
+session_start();
+require_once 'config/db_connection.php';
+
+// Handle login form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
+    $role = $_POST['role'] ?? '';
+    
+    // Debug logging
+    error_log("Login attempt - Username: $username, Role: $role");
+    error_log("Raw POST data: " . print_r($_POST, true));
+
+    if (empty($username) || empty($password) || empty($role)) {
+        $response = [
+            'success' => false,
+            'message' => 'All fields are required'
+        ];
+    } else {
+        try {
+            $conn = getConnection();
+            
+            // Query to check user credentials directly from database
+            $stmt = $conn->prepare("SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE, IS_ACTIVE 
+                                  FROM user 
+                                  WHERE USERNAME = ? 
+                                  AND PASSWORD = ? 
+                                  AND USER_TYPE = ?
+                                  AND IS_ACTIVE = 1");
+            $stmt->bind_param("sss", $username, $password, $role);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $user = $result->fetch_assoc();
+            
+            if ($user) {
+                $_SESSION['user_id'] = $user['USER_ID'];
+                $_SESSION['username'] = $user['USERNAME'];
+                $_SESSION['role'] = strtolower($user['USER_TYPE']);
+                $_SESSION['name'] = $user['USER_FNAME'] . ' ' . $user['USER_LNAME'];
+                
+                $redirect = ($user['USER_TYPE'] === 'ADMINISTRATOR') 
+                    ? 'user/admin/admin-dashboard.php'
+                    : 'user/staff/staff-dashboard.php';
+                
+                $response = [
+                    'success' => true,
+                    'message' => 'Login successful',
+                    'redirect' => $redirect
+                ];
+            } else {
+                $response = [
+                    'success' => false,
+                    'message' => 'Invalid username, password, or role'
+                ];
+            }
+            
+            $stmt->close();
+            $conn->close();
+            
+        } catch(Exception $e) {
+            error_log("Login error: " . $e->getMessage());
+            $response = [
+                'success' => false,
+                'message' => 'Database error occurred'
+            ];
+        }
+    }
+
+    header('Content-Type: application/json');
+    echo json_encode($response);
+    exit();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -50,11 +124,9 @@
         </div>
 
         <!-- Right Panel - Login Form -->
-        <div class="w-full md:w-2/5 flex items-center justify-center bg-gray-50 p-5">
-            <div class="w-full max-w-md">
-                <!-- Login Card -->
-                <div class="bg-white rounded-xl shadow-md p-8">
-                    <!-- Mobile Logo - Only visible on small screens -->
+        <div class="w-full md:w-2/5 flex flex-col items-center justify-center bg-gray-50 p-5">
+            <div class="w-full max-w-md flex-grow flex items-center">
+                <div class="w-full">
                     <div class="flex justify-center mb-6 md:hidden">
                         <div class="logo-organic-container">
                             <div class="organic-splash-effect"></div>
@@ -71,23 +143,23 @@
                     <div class="mb-5">
                         <h3 class="text-sm font-medium uppercase text-primary-dark tracking-wide mb-2">Select Your Role</h3>
                         <div class="grid grid-cols-2 gap-3">
-                            <!-- Admin Role -->
+                            <!-- Admin Role (Updated data-role) -->
                             <div class="role-card cursor-pointer bg-white border-2 border-tertiary/30 rounded-lg py-3 px-4 hover:border-primary-light transition-all duration-300 shadow-sm" 
-                                 data-role="admin" 
+                                 data-role="ADMINISTRATOR" 
                                  onclick="selectRole(this)">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 bg-tertiary/10 p-2 rounded-full">
                                         <i class="fas fa-user-shield text-base text-primary-dark"></i>
                                     </div>
                                     <div class="ml-3">
-                                        <p class="font-medium text-primary-dark text-sm">Admin</p>
+                                        <p class="font-medium text-primary-dark text-sm">Administrator</p>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Staff Role -->
                             <div class="role-card cursor-pointer bg-white border-2 border-tertiary/30 rounded-lg py-3 px-4 hover:border-primary-light transition-all duration-300 shadow-sm" 
-                                 data-role="staff" 
+                                 data-role="STAFF" 
                                  onclick="selectRole(this)">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 bg-tertiary/10 p-2 rounded-full">
@@ -150,30 +222,17 @@
                         </div>
                     </form>
                 </div>
-                
-                <!-- Version Info -->
-                <div class="text-center mt-4 text-xs text-gray-500">
-                    <p>Gymaster v1.0 • © 2024 All rights reserved.</p>
-                </div>
+            </div>
+            
+            <!-- Version Info - Moved to bottom of panel -->
+            <div class="w-full text-center mt-4">
+                <p class="text-xs text-gray-500">Gymaster v1.0 • © 2024 All rights reserved.</p>
             </div>
         </div>
     </div>
-
     <script>
         // Global variable to track selected role
         let selectedRole = null;
-
-        // Static accounts for demo purposes
-        const accounts = {
-            admin: {
-                username: "admin",
-                password: "admin123"
-            },
-            staff: {
-                username: "staff",
-                password: "staff123"
-            }
-        };
 
         function selectRole(element) {
             // Remove active class from all role cards
@@ -185,12 +244,10 @@
             // Add active class to selected card
             element.classList.remove('border-tertiary/30');
             element.classList.add('border-primary-light', 'bg-tertiary/20');
-            
-            // Update selected role
+
+            // Update selected role - use the exact value from data-role
             selectedRole = element.getAttribute('data-role');
-            
-            // Hide role error if it was displayed
-            document.getElementById('role-error').classList.add('hidden');
+            console.log('Selected role:', selectedRole); // Debug log
         }
 
         function togglePasswordVisibility() {
@@ -311,60 +368,42 @@
             }, 2000);
         }
 
+        // Replace the static accounts object with actual AJAX call
         function attemptLogin() {
-            try {
-                if (validateForm()) {
-                    const username = document.getElementById('username').value;
-                    const password = document.getElementById('password').value;
-                    
-                    // Check if credentials match the static accounts based on selected role
-                    if (selectedRole === 'admin' && 
-                        username === accounts.admin.username && 
-                        password === accounts.admin.password) {
-                        showLoginSuccess('admin');
-                    } else if (selectedRole === 'staff' && 
-                              username === accounts.staff.username && 
-                              password === accounts.staff.password) {
-                        showLoginSuccess('staff');
+            if (validateForm()) {
+                const formData = new FormData();
+                formData.append('username', document.getElementById('username').value);
+                formData.append('password', document.getElementById('password').value);
+                formData.append('role', selectedRole);
+
+                console.log('Login attempt - Role:', selectedRole); // Debug log
+
+                fetch('login.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update success message to show proper role name
+                        const roleDisplay = selectedRole.toLowerCase() === 'administrator' ? 'administrator' : 'staff';
+                        showLoginSuccess(roleDisplay);
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 2000);
                     } else {
-                        // Show detailed errors for credential issues
-                        if (selectedRole === 'admin') {
-                            if (username !== accounts.admin.username) {
-                                showError("Admin username not recognized. Please check your spelling.");
-                            } else if (password !== accounts.admin.password) {
-                                showError("Incorrect password for admin account. Please try again.");
-                            } else {
-                                showError("Invalid admin credentials.");
-                            }
-                        } else if (selectedRole === 'staff') {
-                            if (username !== accounts.staff.username) {
-                                showError("Staff username not recognized. Please check your spelling.");
-                            } else if (password !== accounts.staff.password) {
-                                showError("Incorrect password for staff account. Please try again.");
-                            } else {
-                                showError("Invalid staff credentials.");
-                            }
-                        }
-                        
-                        // Shake the form to indicate error
+                        showError(data.message);
                         const loginForm = document.getElementById('login-form');
                         loginForm.classList.add('shake-animation');
                         setTimeout(() => {
                             loginForm.classList.remove('shake-animation');
                         }, 500);
-                        
-                        // Highlight the problematic field based on the error
-                        if (selectedRole === 'admin' && username !== accounts.admin.username ||
-                            selectedRole === 'staff' && username !== accounts.staff.username) {
-                            highlightErrorField('username');
-                        } else {
-                            highlightErrorField('password');
-                        }
                     }
-                }
-            } catch (error) {
-                console.error("Login error:", error);
-                showError("System error: " + (error.message || "Unknown error occurred during login."));
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('An error occurred during login');
+                });
             }
         }
 
