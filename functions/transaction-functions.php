@@ -380,89 +380,44 @@ function deactivateSubscription($memberId, $subId) {
     $success = false;
     
     try {
-        // Log the parameters for debugging
-        error_log("Deactivating subscription: memberId=$memberId, subId=$subId");
-        
-        // Begin transaction for safety
+        // Start transaction
         $conn->begin_transaction();
         
-        // First verify that the member and subscription exist and are currently active
-        $checkSql = "SELECT * FROM member_subscription 
-                    WHERE MEMBER_ID = ? AND SUB_ID = ? AND IS_ACTIVE = 1";
-        $checkStmt = $conn->prepare($checkSql);
+        // Update the subscription status in member_subscription table
+        $updateSql = "UPDATE member_subscription 
+                      SET IS_ACTIVE = 0 
+                      WHERE MEMBER_ID = ? AND SUB_ID = ? AND IS_ACTIVE = 1";
         
-        if (!$checkStmt) {
-            throw new Exception("Failed to prepare check statement: " . $conn->error);
-        }
-        
-        $checkStmt->bind_param("ii", $memberId, $subId);
-        $checkStmt->execute();
-        $result = $checkStmt->get_result();
-        
-        if ($result->num_rows === 0) {
-            error_log("No active subscription found for member $memberId with subscription ID $subId");
-            // Check if it exists but is already inactive
-            $inactiveSql = "SELECT * FROM member_subscription 
-                           WHERE MEMBER_ID = ? AND SUB_ID = ? AND IS_ACTIVE = 0";
-            $inactiveStmt = $conn->prepare($inactiveSql);
-            $inactiveStmt->bind_param("ii", $memberId, $subId);
-            $inactiveStmt->execute();
-            $inactiveResult = $inactiveStmt->get_result();
-            
-            if ($inactiveResult->num_rows > 0) {
-                // It's already deactivated
-                $conn->commit();
-                return true;
-            }
-            return false; // No subscription found at all
-        }
-        
-        // Update the member_subscription table to deactivate the subscription
-        $sql = "UPDATE member_subscription 
-                SET IS_ACTIVE = 0 
-                WHERE MEMBER_ID = ? AND SUB_ID = ?";
-                
-        $stmt = $conn->prepare($sql);
-        
-        if (!$stmt) {
-            throw new Exception("Failed to prepare update statement: " . $conn->error);
-        }
-        
+        $stmt = $conn->prepare($updateSql);
         $stmt->bind_param("ii", $memberId, $subId);
         $stmt->execute();
         
-        $rowsAffected = $stmt->affected_rows;
-        
-        if ($rowsAffected > 0) {
-            // Log the deactivation in the transaction_log table
-            $logSql = "INSERT INTO transaction_log 
-                      (OPERATION, DESCRIPTION, MODIFIEDDATE) 
-                      VALUES ('DEACTIVATE', ?, CURRENT_DATE())";
-            
-            $description = "Subscription ID: $subId deactivated for Member ID: $memberId";
-            
-            $logStmt = $conn->prepare($logSql);
-            $logStmt->bind_param("s", $description);
-            $logStmt->execute();
-            
+        // Check if any rows were affected
+        if ($stmt->affected_rows > 0) {
             $success = true;
-            error_log("Successfully deactivated subscription for member $memberId, subscription $subId");
-        } else {
-            error_log("No rows affected when deactivating subscription for member $memberId, subscription $subId");
+            
+            // Log the deactivation in transaction_log table
+            $logSql = "INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, MODIFIEDDATE) 
+                       SELECT t.TRANSACTION_ID, 'DEACTIVATED', CURRENT_DATE()
+                       FROM transaction t
+                       WHERE t.MEMBER_ID = ? AND t.SUB_ID = ?
+                       ORDER BY t.TRANSACTION_ID DESC
+                       LIMIT 1";
+                       
+            $logStmt = $conn->prepare($logSql);
+            $logStmt->bind_param("ii", $memberId, $subId);
+            $logStmt->execute();
         }
         
-        // Commit the transaction if everything worked
+        // Commit transaction
         $conn->commit();
         
     } catch (Exception $e) {
-        // Rollback on error
-        if ($conn && $conn->connect_error === null) {
-            $conn->rollback();
-        }
-        error_log("Error deactivating subscription: " . $e->getMessage());
+        // Roll back transaction on error
+        $conn->rollback();
         throw new Exception("Failed to deactivate subscription: " . $e->getMessage());
     } finally {
-        if ($conn && $conn instanceof mysqli) {
+        if ($conn) {
             $conn->close();
         }
     }

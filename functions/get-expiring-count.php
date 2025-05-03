@@ -6,23 +6,26 @@ header('Content-Type: application/json');
 try {
     $conn = getConnection();
     
-    // Query to get count of subscriptions expiring in next 7 days
-    $sql = "SELECT COUNT(*) as count 
+    // Query to count subscriptions expiring in the next 7 days
+    $sql = "SELECT COUNT(*) as expiringCount
             FROM member_subscription 
-            WHERE END_DATE BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL 7 DAY)
-            AND IS_ACTIVE = 1";
+            WHERE IS_ACTIVE = 1 
+            AND END_DATE BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 7 DAY)";
     
     $result = $conn->query($sql);
+    $row = $result->fetch_assoc();
     
-    if ($result) {
-        $row = $result->fetch_assoc();
-        echo json_encode(['count' => $row['count']]);
-    } else {
-        throw new Exception("Error executing query: " . $conn->error);
-    }
+    echo json_encode([
+        'success' => true,
+        'count' => (int)$row['expiringCount']
+    ]);
+
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Error getting expiring count: ' . $e->getMessage(),
+        'count' => 0
+    ]);
 } finally {
     if (isset($conn)) {
         $conn->close();
