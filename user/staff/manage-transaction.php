@@ -549,10 +549,10 @@ $activeSubscriptions = getActiveSubscriptions();
                                 <option value="">Select Subscription</option>
                                 <?php foreach ($subscriptionPlans as $plan): ?>
                                     <option value="<?php echo $plan['SUB_ID']; ?>" 
-                                            data-duration="<?php echo isset($plan['DURATION']) ? $plan['DURATION'] : '30 Days'; ?>" 
+                                            data-duration="<?php echo isset($plan['DURATION']) ? $plan['DURATION'] : '30'; ?>" 
                                             data-price="<?php echo isset($plan['PRICE']) ? $plan['PRICE'] : '0.00'; ?>">
                                         <?php echo htmlspecialchars($plan['SUB_NAME']); ?> 
-                                        (<?php echo isset($plan['DURATION']) ? $plan['DURATION'] : '30 Days'; ?> - 
+                                        (<?php echo isset($plan['DURATION']) ? $plan['DURATION'] : '30'; ?> Days - 
                                         $<?php echo isset($plan['PRICE']) ? $plan['PRICE'] : '0.00'; ?>)
                                     </option>
                                 <?php endforeach; ?>

@@ -1,12 +1,18 @@
 <?php
 header('Content-Type: application/json');
 require_once '../../config/db_connection.php';
+session_start();
 
 // Enable error reporting for debugging
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 try {
+    // Check if user is logged in and has appropriate role
+    if (!isset($_SESSION['user_id']) || (strtolower($_SESSION['role']) !== 'administrator' && strtolower($_SESSION['role']) !== 'staff')) {
+        throw new Exception("Unauthorized access. Please login with appropriate credentials.");
+    }
+
     $conn = getConnection();
     
     // Get POST data and log it
@@ -28,17 +34,8 @@ try {
         }
     }
 
-    // First verify that the user exists
-    $userQuery = "SELECT USER_ID FROM user WHERE USER_ID = ? AND IS_ACTIVE = 1 LIMIT 1";
-    $stmt = $conn->prepare($userQuery);
-    $userId = 1; // Default admin user
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows === 0) {
-        throw new Exception("Invalid user reference. USER_ID not found or inactive.");
-    }
+    // Get the current user ID from session
+    $userId = $_SESSION['user_id'];
     
     // Start transaction
     $conn->begin_transaction();

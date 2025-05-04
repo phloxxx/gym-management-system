@@ -1,8 +1,14 @@
 <?php
 header('Content-Type: application/json');
 require_once '../../config/db_connection.php';
+session_start();
 
 try {
+    // Check if user is logged in and has appropriate role
+    if (!isset($_SESSION['user_id']) || (strtolower($_SESSION['role']) !== 'administrator' && strtolower($_SESSION['role']) !== 'staff')) {
+        throw new Exception("Unauthorized access. Please login with appropriate credentials.");
+    }
+
     // Get member ID from URL parameter
     $memberId = isset($_GET['id']) ? $_GET['id'] : null;
     if (!$memberId) {
@@ -18,7 +24,7 @@ try {
     $conn = getConnection();
     
     // First get current member data to preserve program_id
-    $query = "SELECT PROGRAM_ID FROM member WHERE MEMBER_ID = ?";
+    $query = "SELECT PROGRAM_ID, USER_ID FROM member WHERE MEMBER_ID = ?";
     $stmt = $conn->prepare($query);
     $stmt->bind_param('i', $memberId);
     $stmt->execute();
@@ -29,6 +35,11 @@ try {
     }
     
     $currentMember = $result->fetch_assoc();
+    
+    // For staff members, only allow them to update members they created
+    if (strtolower($_SESSION['role']) === 'staff' && $currentMember['USER_ID'] != $_SESSION['user_id']) {
+        throw new Exception("You are not authorized to modify this member");
+    }
     
     // Update member basic information - but preserve program_id
     $query = "UPDATE member SET 
