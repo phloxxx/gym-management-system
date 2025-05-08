@@ -3810,5 +3810,94 @@ function updateRowAfterDeactivation(row) {
 
 // ...existing code...
 </script>
+<script>
+// Function to handle subscription deactivation
+function deactivateSubscription(memberId, subId, row) {
+    const deactivateButton = row.querySelector('[data-action="deactivate"]');
+    const originalButtonHTML = deactivateButton.innerHTML;
+    deactivateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    deactivateButton.disabled = true;
+    
+    fetch('../../functions/deactivate-subscription.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            memberId: memberId,
+            subId: subId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the UI
+            updateRowAfterDeactivation(row);
+            showToast('Subscription deactivated successfully', true);
+            
+            // Update expiring count since we deactivated a subscription
+            fetchExpiringCount();
+        } else {
+            showToast(data.message || 'Failed to deactivate subscription', false);
+            deactivateButton.innerHTML = originalButtonHTML;
+            deactivateButton.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('An error occurred while deactivating the subscription', false);
+        deactivateButton.innerHTML = originalButtonHTML;
+        deactivateButton.disabled = false;
+    });
+}
+
+// Function to update UI after deactivation
+function updateRowAfterDeactivation(row) {
+    // Update status badge
+    const statusCell = row.querySelector('td:nth-child(6) span');
+    if (statusCell) {
+        statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+        statusCell.textContent = 'Inactive';
+    }
+    
+    // Update days left display if it exists
+    const daysLeftEl = row.querySelector('.days-left');
+    if (daysLeftEl) {
+        daysLeftEl.textContent = 'Subscription inactive';
+    }
+    
+    // Remove deactivate button and add renew button
+    const actionsCell = row.querySelector('td:nth-child(7) .flex');
+    if (actionsCell) {
+        const deactivateButton = actionsCell.querySelector('[data-action="deactivate"]');
+        if (deactivateButton) {
+            const memberId = deactivateButton.getAttribute('data-member-id');
+            const subId = deactivateButton.getAttribute('data-sub-id');
+            
+            // Create renew button
+            const renewButton = document.createElement('button');
+            renewButton.setAttribute('data-sub-id', subId);
+            renewButton.setAttribute('data-member-id', memberId);
+            renewButton.setAttribute('data-action', 'renew');
+            renewButton.className = 'text-green-600 hover:text-green-800 transition-colors';
+            renewButton.title = 'Renew subscription';
+            renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            
+            // Add click handler for renewal
+            renewButton.addEventListener('click', function() {
+                const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+                const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+                openRenewModal(memberId, subId, memberName, subscriptionName);
+            });
+            
+            // Replace deactivate button with renew button
+            deactivateButton.replaceWith(renewButton);
+        }
+    }
+    
+    // Add subtle background to indicate inactive status
+    row.classList.add('bg-gray-50');
+}
+</script>
 </body>
 </html>

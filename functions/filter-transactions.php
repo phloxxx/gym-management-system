@@ -101,7 +101,8 @@ try {
         $types .= 'ssss';
     }
     
-    $sql .= " ORDER BY ms.IS_ACTIVE DESC, ms.END_DATE ASC";
+    // Add final ORDER BY clause to sort by most recent transactions first
+    $sql .= " ORDER BY t.TRANSAC_DATE DESC, ms.END_DATE DESC";
     
     $stmt = $conn->prepare($sql);
     

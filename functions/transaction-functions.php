@@ -147,7 +147,7 @@ function getActiveSubscriptions() {
                 JOIN member_subscription ms ON m.MEMBER_ID = ms.MEMBER_ID
                 JOIN subscription s ON ms.SUB_ID = s.SUB_ID
                 LEFT JOIN transaction t ON m.MEMBER_ID = t.MEMBER_ID AND ms.SUB_ID = t.SUB_ID
-                ORDER BY ms.END_DATE";
+                ORDER BY t.TRANSAC_DATE DESC, ms.END_DATE DESC";
         $result = $conn->query($sql);
         
         if ($result->num_rows > 0) {
@@ -356,7 +356,7 @@ function getMemberTransactionHistory($memberId) {
                 JOIN payment p ON t.PAYMENT_ID = p.PAYMENT_ID
                 JOIN member_subscription ms ON t.MEMBER_ID = ms.MEMBER_ID AND t.SUB_ID = ms.SUB_ID
                 WHERE t.MEMBER_ID = ?
-                ORDER BY t.TRANSAC_DATE DESC";
+                ORDER BY t.TRANSAC_DATE DESC, ms.END_DATE DESC";
                 
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $memberId);
