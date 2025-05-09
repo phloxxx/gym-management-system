@@ -1,0 +1,31 @@
+-- Insert/Update Subscription
+DELIMITER //
+CREATE PROCEDURE sp_UpsertSubscription(
+    IN p_sub_id SMALLINT,
+    IN p_sub_name VARCHAR(20),
+    IN p_duration VARCHAR(10),
+    IN p_price DECIMAL(10,2)
+)
+BEGIN
+    IF p_sub_id IS NULL THEN
+        INSERT INTO SUBSCRIPTION (SUB_NAME, DURATION, PRICE)
+        VALUES (p_sub_name, p_duration, p_price);
+    ELSE
+        UPDATE SUBSCRIPTION
+        SET SUB_NAME = p_sub_name,
+            DURATION = p_duration,
+            PRICE = p_price
+        WHERE SUB_ID = p_sub_id;
+    END IF;
+END //
+DELIMITER ;
+
+-- Display Subscriptions
+DELIMITER //
+CREATE PROCEDURE sp_GetSubscriptions()
+BEGIN
+    SELECT SUB_NAME, DURATION, PRICE
+    FROM SUBSCRIPTION
+    WHERE IS_ACTIVE = 1;
+END //
+DELIMITER ;

@@ -1,3 +1,4 @@
+
 <?php
 require_once '../../config/db_connection.php';
 require_once '../../functions/transaction-functions.php';
@@ -8,6 +9,10 @@ $subscriptionPlans = getSubscriptionPlans();
 $paymentMethods = getPaymentMethods();
 $transactionSummary = getTransactionSummary();
 $activeSubscriptions = getActiveSubscriptions();
+<?php 
+// Get user data from session - remove the default 'Admin' value to ensure we see the actual session data
+$fullName = $_SESSION['name'];
+$role = ucfirst(strtolower($_SESSION['role']));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -146,6 +151,8 @@ $activeSubscriptions = getActiveSubscriptions();
                             <div class="text-right hidden sm:block">
                                 <p class="text-sm font-medium text-gray-700">John Doe</p>
                                 <p class="text-xs text-gray-500">Administrator</p>
+                                <p class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($fullName); ?></p>
+                                <p class="text-xs text-gray-500"><?php echo htmlspecialchars($role); ?></p>
                             </div>
                             <div class="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-white">
                                 <i class="fas fa-user text-lg"></i>
@@ -208,6 +215,29 @@ $activeSubscriptions = getActiveSubscriptions();
                 <h2 class="text-lg font-semibold text-primary-dark mb-4">Transaction Filters</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
+                    <!-- Date Range -->
+                    <div>
+                        <label for="dateRange" class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <select id="dateRange" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
+                                <option value="all">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="yesterday">Yesterday</option>
+                                <option value="last7days">Last 7 Days</option>
+                                <option value="last30days">Last 30 Days</option>
+                                <option value="thisMonth">This Month</option>
+                                <option value="lastMonth">Last Month</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Custom Date Range - Start -->
                     <div>
                         <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
@@ -216,6 +246,7 @@ $activeSubscriptions = getActiveSubscriptions();
                                 <i class="fas fa-calendar-day"></i>
                             </div>
                             <input type="date" id="startDate" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200">
+                            <input type="date" id="startDate" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" disabled>
                         </div>
                     </div>
                     
@@ -230,6 +261,24 @@ $activeSubscriptions = getActiveSubscriptions();
                         </div>
                     </div>
 
+                            <input type="date" id="endDate" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" disabled>
+                        </div>
+                    </div>
+                    
+                    <!-- Member Search -->
+                    <div>
+                        <label for="memberSearch" class="block text-sm font-medium text-gray-700 mb-1">Member</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <input type="text" id="memberSearch" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" placeholder="Search by name or ID">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
                     <!-- Subscription Filter -->
                     <div>
                         <label for="subFilter" class="block text-sm font-medium text-gray-700 mb-1">Subscription</label>
@@ -242,6 +291,10 @@ $activeSubscriptions = getActiveSubscriptions();
                                 <?php foreach ($subscriptionPlans as $plan): ?>
                                 <option value="<?php echo $plan['SUB_ID']; ?>"><?php echo htmlspecialchars($plan['SUB_NAME']); ?></option>
                                 <?php endforeach; ?>
+                                <option value="1">Monthly</option>
+                                <option value="2">Quarterly</option>
+                                <option value="3">Annually</option>
+                                <option value="4">Trial</option>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
                                 <i class="fas fa-chevron-down text-xs"></i>
@@ -261,6 +314,22 @@ $activeSubscriptions = getActiveSubscriptions();
                                 <?php foreach ($programs as $program): ?>
                                 <option value="<?php echo $program['PROGRAM_ID']; ?>"><?php echo htmlspecialchars($program['PROGRAM_NAME']); ?></option>
                                 <?php endforeach; ?>
+                    
+                    <!-- Payment Method Filter -->
+                    <div>
+                        <label for="paymentFilter" class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <select id="paymentFilter" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
+                                <option value="all">All Methods</option>
+                                <option value="1">Credit Card</option>
+                                <option value="2">Debit Card</option>
+                                <option value="3">Cash</option>
+                                <option value="4">Bank Transfer</option>
+                                <option value="5">Mobile Payment</option>
+                                <option value="6">Online Payment</option>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
                                 <i class="fas fa-chevron-down text-xs"></i>
@@ -299,6 +368,14 @@ $activeSubscriptions = getActiveSubscriptions();
                             </button>
                         </div>
                     </div>
+                <!-- Action Buttons -->
+                <div class="flex gap-3 mt-6 justify-end">
+                    <button id="resetFiltersBtn" class="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors flex items-center gap-2">
+                        <i class="fas fa-redo-alt"></i> Reset Filters
+                    </button>
+                    <button id="applyFiltersBtn" class="px-4 py-2.5 bg-primary-dark text-white rounded-md hover:bg-opacity-90 transition-colors flex items-center gap-2">
+                        <i class="fas fa-filter"></i> Apply Filters
+                    </button>
                 </div>
             </div>
             
@@ -313,7 +390,61 @@ $activeSubscriptions = getActiveSubscriptions();
                     <div class="flex flex-col md:flex-row gap-2 mt-2 md:mt-0">
                         <button id="addTransactionBtn" class="bg-primary-dark hover:bg-black text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors flex items-center">
                             <i class="fas fa-plus mr-2"></i> Add Transaction
+                <!-- Transaction Header with Export Options -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                    <div>
+                        <h2 class="text-xl font-semibold text-primary-dark">Transactions</h2>
+                        <p class="text-gray-500 text-sm">Showing all transactions</p>
+                    </div>
+                    <div class="flex gap-2 mt-3 md:mt-0">
+                        <button id="printBtn" class="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors flex items-center gap-2">
+                            <i class="fas fa-print"></i> Print
                         </button>
+                        <button id="exportBtn" class="px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors flex items-center gap-2">
+                            <i class="fas fa-file-excel"></i> Export
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Transaction Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-lg shadow-sm p-5">
+                        <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Total Transactions</h3>
+                        <p class="text-3xl font-bold text-gray-800" id="totalTransactions">0</p>
+                        <div class="flex items-center mt-2">
+                            <span class="text-green-600 text-sm mr-1" id="transactionGrowth">+0%</span>
+                            <span class="text-gray-500 text-sm">vs previous period</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-sm p-5">
+                        <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Total Revenue</h3>
+                        <p class="text-3xl font-bold text-gray-800" id="totalRevenue">$0.00</p>
+                        <div class="flex items-center mt-2">
+                            <span class="text-green-600 text-sm mr-1" id="revenueGrowth">+0%</span>
+                            <span class="text-gray-500 text-sm">vs previous period</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-sm p-5">
+                        <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Recent Transactions</h3>
+                        <p class="text-3xl font-bold text-gray-800" id="recentTransactions">0</p>
+                        <div class="flex items-center mt-2">
+                            <span class="text-green-600 text-sm mr-1">+0%</span>
+                            <span class="text-gray-500 text-sm">vs previous period</span>
+                        </div>
+                    </div>
+                    
+                    <!-- New Card: Expiring Subscriptions -->
+                    <div class="bg-white rounded-lg shadow-sm p-5">
+                        <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Expiring Soon</h3>
+                        <p class="text-3xl font-bold text-orange-500" id="expiringSubscriptions">0</p>
+                        <div class="flex items-center mt-2">
+                            <span class="text-orange-600 text-sm mr-1">
+                                <i class="fas fa-clock"></i>
+                            </span>
+                            <span class="text-gray-500 text-sm">In next 7 days</span>
+                        </div>
                     </div>
                 </div>
                 
@@ -329,6 +460,7 @@ $activeSubscriptions = getActiveSubscriptions();
                     </div>
                     
                     <div class="w-full">
+                    <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead>
                                 <tr>
@@ -441,6 +573,107 @@ $activeSubscriptions = getActiveSubscriptions();
                         <button id="emptyStateResetBtn" class="bg-primary-dark text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors">
                             <i class="fas fa-sync-alt mr-2"></i> Reset Filters
                         </button>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="subscriptionStatusBody">
+                                <!-- Subscription status rows will be populated here -->
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="h-8 w-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs">JD</div>
+                                            <div class="ml-3">
+                                                <div class="text-sm font-medium text-gray-900">John Doe</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">Monthly Membership</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">2023-12-01</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">2023-12-31</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <div class="flex items-center space-x-2">
+                                            <button class="px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors flex items-center" title="Deactivate subscription" data-sub-id="1001" data-action="deactivate">
+                                                <i class="fas fa-toggle-on mr-1"></i> Deactivate
+                                            </button>
+                                            <button class="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors flex items-center" title="View transaction details" data-sub-id="1001" data-action="view">
+                                                <i class="fas fa-eye mr-1"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="h-8 w-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs">JS</div>
+                                            <div class="ml-3">
+                                                <div class="text-sm font-medium text-gray-900">Jane Smith</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">Quarterly Membership</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">2023-10-15</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">2024-01-15</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Expiring Soon</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <div class="flex items-center space-x-2">
+                                            <button class="px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors flex items-center" title="Renew subscription" data-sub-id="1002" data-action="renew">
+                                                <i class="fas fa-sync-alt mr-1"></i> Renew
+                                            </button>
+                                            <button class="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors flex items-center" title="View transaction details" data-sub-id="1002" data-action="view">
+                                                <i class="fas fa-eye mr-1"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Add Transaction Button -->
+                <div class="flex justify-end mb-6">
+                    <button id="addTransactionBtn" class="px-4 py-2.5 bg-primary-dark text-white rounded-md hover:bg-opacity-90 transition-colors flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Add Transaction
+                    </button>
+                </div>
+                
+                <!-- Transaction Table -->
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subscription</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Method</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <!-- Transaction rows will be populated here -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -648,6 +881,98 @@ $activeSubscriptions = getActiveSubscriptions();
                     <i class="fas fa-save mr-2"></i> Add Transaction
                 </button>
             </div>
+    <div id="addTransactionModal" class="fixed inset-0 bg-black bg-opacity-30 z-[60] flex items-center justify-center hidden backdrop-blur-sm">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 transform scale-95 overflow-hidden transition-all duration-200">
+            <div class="flex items-center justify-between p-5 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-800">Add New Transaction</h3>
+                <button onclick="closeModal(document.getElementById('addTransactionModal'))" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="addTransactionForm" class="p-5">
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- Member Select -->
+                    <div>
+                        <label for="memberSelect" class="block text-sm font-medium text-gray-700 mb-1">Member</label>
+                        <select id="memberSelect" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
+                            <option value="">Select Member</option>
+                            <option value="1001" data-email="john.doe@example.com" data-phone="555-123-4567">John Doe</option>
+                            <option value="1002" data-email="jane.smith@example.com" data-phone="555-234-5678">Jane Smith</option>
+                            <option value="1003" data-email="robert.j@example.com" data-phone="555-345-6789">Robert Johnson</option>
+                            <option value="1004" data-email="m.rodriguez@example.com" data-phone="555-456-7890">Michael Rodriguez</option>
+                            <option value="1005" data-email="amanda.lee@example.com" data-phone="555-567-8901">Amanda Lee</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Subscription Select -->
+                    <div>
+                        <label for="subscriptionSelect" class="block text-sm font-medium text-gray-700 mb-1">Subscription</label>
+                        <select id="subscriptionSelect" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
+                            <option value="">Select Subscription</option>
+                            <option value="1" data-duration="1 Month" data-price="49.99">Monthly Membership ($49.99)</option>
+                            <option value="2" data-duration="3 Months" data-price="129.99">Quarterly Membership ($129.99)</option>
+                            <option value="3" data-duration="12 Months" data-price="499.99">Annual Membership ($499.99)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Payment Method Select -->
+                    <div>
+                        <label for="paymentSelect" class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                        <select id="paymentSelect" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
+                            <option value="">Select Payment Method</option>
+                            <option value="1">Credit Card</option>
+                            <option value="2">Debit Card</option>
+                            <option value="3">Cash</option>
+                            <option value="4">Bank Transfer</option>
+                            <option value="5">Mobile Payment</option>
+                            <option value="6">Online Payment</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Transaction Date -->
+                    <div>
+                        <label for="transactionDate" class="block text-sm font-medium text-gray-700 mb-1">Transaction Date</label>
+                        <input type="date" id="transactionDate" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200">
+                    </div>
+                </div>
+                
+                <!-- Subscription Details -->
+                <div class="mt-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Subscription Details</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Plan</label>
+                            <p id="subName" class="text-sm text-gray-900">-</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Duration</label>
+                            <p id="subDuration" class="text-sm text-gray-900">-</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
+                            <p id="subStartDate" class="text-sm text-gray-900">-</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">End Date</label>
+                            <p id="subEndDate" class="text-sm text-gray-900">-</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Price</label>
+                            <p id="subPrice" class="text-sm text-gray-900">-</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-3 mt-6 justify-end">
+                    <button type="button" class="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" onclick="closeModal(document.getElementById('addTransactionModal'))">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2.5 bg-primary-dark text-white rounded-md hover:bg-opacity-90 transition-colors">
+                        Add Transaction
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -676,6 +1001,9 @@ $activeSubscriptions = getActiveSubscriptions();
 
             <!-- Modal Body -->
             <div class="p-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
+    <div id="transactionDetailsModal" class="fixed inset-0 bg-black bg-opacity-30 z-[60] flex items-center justify-center hidden backdrop-blur-sm">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 transform scale-95 overflow-hidden transition-all duration-200">
+            <div class="p-5">
                 <div class="flex items-center mb-4">
                     <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
                         <i class="fas fa-info-circle text-xl"></i>
@@ -703,6 +1031,7 @@ $activeSubscriptions = getActiveSubscriptions();
                         <h4 class="text-sm font-medium text-gray-700 mb-2">Member Details</h4>
                         <div class="flex items-center mb-2">
                             <div class="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white text-xs" id="detailsMemberInitials">-</div>
+                            <div class="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white text-xs" id="memberInitials">-</div>
                             <div class="ml-3">
                                 <p id="detailsMemberName" class="text-sm font-medium text-gray-900">-</p>
                                 <p id="detailsMemberId" class="text-xs text-gray-500">-</p>
@@ -743,6 +1072,7 @@ $activeSubscriptions = getActiveSubscriptions();
                         </div>
                     </div>
 
+                    
                     <!-- Payment Details -->
                     <div>
                         <h4 class="text-sm font-medium text-gray-700 mb-2">Payment Details</h4>
@@ -759,6 +1089,7 @@ $activeSubscriptions = getActiveSubscriptions();
                     </div>
                 </div>
 
+                
                 <!-- Action Buttons -->
                 <div class="flex gap-3 mt-6 justify-end">
                     <button type="button" class="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" onclick="closeModal(document.getElementById('transactionDetailsModal'))">
@@ -934,16 +1265,20 @@ $activeSubscriptions = getActiveSubscriptions();
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
     <script src="../../user/admin/custom-confirmation.js"></script>
     <script src="../../user/admin/auto-confirm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize dropdown toggle functionality
             const dropdownButtons = document.querySelectorAll('[data-collapse-toggle]');
+            
             dropdownButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     const targetId = this.getAttribute('data-collapse-toggle');
                     const targetElement = document.getElementById(targetId);
                     const chevronIcon = document.getElementById(targetId.replace('dropdown-', '') + '-chevron');
 
+                    
                     if (targetElement) {
                         if (targetElement.classList.contains('hidden')) {
                             // Show dropdown
@@ -966,6 +1301,41 @@ $activeSubscriptions = getActiveSubscriptions();
                 });
             });
 
+            // Date range change handler
+            document.getElementById('dateRange').addEventListener('change', function(e) {
+                const dateRange = e.target.value;
+                const startDateInput = document.getElementById('startDate');
+                const endDateInput = document.getElementById('endDate');
+                
+                // Enable/disable custom date inputs based on selection
+                if (dateRange === 'custom') {
+                    startDateInput.disabled = false;
+                    endDateInput.disabled = false;
+                } else {
+                    startDateInput.disabled = true;
+                    endDateInput.disabled = true;
+                    
+                    // Set default values based on selection
+                    const today = new Date();
+                    let startDate = new Date();
+                    
+                    switch(dateRange) {
+                        case 'last7days':
+                            startDate.setDate(today.getDate() - 7);
+                            break;
+                        case 'last30days':
+                            startDate.setDate(today.getDate() - 30);
+                            break;
+                        case 'lastYear':
+                            startDate.setFullYear(today.getFullYear() - 1);
+                            break;
+                    }
+                    
+                    startDateInput.value = formatDate(startDate);
+                    endDateInput.value = formatDate(today);
+                }
+            });
+            
             // Format date for input fields
             function formatDate(date) {
                 const year = date.getFullYear();
@@ -985,6 +1355,9 @@ $activeSubscriptions = getActiveSubscriptions();
                 filterStartDate.value = formatDate(firstDay);
                 filterEndDate.value = formatDate(today);
             }
+            
+            // Set up initial date range
+            document.getElementById('dateRange').dispatchEvent(new Event('change'));
 
             // Add logout confirmation functionality
             const logoutButton = document.getElementById('logoutBtn');
@@ -992,6 +1365,7 @@ $activeSubscriptions = getActiveSubscriptions();
             const cancelLogout = document.getElementById('cancelLogout');
             const confirmLogout = document.getElementById('confirmLogout');
 
+            
             // Change logout link behavior to show confirmation
             if (logoutButton) {
                 logoutButton.addEventListener('click', function(e) {
@@ -1000,11 +1374,13 @@ $activeSubscriptions = getActiveSubscriptions();
                 });
             }
 
+            
             // Cancel logout button
             if (cancelLogout) {
                 cancelLogout.addEventListener('click', hideLogoutConfirmDialog);
             }
 
+            
             // Confirm logout button
             if (confirmLogout) {
                 confirmLogout.addEventListener('click', function() {
@@ -1013,6 +1389,7 @@ $activeSubscriptions = getActiveSubscriptions();
                 });
             }
 
+            
             // Function to show logout confirmation dialog
             function showLogoutConfirmDialog() {
                 logoutConfirmDialog.classList.remove('hidden');
@@ -1025,6 +1402,7 @@ $activeSubscriptions = getActiveSubscriptions();
                 }, 10);
             }
 
+            
             // Function to hide logout confirmation dialog
             function hideLogoutConfirmDialog() {
                 const dialogContent = logoutConfirmDialog.querySelector('.transform');
@@ -1040,6 +1418,11 @@ $activeSubscriptions = getActiveSubscriptions();
             // Modal functions
             window.openModal = function(modal) {
                 if (!modal) return;
+            
+            // Modal functions
+            window.openModal = function(modal) {
+                if (!modal) return;
+                
                 modal.classList.remove('hidden');
                 setTimeout(() => {
                     const modalContent = modal.querySelector('.transform');
@@ -1052,6 +1435,10 @@ $activeSubscriptions = getActiveSubscriptions();
 
             window.closeModal = function(modal) {
                 if (!modal) return;
+            
+            window.closeModal = function(modal) {
+                if (!modal) return;
+                
                 const modalContent = modal.querySelector('.transform');
                 if (modalContent) {
                     modalContent.classList.remove('scale-100');
@@ -1077,6 +1464,7 @@ $activeSubscriptions = getActiveSubscriptions();
                     notification.classList.add('bg-blue-600');
                 }
 
+                
                 // Set icon based on type
                 let icon;
                 if (type === 'success') {
@@ -1087,6 +1475,7 @@ $activeSubscriptions = getActiveSubscriptions();
                     icon = 'fa-info-circle';
                 }
 
+                
                 // Set content
                 notification.innerHTML = `
                     <i class="fas ${icon}"></i>
@@ -1096,6 +1485,10 @@ $activeSubscriptions = getActiveSubscriptions();
                 // Add notification to body
                 document.body.appendChild(notification);
 
+                
+                // Add notification to body
+                document.body.appendChild(notification);
+                
                 // Show notification with animation
                 setTimeout(() => {
                     notification.classList.remove('translate-y-10', 'opacity-0');
@@ -1104,16 +1497,23 @@ $activeSubscriptions = getActiveSubscriptions();
                 // Hide notification after 3 seconds
                 setTimeout(() => {
                     notification.classList.add('translate-y-10', 'opacity-0');
+                
+                // Hide notification after 3 seconds
+                setTimeout(() => {
+                    notification.classList.add('translate-y-10', 'opacity-0');
+                    
                     // Remove notification from DOM after animation completes
                     setTimeout(() => {
                         notification.remove();
                     }, 300);
                 }, 3000);
             }
+            };
 
             // Add Transaction Button
             const addTransactionBtn = document.getElementById('addTransactionBtn');
             const addTransactionModal = document.getElementById('addTransactionModal');
+            
             if (addTransactionBtn && addTransactionModal) {
                 addTransactionBtn.addEventListener('click', function() {
                     openModal(addTransactionModal);
@@ -1125,6 +1525,9 @@ $activeSubscriptions = getActiveSubscriptions();
             const startDateInput = document.getElementById('startDateInput');
             const endDateInput = document.getElementById('endDateInput');
             
+            
+            // Initialize subscription details when subscription is selected
+            const subscriptionSelect = document.getElementById('subscriptionSelect');
             if (subscriptionSelect) {
                 subscriptionSelect.addEventListener('change', function() {
                     updateSubscriptionDetails();
@@ -1165,6 +1568,32 @@ $activeSubscriptions = getActiveSubscriptions();
                     updateSubscriptionSummary();
                 } else {
                     // Reset summary values if no subscription selected
+
+            function updateSubscriptionDetails() {
+                const subscriptionSelect = document.getElementById('subscriptionSelect');
+                const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
+                
+                if (selectedOption.value) {
+                    // Get data attributes
+                    const duration = selectedOption.getAttribute('data-duration');
+                    const price = selectedOption.getAttribute('data-price');
+                    const name = selectedOption.text.split('(')[0].trim();
+                    
+                    // Calculate dates
+                    const today = new Date();
+                    const startDate = formatDate(today);
+                    
+                    // Calculate end date based on duration
+                    const endDate = calculateEndDate(today, duration);
+                    
+                    // Update UI
+                    document.getElementById('subName').textContent = name;
+                    document.getElementById('subDuration').textContent = duration;
+                    document.getElementById('subStartDate').textContent = startDate;
+                    document.getElementById('subEndDate').textContent = formatDate(endDate);
+                    document.getElementById('subPrice').textContent = `$${price}`;
+                } else {
+                    // Reset values
                     document.getElementById('subName').textContent = '-';
                     document.getElementById('subDuration').textContent = '-';
                     document.getElementById('subStartDate').textContent = '-';
@@ -1318,6 +1747,65 @@ $activeSubscriptions = getActiveSubscriptions();
                     button.addEventListener('click', function() {
                         const memberId = this.getAttribute('data-member-id');
                         const subId = this.getAttribute('data-sub-id');
+            // Calculate end date based on duration
+            function calculateEndDate(startDate, duration) {
+                const date = new Date(startDate);
+                if (duration.includes('Month')) {
+                    const months = parseInt(duration);
+                    date.setMonth(date.getMonth() + months);
+                } else if (duration.includes('Year')) {
+                    const years = parseInt(duration);
+                    date.setFullYear(date.getFullYear() + years);
+                }
+                return date;
+            }
+            
+            // Initialize action buttons (Deactivate, Renew, View)
+            initActionButtons();
+            
+            function initActionButtons() {
+                // Deactivate subscription
+                document.querySelectorAll('[data-action="deactivate"]').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const subId = this.getAttribute('data-sub-id');
+                        if (confirm('Are you sure you want to deactivate this subscription?')) {
+                            // Show loading state
+                            const originalHTML = this.innerHTML;
+                            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                            this.disabled = true;
+                            
+                            // Simulate network request
+                            setTimeout(() => {
+                                // Update UI
+                                const row = this.closest('tr');
+                                const statusCell = row.querySelector('td:nth-child(5) span');
+                                statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800';
+                                statusCell.textContent = 'Inactive';
+                                
+                                // Update button
+                                this.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Renew';
+                                this.classList.remove('bg-red-100', 'text-red-700', 'hover:bg-red-200');
+                                this.classList.add('bg-green-100', 'text-green-700', 'hover:bg-green-200');
+                                this.setAttribute('data-action', 'renew');
+                                this.disabled = false;
+                                
+                                // Show notification
+                                showNotification('Subscription deactivated successfully!', 'success');
+                            }, 800);
+                        }
+                    });
+                });
+                
+                // We no longer need the separate event listener for activation
+                // The renew functionality is already handled by the existing renew button logic
+                // So we're removing the "Activate" event listener and relying on the existing renew functionality
+
+                // Renew subscription
+                document.querySelectorAll('[data-action="renew"]').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const subId = this.getAttribute('data-sub-id');
+                        
+                        // Get member info from the row
                         const row = this.closest('tr');
                         const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
                         const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
@@ -3749,5 +4237,161 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 </script>
+</body>
+</html>
+=======
+                        // Open Add Transaction modal
+                        const modal = document.getElementById('addTransactionModal');
+                        if (modal) {
+                            // Pre-fill member select with the selected member
+                            const memberSelect = document.getElementById('memberSelect');
+                            for (let i = 0; i < memberSelect.options.length; i++) {
+                                if (memberSelect.options[i].text.includes(memberName)) {
+                                    memberSelect.selectedIndex = i;
+                                    break;
+                                }
+                            }
+                            
+                            // Pre-fill subscription select
+                            const subscriptionSelect = document.getElementById('subscriptionSelect');
+                            for (let i = 0; i < subscriptionSelect.options.length; i++) {
+                                if (subscriptionSelect.options[i].text.includes(subscriptionName)) {
+                                    subscriptionSelect.selectedIndex = i;
+                                    // Update subscription details
+                                    updateSubscriptionDetails();
+                                    break;
+                                }
+                            }
+                            
+                            // Set transaction date to today
+                            const today = new Date();
+                            document.getElementById('transactionDate').valueAsDate = today;
+                            
+                            // Open modal
+                            openModal(modal);
+                        }
+                    });
+                });
+                
+                // View transaction details
+                document.querySelectorAll('[data-action="view"]').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const subId = this.getAttribute('data-sub-id');
+                        
+                        // Get info from the row
+                        const row = this.closest('tr');
+                        const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+                        const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+                        const startDate = row.querySelector('td:nth-child(3) .text-sm').textContent;
+                        const endDate = row.querySelector('td:nth-child(4) .text-sm').textContent;
+                        
+                        // Open Transaction Details modal
+                        const modal = document.getElementById('transactionDetailsModal');
+                        if (modal) {
+                            // Set transaction details in the modal
+                            document.getElementById('detailsTransactionId').textContent = `TRX-${Math.floor(Math.random() * 10000)}`;
+                            document.getElementById('detailsTransactionDate').textContent = startDate;
+                            document.getElementById('detailsMemberName').textContent = memberName;
+                            document.getElementById('detailsMemberId').textContent = `ID: ${subId}`;
+                            document.getElementById('detailsSubName').textContent = subscriptionName;
+                            document.getElementById('detailsSubDuration').textContent = subscriptionName.includes('Monthly') ? '1 Month' : 
+                                                                                        subscriptionName.includes('Quarterly') ? '3 Months' : '12 Months';
+                            document.getElementById('detailsSubStartDate').textContent = startDate;
+                            document.getElementById('detailsSubEndDate').textContent = endDate;
+                            document.getElementById('detailsPaymentMethod').textContent = 'Credit Card';
+                            document.getElementById('detailsAmount').textContent = subscriptionName.includes('Monthly') ? '$49.99' : 
+                                                                                        subscriptionName.includes('Quarterly') ? '$129.99' : '$499.99';
+                            
+                            // Set member initials
+                            const nameParts = memberName.split(' ');
+                            const initials = nameParts.length > 1 ? 
+                                            `${nameParts[0][0]}${nameParts[1][0]}` : 
+                                            memberName[0];
+                            document.getElementById('memberInitials').textContent = initials;
+                            
+                            // Open modal
+                            openModal(modal);
+                        }
+                    });
+                });
+            }
+            
+            // Add form validation and submission
+            const addTransactionForm = document.getElementById('addTransactionForm');
+            if (addTransactionForm) {
+                addTransactionForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Get form data
+                    const memberSelect = document.getElementById('memberSelect');
+                    const subscriptionSelect = document.getElementById('subscriptionSelect');
+                    const paymentSelect = document.getElementById('paymentSelect');
+                    
+                    // Validate form
+                    if (!memberSelect.value) {
+                        showNotification('Please select a member', 'error');
+                        return;
+                    }
+                    
+                    if (!subscriptionSelect.value) {
+                        showNotification('Please select a subscription', 'error');
+                        return;
+                    }
+                    
+                    if (!paymentSelect.value) {
+                        showNotification('Please select a payment method', 'error');
+                        return;
+                    }
+                    
+                    // Show loading state
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalBtnText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+                    submitBtn.disabled = true;
+                    
+                    // Simulate form submission
+                    setTimeout(() => {
+                        // Close modal
+                        closeModal(addTransactionModal);
+                        
+                        // Reset form
+                        addTransactionForm.reset();
+                        
+                        // Reset subscription details
+                        document.getElementById('subName').textContent = '-';
+                        document.getElementById('subDuration').textContent = '-';
+                        document.getElementById('subStartDate').textContent = '-';
+                        document.getElementById('subEndDate').textContent = '-';
+                        document.getElementById('subPrice').textContent = '-';
+                        
+                        // Show success notification
+                        showNotification('Transaction added successfully!', 'success');
+                        
+                        // Reset button
+                        submitBtn.innerHTML = originalBtnText;
+                        submitBtn.disabled = false;
+                    }, 1000);
+                });
+            }
+            
+            // Set up print receipt button
+            const printReceiptBtn = document.getElementById('printReceiptBtn');
+            if (printReceiptBtn) {
+                printReceiptBtn.addEventListener('click', function() {
+                    // Show loading state
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Preparing...';
+                    this.disabled = true;
+                    
+                    // Simulate printing receipt
+                    setTimeout(() => {
+                        showNotification('Receipt printed successfully!', 'success');
+                        this.innerHTML = originalText;
+                        this.disabled = false;
+                    }, 1000);
+                });
+            }
+        });
+    </script>
 </body>
 </html>

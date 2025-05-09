@@ -1,0 +1,46 @@
+DELIMITER //
+
+CREATE PROCEDURE `sp_GetUsers` ()   BEGIN
+    SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE
+    FROM `USER`
+    WHERE IS_ACTIVE = 1;
+END //
+
+CREATE PROCEDURE `sp_UpsertUser` (IN `p_user_id` SMALLINT, IN `p_fname` VARCHAR(50), IN `p_lname` VARCHAR(30), IN `p_username` VARCHAR(20), IN `p_password` VARCHAR(255), IN `p_user_type` ENUM('ADMINISTRATOR','STAFF'), IN `p_is_active` TINYINT(1))   BEGIN
+    IF p_user_id IS NULL THEN
+        INSERT INTO `USER` (USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE, IS_ACTIVE)
+        VALUES (p_fname, p_lname, p_username, p_password, p_user_type, COALESCE(p_is_active, 1));
+    ELSE
+        UPDATE `USER`
+        SET USER_FNAME = p_fname,
+            USER_LNAME = p_lname,
+            USERNAME = p_username,
+            PASSWORD = p_password,
+            USER_TYPE = p_user_type,
+            IS_ACTIVE = COALESCE(p_is_active, IS_ACTIVE)
+        WHERE USER_ID = p_user_id;
+    END IF;
+END //
+
+CREATE PROCEDURE `sp_check_username` (IN `p_username` VARCHAR(255))   BEGIN
+    SELECT USER_ID FROM user WHERE USERNAME = p_username;
+END //
+
+CREATE PROCEDURE `sp_GetAllUsers` ()   BEGIN
+    SELECT 
+        u.USER_ID,
+        u.USER_FNAME,
+        u.USER_LNAME,
+        u.USERNAME,
+        u.USER_TYPE,
+        u.IS_ACTIVE
+    FROM user u
+    ORDER BY u.USER_ID DESC;
+END //
+
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_getForgotUser` ()   BEGIN
+    SELECT USER_ID, USER_FNAME, USER_LNAME, USERNAME, PASSWORD, USER_TYPE
+    FROM `USER`
+    WHERE IS_ACTIVE = 1;
+END$$
