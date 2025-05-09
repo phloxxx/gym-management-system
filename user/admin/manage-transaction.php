@@ -369,7 +369,7 @@ $activeSubscriptions = getActiveSubscriptions();
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($activeSubscriptions as $sub): ?>
-                                        <tr>
+                                        <tr class="subscription-row <?php echo !$sub['IS_ACTIVE'] ? 'bg-gray-50' : ''; ?>">
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="flex items-center">
                                                     <div class="h-8 w-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs">
@@ -424,14 +424,16 @@ $activeSubscriptions = getActiveSubscriptions();
                                                 <?php if ($sub['IS_ACTIVE']): ?>
                                                     <button class="text-red-600 hover:text-red-800 transition-colors" 
                                                             title="Deactivate subscription" 
-                                                            data-sub-id="<?php echo $sub['MEMBER_ID']; ?>" 
+                                                            data-member-id="<?php echo $sub['MEMBER_ID']; ?>"
+                                                            data-sub-id="<?php echo $sub['SUB_ID']; ?>" 
                                                             data-action="deactivate">
                                                         <i class="fas fa-toggle-off"></i>
                                                     </button>
                                                 <?php else: ?>
                                                     <button class="text-green-600 hover:text-green-800 transition-colors" 
                                                             title="Renew subscription" 
-                                                            data-sub-id="<?php echo $sub['MEMBER_ID']; ?>" 
+                                                            data-member-id="<?php echo $sub['MEMBER_ID']; ?>"
+                                                            data-sub-id="<?php echo $sub['SUB_ID']; ?>" 
                                                             data-action="renew">
                                                         <i class="fas fa-sync-alt"></i>
                                                     </button>
@@ -949,6 +951,7 @@ $activeSubscriptions = getActiveSubscriptions();
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
+    <script src="../../user/admin/custom-confirmation.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize dropdown toggle functionality
@@ -1299,47 +1302,30 @@ $activeSubscriptions = getActiveSubscriptions();
                 // Deactivate subscription - Needs confirmation
                 document.querySelectorAll('[data-action="deactivate"]').forEach(button => {
                     button.addEventListener('click', function() {
+                        const memberId = this.getAttribute('data-member-id');
                         const subId = this.getAttribute('data-sub-id');
+                        
+                        // Validate that we have both IDs
+                        if (!memberId || !subId) {
+                            console.error("Missing data attributes:", { memberId, subId });
+                            showToast('Error: Missing subscription or member information', false);
+                            return;
+                        }
+                        
                         // Show confirmation dialog for deactivation
                         showConfirmationDialog(
                             'Confirm Deactivation',
                             'Are you sure you want to deactivate this subscription?',
                             () => {
-                                // Show loading state
-                                const originalHTML = this.innerHTML;
-                                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                                this.disabled = true;
-
-                                // Simulate network request
-                                setTimeout(() => {
-                                    // Update UI
-                                    const row = this.closest('tr');
-                                    const statusCell = row.querySelector('td:nth-child(6) span');
-                                    statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
-                                    statusCell.textContent = 'Inactive';
-
-                                    // Create a new renew button with proper event handling
-                                    const newRenewButton = document.createElement('button');
-                                    newRenewButton.className = 'text-green-600 hover:text-green-800 transition-colors';
-                                    newRenewButton.title = 'Renew subscription';
-                                    newRenewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                                    newRenewButton.setAttribute('data-sub-id', subId);
-                                    newRenewButton.setAttribute('data-action', 'renew');
-                                    
-                                    // Replace the old button with the new one
-                                    this.parentNode.replaceChild(newRenewButton, this);
-                                    
-                                    // Explicitly add click event to the new button
-                                    newRenewButton.addEventListener('click', function() {
-                                        const row = this.closest('tr');
-                                        const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
-                                        const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
-                                        openRenewModal(memberName, subscriptionName);
-                                    });
-
-                                    // Show notification
-                                    showToast('Subscription deactivated successfully!', true);
-                                }, 800);
+                                // Get the row element
+                                const row = this.closest('tr');
+                                if (!row) {
+                                    showToast('Error: Could not find the subscription row', false);
+                                    return;
+                                }
+                                
+                                // Call the deactivation function with all necessary parameters
+                                deactivateSubscription(memberId, subId, row);
                             }
                         );
                     });
@@ -1348,12 +1334,14 @@ $activeSubscriptions = getActiveSubscriptions();
                 // Set up direct renewal modal opening for existing renew buttons
                 document.querySelectorAll('[data-action="renew"]').forEach(button => {
                     button.addEventListener('click', function() {
+                        const memberId = this.getAttribute('data-member-id');
+                        const subId = this.getAttribute('data-sub-id');
                         const row = this.closest('tr');
                         const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
                         const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
                         
                         // Open renewal form modal
-                        openRenewModal(memberName, subscriptionName);
+                        openRenewModal(memberId, subId, memberName, subscriptionName);
                     });
                 });
             }
@@ -1751,7 +1739,7 @@ $activeSubscriptions = getActiveSubscriptions();
                                     statusText = 'Active';
                                 }
                                 
-                                // Create row HTML
+                                // Create row HTML - FIXED: properly set data-member-id and data-sub-id
                                 const row = document.createElement('tr');
                                 row.innerHTML = `
                                     <td class="px-6 py-4 whitespace-nowrap">
@@ -1787,13 +1775,15 @@ $activeSubscriptions = getActiveSubscriptions();
                                         ${sub.isActive ? 
                                             `<button class="text-red-600 hover:text-red-800 transition-colors" 
                                                     title="Deactivate subscription" 
-                                                    data-sub-id="${sub.memberId}" 
+                                                    data-member-id="${sub.memberId}"
+                                                    data-sub-id="${sub.subId}" 
                                                     data-action="deactivate">
                                                 <i class="fas fa-toggle-off"></i>
                                             </button>` :
                                             `<button class="text-green-600 hover:text-green-800 transition-colors" 
                                                     title="Renew subscription" 
-                                                    data-sub-id="${sub.memberId}" 
+                                                    data-member-id="${sub.memberId}"
+                                                    data-sub-id="${sub.subId}" 
                                                     data-action="renew">
                                                 <i class="fas fa-sync-alt"></i>
                                             </button>`
@@ -2918,90 +2908,26 @@ function initActionButtonsForRow(row) {
         deactivateButton.addEventListener('click', function() {
             const subId = this.getAttribute('data-sub-id');
             const memberId = this.getAttribute('data-member-id');
+            const memberName = this.getAttribute('data-member-name') || 
+                               row.querySelector('td:nth-child(1) .text-sm.font-medium')?.textContent || 
+                               'this member';
+            const subscriptionName = this.getAttribute('data-subscription-name') || 
+                                    row.querySelector('td:nth-child(2) .text-sm')?.textContent || 
+                                    'the subscription';
             
             // Validate that we have both IDs
             if (!subId || !memberId) {
-                console.error("Missing required data attributes for deactivation:", { subId, memberId });
-                showToast('Error: Missing required data for deactivation', false);
+                showToast('Missing subscription or member information', false);
                 return;
             }
             
             // Show confirmation dialog for deactivation
             showConfirmationDialog(
-                'Confirm Deactivation',
-                'Are you sure you want to deactivate this subscription?',
-                () => {
-                    // Show loading state
-                    const originalHTML = this.innerHTML;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                    this.disabled = true;
-
-                    // Make actual API call to deactivate subscription
-                    fetch('../../functions/deactivate-subscription.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            memberId: memberId,
-                            subId: subId
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update UI
-                            const statusCell = row.querySelector('td:nth-child(6) span');
-                            statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
-                            statusCell.textContent = 'Inactive';
-                            
-                            // Hide the deactivate button
-                            this.style.display = 'none';
-
-                            // Add renew button if it doesn't exist
-                            const actionsCell = row.querySelector('td:nth-child(7) .flex');
-                            if (!actionsCell.querySelector('[data-action="renew"]')) {
-                                const renewButton = document.createElement('button');
-                                renewButton.setAttribute('data-sub-id', subId);
-                                renewButton.setAttribute('data-member-id', memberId);
-                                renewButton.setAttribute('data-action', 'renew');
-                                renewButton.className = 'text-green-600 hover:text-green-800 transition-colors ml-2';
-                                renewButton.title = 'Renew subscription';
-                                renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                                
-                                // Add event listener for the renew button
-                                renewButton.addEventListener('click', function() {
-                                    const memberId = this.getAttribute('data-member-id');
-                                    const subId = this.getAttribute('data-sub-id');
-                                    const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
-                                    const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
-                                    
-                                    // Open renewal form modal with this data
-                                    openRenewModal(memberId, subId, memberName, subscriptionName);
-                                });
-                                
-                                actionsCell.appendChild(renewButton);
-                            }
-
-                            // Show notification
-                            showToast('Subscription deactivated successfully!', true);
-                            
-                            // Update any counters or badges
-                            updateExpiringCount();
-                        } else {
-                            // Show error
-                            showToast(data.message || 'Failed to deactivate subscription', false);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showToast('An error occurred while deactivating subscription', false);
-                    })
-                    .finally(() => {
-                        // Reset button
-                        this.innerHTML = originalHTML;
-                        this.disabled = false;
-                    });
+                'Deactivate Subscription',
+                `Are you sure you want to deactivate ${subscriptionName} for ${memberName}?`,
+                function() {
+                    // Send deactivation request to server
+                    deactivateSubscription(memberId, subId, row);
                 }
             );
         });
@@ -3016,565 +2942,264 @@ function initActionButtonsForRow(row) {
     // Find renew button in this row if it exists
     const renewButton = row.querySelector('[data-action="renew"]');
     if (renewButton) {
-        renewButton.addEventListener('click', function() {
-            const memberId = this.getAttribute('data-member-id');
-            const subId = this.getAttribute('data-sub-id');
-            const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
-            const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
-            
-            // Open renewal form modal with this data
-            openRenewModal(memberId, subId, memberName, subscriptionName);
-        });
+        // ...existing code...
     }
 }
 
-// Modified function to handle renewal with database IDs
-function openRenewModal(memberId, subId, memberName, subscriptionName) {
-    console.log(`Opening renewal modal for member ID: ${memberId}, subscription ID: ${subId}`);
-    
-    if (!memberId) {
-        showToast('Error: Member ID is missing', false);
-        return;
-    }
-    
-    const modal = document.getElementById('addTransactionModal');
-    if (modal) {
-        // Show the modal first
-        openModal(modal);
-        
-        // Get member search section and completely remove it for renewal modal
-        const memberSearchContainer = document.getElementById('memberSearch').parentElement.parentElement;
-        memberSearchContainer.classList.add('hidden');
-        
-        // Show member info without the search UI or change option
-        const selectedMemberInfo = document.getElementById('selectedMemberInfo');
-        selectedMemberInfo.classList.remove('hidden');
-        
-        // Replace the heading to indicate member is fixed for renewal
-        const memberInfoSection = document.querySelector('.mb-1');
-        if (memberInfoSection) {
-            const memberHeading = memberInfoSection.querySelector('span');
-            if (memberHeading) {
-                memberHeading.textContent = "Member (Fixed for Renewal)";
-            }
-        }
-        
-        // Set member information in the static display
-        const memberInitials = document.getElementById('memberInitials');
-        const memberNameElement = document.getElementById('memberName');
-        const memberEmail = document.getElementById('memberEmail');
-        const selectedMemberId = document.getElementById('selectedMemberId');
-        const changeMemberBtn = document.getElementById('changeMemberBtn');
-        
-        // Set member details
-        const initials = memberName.split(' ').map(n => n[0]).join('');
-        memberInitials.textContent = initials;
-        memberNameElement.textContent = memberName;
-        
-        // IMPORTANT: Set the actual member ID from the parameter, not hardcoded
-        selectedMemberId.value = memberId;
-        
-        // Fetch actual member email from database
-        fetch(`../../functions/get-member-details.php?id=${memberId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    memberEmail.textContent = data.member.email;
-                } else {
-                    memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
-                    console.warn(`Could not fetch email for member ID ${memberId}: ${data.message}`);
-                }
-            })
-            .catch((error) => {
-                console.error('Error fetching member details:', error);
-                memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
-            });
-        
-        // Add data attribute to form to indicate this is a renewal
-        document.getElementById('addTransactionForm').setAttribute('data-is-renewal', 'true');
-        document.getElementById('addTransactionForm').setAttribute('data-previous-sub-id', subId);
-        
-        // Completely hide the change button for renewals
-        if (changeMemberBtn) {
-            changeMemberBtn.classList.add('hidden');
-        }
-        
-        // Pre-fill subscription select
-        const subscriptionSelect = document.getElementById('subscriptionSelect');
-        for (let i = 0; i < subscriptionSelect.options.length; i++) {
-            if (subscriptionSelect.options[i].text.includes(subscriptionName)) {
-                subscriptionSelect.selectedIndex = i;
-                // Update subscription details
-                updateSubscriptionDetails();
-                break;
-            }
-        }
-        
-        // Set start date to tomorrow
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        document.getElementById('startDateInput').valueAsDate = tomorrow;
-        
-        // Calculate and set end date based on subscription
-        updateEndDate();
-        
-        // Change modal title to indicate renewal
-        const modalTitle = modal.querySelector('.text-lg.font-medium.text-white');
-        if (modalTitle) {
-            modalTitle.textContent = "Renew Subscription";
-        }
-        const modalSubtitle = modal.querySelector('.text-xs.text-white/90');
-        if (modalSubtitle) {
-            modalSubtitle.textContent = "Renew subscription for " + memberName;
-        }
-        
-        // Change submit button text
-        const submitButton = document.getElementById('submitTransactionBtn');
-        if (submitButton) {
-            submitButton.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Renew Subscription';
-        }
-    }
-}
-
-// ...existing code...
-
-// Function to add a new transaction to the subscription status table
-function addTransactionToTable(transaction) {
-    const tableBody = document.getElementById('subscriptionStatusBody');
-    const emptyState = document.getElementById('subscriptionEmptyState');
-    
-    // Hide empty state if it's visible
-    if (!emptyState.classList.contains('hidden')) {
-        emptyState.classList.add('hidden');
-        tableBody.closest('table').classList.remove('hidden');
-    }
-    
-    // Calculate status class based on days left
-    const { statusClass, statusText } = getSubscriptionStatus(transaction.isActive, transaction.daysLeft);
-    
-    // Create a new row
-    const row = document.createElement('tr');
-    
-    // Set row HTML - adding data-member-id attribute to buttons
-    row.innerHTML = `
-        <td class="px-6 py-4 whitespace-nowrap">
-            <div class="flex items-center">
-                <div class="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3">
-                    ${transaction.memberInitials}
-                </div>
-                <div>
-                    <div class="text-sm font-medium text-gray-900">${transaction.memberName}</div>
-                    <div class="text-xs text-gray-500">ID: ${transaction.memberId}</div>
-                </div>
-            </div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">${transaction.subscriptionName}</div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">${transaction.startDate}</div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">${transaction.endDate}</div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">${transaction.paidDate}</div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
-                ${statusText}
-            </span>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-            <div class="flex justify-center space-x-2">
-                <button data-sub-id="${transaction.subscriptionId}" data-member-id="${transaction.memberId}" data-action="view" class="text-blue-600 hover:text-blue-800 transition-colors" title="View details">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button data-sub-id="${transaction.subscriptionId}" data-member-id="${transaction.memberId}" data-action="deactivate" class="text-red-600 hover:text-red-800 transition-colors" title="Deactivate subscription">
-                    <i class="fas fa-ban"></i>
-                </button>
-            </div>
-        </td>
-    `;
-    
-    // Add the row to the beginning of the table
-    if (tableBody.firstChild) {
-        tableBody.insertBefore(row, tableBody.firstChild);
-    } else {
-        tableBody.appendChild(row);
-    }
-    
-    // Initialize action buttons for the new row
-    initActionButtonsForRow(row);
-}
-
-// ...existing code...
-
-// Ensure the table rows in the template have the data-member-id attribute
-document.addEventListener('DOMContentLoaded', function() {
-    // ...existing code...
-    
-    // Add data-member-id to existing subscription table rows
-    const subscriptionRows = document.querySelectorAll('#subscriptionStatusBody tr');
-    subscriptionRows.forEach(row => {
-        const memberIdText = row.querySelector('td:nth-child(1) .text-xs.text-gray-500');
-        if (memberIdText) {
-            const memberId = memberIdText.textContent.replace('ID: ', '').trim();
-            const actionButtons = row.querySelectorAll('button[data-action]');
-            actionButtons.forEach(button => {
-                button.setAttribute('data-member-id', memberId);
-            });
-        }
-    });
-    
-    // ...existing code...
-});
-</script>
-<script>
-// ...existing code...
-
-// Modified function to handle renewal with database IDs
-function openRenewModal(memberId, subId, memberName, subscriptionName) {
-    console.log(`Opening renewal modal for member ID: ${memberId}, subscription ID: ${subId}`);
-    
-    if (!memberId) {
-        showToast('Error: Member ID is missing', false);
-        return;
-    }
-    
-    const modal = document.getElementById('addTransactionModal');
-    if (modal) {
-        // Show the modal first
-        openModal(modal);
-        
-        // Get member search section and completely remove it for renewal modal
-        const memberSearchContainer = document.getElementById('memberSearch').parentElement.parentElement;
-        memberSearchContainer.classList.add('hidden');
-        
-        // Show member info without the search UI or change option
-        const selectedMemberInfo = document.getElementById('selectedMemberInfo');
-        selectedMemberInfo.classList.remove('hidden');
-        
-        // Replace the heading to indicate member is fixed for renewal
-        const memberInfoSection = document.querySelector('.mb-1');
-        if (memberInfoSection) {
-            const memberHeading = memberInfoSection.querySelector('span');
-            if (memberHeading) {
-                memberHeading.textContent = "Member (Fixed for Renewal)";
-            }
-        }
-        
-        // Set member information in the static display
-        const memberInitials = document.getElementById('memberInitials');
-        const memberNameElement = document.getElementById('memberName');
-        const memberEmail = document.getElementById('memberEmail');
-        const selectedMemberId = document.getElementById('selectedMemberId');
-        const changeMemberBtn = document.getElementById('changeMemberBtn');
-        
-        // Set member details
-        const initials = memberName.split(' ').map(n => n[0]).join('');
-        memberInitials.textContent = initials;
-        memberNameElement.textContent = memberName;
-        
-        // IMPORTANT: Set the actual member ID from the parameter, not hardcoded
-        selectedMemberId.value = memberId;
-        
-        // Fetch actual member email from database
-        fetch(`../../functions/get-member-details.php?id=${memberId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    memberEmail.textContent = data.member.email;
-                } else {
-                    memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
-                    console.warn(`Could not fetch email for member ID ${memberId}: ${data.message}`);
-                }
-            })
-            .catch((error) => {
-                console.error('Error fetching member details:', error);
-                memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
-            });
-        
-        // Add data attribute to form to indicate this is a renewal
-        document.getElementById('addTransactionForm').setAttribute('data-is-renewal', 'true');
-        document.getElementById('addTransactionForm').setAttribute('data-previous-sub-id', subId);
-        
-        // Completely hide the change button for renewals
-        if (changeMemberBtn) {
-            changeMemberBtn.classList.add('hidden');
-        }
-        
-        // Pre-fill subscription select
-        const subscriptionSelect = document.getElementById('subscriptionSelect');
-        for (let i = 0; i < subscriptionSelect.options.length; i++) {
-            if (subscriptionSelect.options[i].text.includes(subscriptionName)) {
-                subscriptionSelect.selectedIndex = i;
-                // Update subscription details
-                updateSubscriptionDetails();
-                break;
-            }
-        }
-        
-        // Set start date to tomorrow
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        document.getElementById('startDateInput').valueAsDate = tomorrow;
-        
-        // Calculate and set end date based on subscription
-        updateEndDate();
-        
-        // Change modal title to indicate renewal
-        const modalTitle = modal.querySelector('.text-lg.font-medium.text-white');
-        if (modalTitle) {
-            modalTitle.textContent = "Renew Subscription";
-        }
-        const modalSubtitle = modal.querySelector('.text-xs.text-white/90');
-        if (modalSubtitle) {
-            modalSubtitle.textContent = "Renew subscription for " + memberName;
-        }
-        
-        // Change submit button text
-        const submitButton = document.getElementById('submitTransactionBtn');
-        if (submitButton) {
-            submitButton.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Renew Subscription';
-        }
-    }
-}
-
-function initActionButtonsForRow(row) {
-    // Find deactivate button in this row
+// Function to handle the deactivation request
+function deactivateSubscription(memberId, subId, row) {
+    // Show "processing" state on the button
     const deactivateButton = row.querySelector('[data-action="deactivate"]');
-    if (deactivateButton) {
-        deactivateButton.addEventListener('click', function() {
-            const subId = this.getAttribute('data-sub-id');
-            const memberId = this.getAttribute('data-member-id');
-            
-            // Validate that we have both IDs
-            if (!subId || !memberId) {
-                console.error("Missing required data attributes for deactivation:", { subId, memberId });
-                showToast('Error: Missing required data for deactivation', false);
-                return;
+    const originalButtonHTML = deactivateButton.innerHTML;
+    deactivateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    deactivateButton.disabled = true;
+    
+    console.log(`Attempting to deactivate subscription - Member ID: ${memberId}, Subscription ID: ${subId}`);
+    
+    // Send AJAX request to deactivate subscription
+    fetch('../../functions/deactivate-subscription.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            memberId: memberId,
+            subId: subId
+        })
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.text().then(text => {
+            console.log('Raw response:', text);
+            try {
+                // Try to parse as JSON
+                return JSON.parse(text);
+            } catch (e) {
+                // If not valid JSON, log the raw response and throw error
+                console.error('Invalid JSON response:', text);
+                throw new Error('Server returned invalid JSON');
             }
+        });
+    })
+    .then(data => {
+        console.log('Deactivation response:', data);
+        if (data.success) {
+            // Update the UI
+            updateRowAfterDeactivation(row);
             
-            // Show confirmation dialog for deactivation
-            showConfirmationDialog(
-                'Confirm Deactivation',
-                'Are you sure you want to deactivate this subscription?',
-                () => {
-                    // Show loading state
-                    const originalHTML = this.innerHTML;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                    this.disabled = true;
-
-                    // Make actual API call to deactivate subscription
-                    fetch('../../functions/deactivate-subscription.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            memberId: memberId,
-                            subId: subId
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update UI
-                            const statusCell = row.querySelector('td:nth-child(6) span');
-                            statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
-                            statusCell.textContent = 'Inactive';
-                            
-                            // Hide the deactivate button
-                            this.style.display = 'none';
-
-                            // Add renew button if it doesn't exist
-                            const actionsCell = row.querySelector('td:nth-child(7) .flex');
-                            if (!actionsCell.querySelector('[data-action="renew"]')) {
-                                const renewButton = document.createElement('button');
-                                renewButton.setAttribute('data-sub-id', subId);
-                                renewButton.setAttribute('data-member-id', memberId);
-                                renewButton.setAttribute('data-action', 'renew');
-                                renewButton.className = 'text-green-600 hover:text-green-800 transition-colors ml-2';
-                                renewButton.title = 'Renew subscription';
-                                renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                                
-                                // Add event listener for the renew button
-                                renewButton.addEventListener('click', function() {
-                                    const memberId = this.getAttribute('data-member-id');
-                                    const subId = this.getAttribute('data-sub-id');
-                                    const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
-                                    const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
-                                    
-                                    // Open renewal form modal with this data
-                                    openRenewModal(memberId, subId, memberName, subscriptionName);
-                                });
-                                
-                                actionsCell.appendChild(renewButton);
-                            }
-
-                            // Show notification
-                            showToast('Subscription deactivated successfully!', true);
-                            
-                            // Update any counters or badges
-                            updateExpiringCount();
-                            
-                            // Save deactivation state in localStorage to persist across page refreshes
-                            saveDeactivationState(memberId, subId);
-                        } else {
-                            // Show error
-                            showToast(data.message || 'Failed to deactivate subscription', false);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showToast('An error occurred while deactivating subscription', false);
-                    })
-                    .finally(() => {
-                        // Reset button
-                        this.innerHTML = originalHTML;
-                        this.disabled = false;
-                    });
-                }
-            );
-        });
-    }
-    
-    // Find view button in this row
-    const viewButton = row.querySelector('[data-action="view"]');
-    if (viewButton) {
-        viewButton.addEventListener('click', function() {
-            // ...existing code...
-        });
-    }
-    
-    // Find renew button in this row if it exists
-    const renewButton = row.querySelector('[data-action="renew"]');
-    if (renewButton) {
-        renewButton.addEventListener('click', function() {
-            const memberId = this.getAttribute('data-member-id');
-            const subId = this.getAttribute('data-sub-id');
-            const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
-            const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+            // Store deactivation state in localStorage for persistence across page reloads
+            saveDeactivationState(memberId, subId);
             
-            // Open renewal form modal with this data
-            openRenewModal(memberId, subId, memberName, subscriptionName);
-        });
-    }
-}
-
-// Add function to save deactivation state in localStorage
-function saveDeactivationState(memberId, subId) {
-    // Get existing deactivated subscriptions from localStorage
-    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
-    
-    // Add this subscription to the deactivated list
-    if (!deactivatedSubs[memberId]) {
-        deactivatedSubs[memberId] = [];
-    }
-    
-    if (!deactivatedSubs[memberId].includes(subId)) {
-        deactivatedSubs[memberId].push(subId);
-    }
-    
-    // Save back to localStorage
-    localStorage.setItem('deactivatedSubscriptions', JSON.stringify(deactivatedSubs));
-    console.log(`Saved deactivation state for member ${memberId}, subscription ${subId}`);
-}
-
-// Add function to check if a subscription is deactivated
-function isSubscriptionDeactivated(memberId, subId) {
-    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
-    return deactivatedSubs[memberId] && deactivatedSubs[memberId].includes(subId);
-}
-
-// Add function to restore UI state after page refresh
-function restoreDeactivationStates() {
-    console.log("Restoring deactivation states...");
-    const subscriptionRows = document.querySelectorAll('#subscriptionStatusBody tr');
-    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
-    
-    subscriptionRows.forEach(row => {
-        const memberIdText = row.querySelector('td:nth-child(1) .text-xs.text-gray-500');
-        if (!memberIdText) return;
+            // Show success message
+            showToast(data.message || 'Subscription deactivated successfully', true);
+        } else {
+            // Show error message
+            console.error('Deactivation failed:', data.message);
+            showToast(data.message || 'Failed to deactivate subscription', false);
+            
+            // Restore the button
+            deactivateButton.innerHTML = originalButtonHTML;
+            deactivateButton.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error during deactivation request:', error);
+        showToast('An error occurred while deactivating the subscription', false);
         
-        const memberId = memberIdText.textContent.replace('ID: ', '').trim();
-        const deactivateButton = row.querySelector('[data-action="deactivate"]');
-        
+        // Restore the button
+        deactivateButton.innerHTML = originalButtonHTML;
+        deactivateButton.disabled = false;
+    });
+}
+
+// Function to update UI after deactivation
+function updateRowAfterDeactivation(row) {
+    // Update status badge
+    const statusCell = row.querySelector('td:nth-child(6) span');
+    if (statusCell) {
+        statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+        statusCell.textContent = 'Inactive';
+    }
+    
+    // Update days left display if it exists
+    const daysLeftEl = row.querySelector('.days-left');
+    if (daysLeftEl) {
+        daysLeftEl.textContent = 'Subscription inactive';
+    }
+    
+    // Remove deactivate button and add renew button
+    const actionsCell = row.querySelector('td:nth-child(7)');
+    if (actionsCell) {
+        const deactivateButton = actionsCell.querySelector('[data-action="deactivate"]');
         if (deactivateButton) {
+            const memberId = deactivateButton.getAttribute('data-member-id');
             const subId = deactivateButton.getAttribute('data-sub-id');
             
-            // Check if this subscription should be marked as deactivated
-            if (deactivatedSubs[memberId] && deactivatedSubs[memberId].includes(subId)) {
-                console.log(`Restoring deactivated state for member ${memberId}, subscription ${subId}`);
-                
-                // Update UI to show deactivated state
-                const statusCell = row.querySelector('td:nth-child(6) span');
-                if (statusCell) {
-                    statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
-                    statusCell.textContent = 'Inactive';
-                    
-                    // Hide deactivate button
-                    deactivateButton.style.display = 'none';
-                    
-                    // Add renew button if it doesn't exist
-                    const actionsCell = row.querySelector('td:nth-child(7) .flex');
-                    if (actionsCell && !actionsCell.querySelector('[data-action="renew"]')) {
-                        const renewButton = document.createElement('button');
-                        renewButton.setAttribute('data-sub-id', subId);
-                        renewButton.setAttribute('data-member-id', memberId);
-                        renewButton.setAttribute('data-action', 'renew');
-                        renewButton.className = 'text-green-600 hover:text-green-800 transition-colors ml-2';
-                        renewButton.title = 'Renew subscription';
-                        renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                        
-                        // Add click event listener for the renew button
-                        renewButton.addEventListener('click', function() {
-                            const memberId = this.getAttribute('data-member-id');
-                            const subId = this.getAttribute('data-sub-id');
-                            const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
-                            const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
-                            
-                            // Open renewal form modal with this data
-                            openRenewModal(memberId, subId, memberName, subscriptionName);
-                        });
-                        
-                        actionsCell.appendChild(renewButton);
-                    }
-                }
-            }
+            // Create renew button
+            const renewButton = document.createElement('button');
+            renewButton.setAttribute('data-sub-id', subId);
+            renewButton.setAttribute('data-member-id', memberId);
+            renewButton.setAttribute('data-action', 'renew');
+            renewButton.className = 'text-green-600 hover:text-green-800 transition-colors';
+            renewButton.title = 'Renew subscription';
+            renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            
+            // Add click handler for renewal
+            renewButton.addEventListener('click', function() {
+                const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+                const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+                openRenewModal(memberId, subId, memberName, subscriptionName);
+            });
+            
+            // Replace deactivate button with renew button
+            deactivateButton.replaceWith(renewButton);
         }
-    });
+    }
+    
+    // Add subtle background to indicate inactive status
+    row.classList.add('bg-gray-50');
 }
 
-// Add a document ready hook to restore UI state when page loads
+// Initialize all action buttons when the DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // ...existing code...
+    // Initialize action buttons for all rows
+    document.querySelectorAll('#subscriptionStatusBody tr').forEach(row => {
+        initActionButtonsForRow(row);
+    });
+
+    // Set up an observer to initialize buttons for any dynamically added rows
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeName === 'TR') {
+                        initActionButtonsForRow(node);
+                    } else if (node.querySelectorAll) {
+                        node.querySelectorAll('tr').forEach(row => {
+                            initActionButtonsForRow(row);
+                        });
+                    }
+                });
+            }
+        });
+    });
     
-    // Restore deactivation states after subscription table is loaded
-    const refreshSubsBtn = document.getElementById('refreshSubsBtn');
-    if (refreshSubsBtn) {
-        const originalClick = refreshSubsBtn.onclick;
-        refreshSubsBtn.onclick = function(e) {
-            if (originalClick) originalClick.call(this, e);
-            
-            // Wait a bit for the table to update
-            setTimeout(() => {
-                restoreDeactivationStates();
-            }, 1000);
-        };
-        
-        // Also restore states on initial page load
-        setTimeout(() => {
-            restoreDeactivationStates();
-        }, 1000);
+    const tableBody = document.getElementById('subscriptionStatusBody');
+    if (tableBody) {
+        observer.observe(tableBody, { childList: true, subtree: true });
     }
 });
-
-// ...existing code...
 </script>
 <script>
 // ...existing code...
+
+// Modified function to handle renewal with database IDs
+function openRenewModal(memberId, subId, memberName, subscriptionName) {
+    console.log(`Opening renewal modal for member ID: ${memberId}, subscription ID: ${subId}`);
+    
+    if (!memberId) {
+        showToast('Error: Member ID is missing', false);
+        return;
+    }
+    
+    const modal = document.getElementById('addTransactionModal');
+    if (modal) {
+        // Show the modal first
+        openModal(modal);
+        
+        // Get member search section and completely remove it for renewal modal
+        const memberSearchContainer = document.getElementById('memberSearch').parentElement.parentElement;
+        memberSearchContainer.classList.add('hidden');
+        
+        // Show member info without the search UI or change option
+        const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+        selectedMemberInfo.classList.remove('hidden');
+        
+        // Replace the heading to indicate member is fixed for renewal
+        const memberInfoSection = document.querySelector('.mb-1');
+        if (memberInfoSection) {
+            const memberHeading = memberInfoSection.querySelector('span');
+            if (memberHeading) {
+                memberHeading.textContent = "Member (Fixed for Renewal)";
+            }
+        }
+        
+        // Set member information in the static display
+        const memberInitials = document.getElementById('memberInitials');
+        const memberNameElement = document.getElementById('memberName');
+        const memberEmail = document.getElementById('memberEmail');
+        const selectedMemberId = document.getElementById('selectedMemberId');
+        const changeMemberBtn = document.getElementById('changeMemberBtn');
+        
+        // Set member details
+        const initials = memberName.split(' ').map(n => n[0]).join('');
+        memberInitials.textContent = initials;
+        memberNameElement.textContent = memberName;
+        
+        // IMPORTANT: Set the actual member ID from the parameter, not hardcoded
+        selectedMemberId.value = memberId;
+        
+        // Fetch actual member email from database
+        fetch(`../../functions/get-member-details.php?id=${memberId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    memberEmail.textContent = data.member.email;
+                } else {
+                    memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+                    console.warn(`Could not fetch email for member ID ${memberId}: ${data.message}`);
+                }
+            })
+            .catch((error) => {
+                console.error('Error fetching member details:', error);
+                memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+            });
+        
+        // Add data attribute to form to indicate this is a renewal
+        document.getElementById('addTransactionForm').setAttribute('data-is-renewal', 'true');
+        document.getElementById('addTransactionForm').setAttribute('data-previous-sub-id', subId);
+        
+        // Completely hide the change button for renewals
+        if (changeMemberBtn) {
+            changeMemberBtn.classList.add('hidden');
+        }
+        
+        // Pre-fill subscription select
+        const subscriptionSelect = document.getElementById('subscriptionSelect');
+        for (let i = 0; i < subscriptionSelect.options.length; i++) {
+            if (subscriptionSelect.options[i].text.includes(subscriptionName)) {
+                subscriptionSelect.selectedIndex = i;
+                // Update subscription details
+                updateSubscriptionDetails();
+                break;
+            }
+        }
+        
+        // Set start date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('startDateInput').valueAsDate = tomorrow;
+        
+        // Calculate and set end date based on subscription
+        updateEndDate();
+        
+        // Change modal title to indicate renewal
+        const modalTitle = modal.querySelector('.text-lg.font-medium.text-white');
+        if (modalTitle) {
+            modalTitle.textContent = "Renew Subscription";
+        }
+        const modalSubtitle = modal.querySelector('.text-xs.text-white/90');
+        if (modalSubtitle) {
+            modalSubtitle.textContent = "Renew subscription for " + memberName;
+        }
+        
+        // Change submit button text
+        const submitButton = document.getElementById('submitTransactionBtn');
+        if (submitButton) {
+            submitButton.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Renew Subscription';
+        }
+    }
+}
 
 function initActionButtonsForRow(row) {
     // Find deactivate button in this row
@@ -3629,6 +3254,8 @@ function deactivateSubscription(memberId, subId, row) {
     deactivateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     deactivateButton.disabled = true;
     
+    console.log(`Attempting to deactivate subscription - Member ID: ${memberId}, Subscription ID: ${subId}`);
+    
     // Send AJAX request to deactivate subscription
     fetch('../../functions/deactivate-subscription.php', {
         method: 'POST',
@@ -3640,8 +3267,22 @@ function deactivateSubscription(memberId, subId, row) {
             subId: subId
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.text().then(text => {
+            console.log('Raw response:', text);
+            try {
+                // Try to parse as JSON
+                return JSON.parse(text);
+            } catch (e) {
+                // If not valid JSON, log the raw response and throw error
+                console.error('Invalid JSON response:', text);
+                throw new Error('Server returned invalid JSON');
+            }
+        });
+    })
     .then(data => {
+        console.log('Deactivation response:', data);
         if (data.success) {
             // Update the UI
             updateRowAfterDeactivation(row);
@@ -3653,6 +3294,7 @@ function deactivateSubscription(memberId, subId, row) {
             showToast(data.message || 'Subscription deactivated successfully', true);
         } else {
             // Show error message
+            console.error('Deactivation failed:', data.message);
             showToast(data.message || 'Failed to deactivate subscription', false);
             
             // Restore the button
@@ -3672,13 +3314,11 @@ function deactivateSubscription(memberId, subId, row) {
 
 // Function to update the row UI after deactivation
 function updateRowAfterDeactivation(row) {
-    // Find the status badge element
-    const statusBadge = row.querySelector('.status-badge');
-    if (statusBadge) {
-        // Update the status badge to "Inactive"
-        statusBadge.textContent = 'Inactive';
-        statusBadge.classList.remove('bg-green-100', 'text-green-800', 'bg-yellow-100', 'text-yellow-800');
-        statusBadge.classList.add('bg-red-100', 'text-red-800');
+    // Update the status badge to "Inactive"
+    const statusCell = row.querySelector('td:nth-child(6) span');
+    if (statusCell) {
+        statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+        statusCell.textContent = 'Inactive';
     }
     
     // Update days left text if exists
@@ -3687,95 +3327,20 @@ function updateRowAfterDeactivation(row) {
         daysLeftEl.textContent = 'Subscription inactive';
     }
     
-    // Remove the deactivate button completely
-    const deactivateButton = row.querySelector('[data-action="deactivate"]');
-    if (deactivateButton) {
-        deactivateButton.remove(); // Completely remove the button
-    }
-    
-    // If there's a renew button, make it more prominent
-    const renewButton = row.querySelector('[data-action="renew"]');
-    if (renewButton) {
-        renewButton.classList.remove('bg-gray-100', 'hover:bg-gray-200');
-        renewButton.classList.add('bg-blue-500', 'hover:bg-blue-600', 'text-white');
+    // IMPORTANT: Completely remove the deactivate button directly from DOM
+    const actionsContainer = row.querySelector('td:nth-child(7) .flex');
+    if (actionsContainer) {
+        const deactivateButton = actionsContainer.querySelector('[data-action="deactivate"]');
+        if (deactivateButton) {
+            deactivateButton.parentNode.removeChild(deactivateButton);
+        }
     }
     
     // Add a subtle background to indicate inactive status
     row.classList.add('bg-gray-50');
 }
 
-// Add function to save deactivation state in localStorage
-function saveDeactivationState(memberId, subId) {
-    // Get existing deactivated subscriptions from localStorage
-    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
-    
-    // Add this subscription to the deactivated list
-    if (!deactivatedSubs[memberId]) {
-        deactivatedSubs[memberId] = [];
-    }
-    
-    if (!deactivatedSubs[memberId].includes(subId)) {
-        deactivatedSubs[memberId].push(subId);
-    }
-    
-    // Save back to localStorage
-    localStorage.setItem('deactivatedSubscriptions', JSON.stringify(deactivatedSubs));
-    console.log(`Saved deactivation state for member ${memberId}, subscription ${subId}`);
-}
-
-// Add function to check if a subscription is deactivated
-function isSubscriptionDeactivated(memberId, subId) {
-    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
-    return deactivatedSubs[memberId] && deactivatedSubs[memberId].includes(subId);
-}
-
-// Add function to restore UI state after page refresh
-function restoreDeactivationStates() {
-    console.log("Restoring deactivation states...");
-    const subscriptionRows = document.querySelectorAll('#subscriptionStatusBody tr');
-    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
-    
-    subscriptionRows.forEach(row => {
-        const memberIdText = row.querySelector('td:nth-child(1) .text-xs.text-gray-500');
-        if (!memberIdText) return;
-        
-        const memberId = memberIdText.textContent.replace('ID: ', '').trim();
-        const deactivateButton = row.querySelector('[data-action="deactivate"]');
-        
-        if (deactivateButton) {
-            const subId = deactivateButton.getAttribute('data-sub-id');
-            
-            // Check if this subscription should be marked as deactivated
-            if (deactivatedSubs[memberId] && deactivatedSubs[memberId].includes(subId)) {
-                updateRowAfterDeactivation(row);
-            }
-        }
-    });
-}
-
-// Add a document ready hook to restore UI state when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // ...existing code...
-    
-    // Restore deactivation states after subscription table is loaded
-    const refreshSubsBtn = document.getElementById('refreshSubsBtn');
-    if (refreshSubsBtn) {
-        const originalClick = refreshSubsBtn.onclick;
-        refreshSubsBtn.onclick = function(e) {
-            if (originalClick) originalClick.call(this, e);
-            
-            // Wait a bit for the table to update
-            setTimeout(() => {
-                restoreDeactivationStates();
-            }, 1000);
-        };
-        
-        // Also restore states on initial page load
-        setTimeout(() => {
-            restoreDeactivationStates();
-        }, 1000);
-    }
-});
+// ...existing code...
 </script>
 <script>
 // ...existing code...
@@ -3818,6 +3383,9 @@ function deactivateSubscription(memberId, subId, row) {
     deactivateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     deactivateButton.disabled = true;
     
+    console.log(`Attempting to deactivate subscription - Member ID: ${memberId}, Subscription ID: ${subId}`);
+    
+    // Send AJAX request to deactivate subscription
     fetch('../../functions/deactivate-subscription.php', {
         method: 'POST',
         headers: {
@@ -3828,24 +3396,46 @@ function deactivateSubscription(memberId, subId, row) {
             subId: subId
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.text().then(text => {
+            console.log('Raw response:', text);
+            try {
+                // Try to parse as JSON
+                return JSON.parse(text);
+            } catch (e) {
+                // If not valid JSON, log the raw response and throw error
+                console.error('Invalid JSON response:', text);
+                throw new Error('Server returned invalid JSON');
+            }
+        });
+    })
     .then(data => {
+        console.log('Deactivation response:', data);
         if (data.success) {
             // Update the UI
             updateRowAfterDeactivation(row);
-            showToast('Subscription deactivated successfully', true);
             
-            // Update expiring count since we deactivated a subscription
-            fetchExpiringCount();
+            // Store deactivation state in localStorage for persistence across page reloads
+            saveDeactivationState(memberId, subId);
+            
+            // Show success message
+            showToast(data.message || 'Subscription deactivated successfully', true);
         } else {
+            // Show error message
+            console.error('Deactivation failed:', data.message);
             showToast(data.message || 'Failed to deactivate subscription', false);
+            
+            // Restore the button
             deactivateButton.innerHTML = originalButtonHTML;
             deactivateButton.disabled = false;
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Error during deactivation request:', error);
         showToast('An error occurred while deactivating the subscription', false);
+        
+        // Restore the button
         deactivateButton.innerHTML = originalButtonHTML;
         deactivateButton.disabled = false;
     });
@@ -3898,6 +3488,88 @@ function updateRowAfterDeactivation(row) {
     // Add subtle background to indicate inactive status
     row.classList.add('bg-gray-50');
 }
+</script>
+<script>
+// Final fix to ensure the deactivation functionality works
+document.addEventListener('DOMContentLoaded', function() {
+    // Direct implementation of deactivation functionality
+    document.querySelectorAll('[data-action="deactivate"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const memberId = this.getAttribute('data-member-id');
+            const subId = this.getAttribute('data-sub-id');
+            const row = this.closest('tr');
+            
+            if (!memberId) {
+                console.error("Missing member ID");
+                showToast('Error: Missing member information', false);
+                return;
+            }
+            
+            console.log(`Button clicked - Member ID: ${memberId}, Sub ID: ${subId}`);
+            
+            // Use our custom confirmation dialog
+            showCustomConfirmation(
+                'Deactivate Subscription',
+                'Are you sure you want to deactivate this subscription?',
+                () => {
+                    // Show loading state
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    this.disabled = true;
+                    
+                    // Simple fetch request
+                    fetch('../../functions/deactivate-subscription.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            memberId: memberId,
+                            subId: subId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update status cell
+                            const statusCell = row.querySelector('td:nth-child(6) span');
+                            if (statusCell) {
+                                statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+                                statusCell.textContent = 'Inactive';
+                            }
+                            
+                            // Replace deactivate button with renew button
+                            const renewButton = document.createElement('button');
+                            renewButton.className = 'text-green-600 hover:text-green-800 transition-colors';
+                            renewButton.title = 'Renew subscription';
+                            renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                            renewButton.dataset.memberId = memberId;
+                            renewButton.dataset.subId = subId;
+                            renewButton.dataset.action = 'renew';
+                            this.replaceWith(renewButton);
+                            
+                            // Add background to indicate inactive state
+                            row.classList.add('bg-gray-50');
+                            
+                            // Show success message using toast instead of alert
+                            showToast('Subscription deactivated successfully!', true);
+                        } else {
+                            // Restore button on error
+                            this.innerHTML = '<i class="fas fa-toggle-off"></i>';
+                            this.disabled = false;
+                            showToast('Failed to deactivate subscription: ' + (data.message || 'Unknown error'), false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        this.innerHTML = '<i class="fas fa-toggle-off"></i>';
+                        this.disabled = false;
+                        showToast('An error occurred while deactivating the subscription', false);
+                    });
+                }
+            );
+        });
+    });
+});
 </script>
 </body>
 </html>
