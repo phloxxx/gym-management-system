@@ -933,7 +933,6 @@ $activeSubscriptions = getActiveSubscriptions();
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
     <script src="../../user/admin/custom-confirmation.js"></script>
-    <script src="../../user/admin/auto-confirm.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize dropdown toggle functionality
@@ -1412,10 +1411,12 @@ $activeSubscriptions = getActiveSubscriptions();
                 }
             }
 
-            // Add event listener for the submit transaction button
-            const submitTransactionBtn = document.getElementById('submitTransactionBtn');
-            if (submitTransactionBtn) {
-                submitTransactionBtn.addEventListener('click', function() {
+            // Modify form submission reset to restore the UI for regular add transaction
+            const addTransactionForm = document.getElementById('addTransactionForm');
+            if (addTransactionForm) {
+                addTransactionForm.addEventListener('submit', function(e) {
+                    e.preventDefault(); // Prevent default form submission
+                    
                     // Get form fields
                     const memberId = document.getElementById('selectedMemberId').value;
                     const subscriptionId = document.getElementById('subscriptionSelect').value;
@@ -1445,45 +1446,46 @@ $activeSubscriptions = getActiveSubscriptions();
                     }
                     
                     // Show loading state on the button
-                    const originalBtnText = this.innerHTML;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-                    this.disabled = true;
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalBtnText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                    submitBtn.disabled = true;
                     
                     // Process the transaction submission
-                    processTransactionSubmission(this, originalBtnText);
+                    processTransactionSubmission();
+                    
+                    function processTransactionSubmission() {
+                        // Get subscription details for the notification
+                        const subscriptionSelect = document.getElementById('subscriptionSelect');
+                        const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
+                        const subscriptionName = selectedOption.text.split('(')[0].trim();
+                        const memberName = document.getElementById('memberName').textContent;
+                        
+                        // Simulate API call with timeout
+                        setTimeout(() => {
+                            // Close modal
+                            closeModal(document.getElementById('addTransactionModal'));
+                            
+                            // Reset form
+                            addTransactionForm.reset();
+                            
+                            // Reset the UI for future new transactions
+                            resetTransactionModalUI();
+                            
+                            // Update summary cards (simulating data refresh)
+                            updateSummaryCards();
+                            
+                            // Show success notification using the toast
+                            showToast(`${subscriptionName} successfully added for ${memberName}!`, true);
+                            
+                            // Reset button
+                            submitBtn.innerHTML = originalBtnText;
+                            submitBtn.disabled = false;
+                        }, 1000);
+                    }
                 });
             }
             
-            // Function to process transaction submission
-            function processTransactionSubmission(button, originalBtnText) {
-                // Get subscription details for the notification
-                const subscriptionSelect = document.getElementById('subscriptionSelect');
-                const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
-                const subscriptionName = selectedOption.text.split('(')[0].trim();
-                const memberName = document.getElementById('memberName').textContent;
-                
-                // Simulate API call with timeout
-                setTimeout(() => {
-                    // Close modal
-                    closeModal(document.getElementById('addTransactionModal'));
-                    
-                    // Reset form
-                    document.getElementById('addTransactionForm').reset();
-                    
-                    // Reset the UI for future new transactions
-                    resetTransactionModalUI();
-                    
-                    // Show success notification using the toast
-                    showToast(`${subscriptionName} successfully added for ${memberName}!`, true);
-                    
-                    // Reset button
-                    if (button) {
-                        button.innerHTML = originalBtnText;
-                        button.disabled = false;
-                    }
-                }, 1000);
-            }
-
             // Function to update summary cards after transaction
             function updateSummaryCards() {
                 // Get current values
@@ -1574,7 +1576,37 @@ $activeSubscriptions = getActiveSubscriptions();
                 }
             });
             
-            // Set up the modal close button
+            // Also track the X button at the top of the modal for confirmation
+            const closeModalButton = document.querySelector('#addTransactionModal button[type="button"]');
+            if (closeModalButton) {
+                closeModalButton.removeAttribute('onclick');
+                closeModalButton.addEventListener('click', function() {
+                    const formChanged = hasFormChanged() && formDirty;
+                    
+                    if (formChanged) {
+                        // Show confirmation dialog
+                        showConfirmationDialog(
+                            'Discard Changes',
+                            'Are you sure you want to cancel? Any unsaved changes will be lost.',
+                            () => {
+                                // If confirmed, close the modal
+                                closeModal(document.getElementById('addTransactionModal'));
+                                // Reset form dirty state
+                                formDirty = false;
+                                // Give time for the close animation to finish before resetting
+                                setTimeout(resetTransactionModalUI, 300);
+                            }
+                        );
+                    } else {
+                        // If no changes, close directly
+                        closeModal(document.getElementById('addTransactionModal'));
+                        // Give time for the close animation to finish before resetting
+                        setTimeout(resetTransactionModalUI, 300);
+                    }
+                });
+            }
+
+            // Also track the X button at the top of the modal (directly close without confirmation)
             const closeModalButton = document.querySelector('#addTransactionModal button[type="button"]');
             if (closeModalButton) {
                 closeModalButton.removeAttribute('onclick');
@@ -1588,108 +1620,63 @@ $activeSubscriptions = getActiveSubscriptions();
                 });
             }
 
-            // Set up the cancel button at the bottom of the modal
-            const cancelModalButton = document.querySelector('#addTransactionModal .border-t button:first-child');
-            if (cancelModalButton) {
-                cancelModalButton.removeAttribute('onclick');
-                cancelModalButton.addEventListener('click', function() {
-                    // Close directly without checking for changes
-                    closeModal(document.getElementById('addTransactionModal'));
-                    // Reset form dirty state
-                    formDirty = false;
-                    // Give time for the close animation to finish before resetting
-                    setTimeout(resetTransactionModalUI, 300);
-                });
-            }
-
-            // Function to reset the transaction modal UI to its default state
+            // Function to reset the transaction modal UI back to add transaction mode
             function resetTransactionModalUI() {
-                // Reset the form
-                const form = document.getElementById('addTransactionForm');
-                if (form) {
-                    form.reset();
-                }
-                
-                // Show member search section and hide selected member info
-                const memberSearchContainer = document.getElementById('memberSearch').parentElement.parentElement;
-                memberSearchContainer.classList.remove('hidden');
-                
-                // Hide selected member info
-                const selectedMemberInfo = document.getElementById('selectedMemberInfo');
-                selectedMemberInfo.classList.add('hidden');
+                const modal = document.getElementById('addTransactionModal');
+                if (!modal) return;
                 
                 // Reset form dirty state
                 formDirty = false;
                 
-                // Reset subscription summary
-                document.getElementById('subName').textContent = '-';
-                document.getElementById('subDuration').textContent = '-';
-                document.getElementById('subStartDate').textContent = '-';
-                document.getElementById('subEndDate').textContent = '-';
-                document.getElementById('subPrice').textContent = '-';
+                // Restore the original member section heading
+                const memberInfoSection = document.querySelector('.mb-1');
+                if (memberInfoSection) {
+                    const memberHeading = memberInfoSection.querySelector('span');
+                    if (memberHeading) {
+                        memberHeading.textContent = "Member Information";
+                    }
+                }
                 
-                // Reset modal title if it was changed
-                const modalTitle = document.querySelector('#addTransactionModal .text-lg.font-medium.text-white');
+                // Show the member search field again
+                const memberSearchContainer = document.getElementById('memberSearch').parentElement.parentElement;
+                if (memberSearchContainer) {
+                    memberSearchContainer.classList.remove('hidden');
+                }
+                
+                // Reset member search field
+                const memberSearchInput = document.getElementById('memberSearch');
+                if (memberSearchInput) {
+                    memberSearchInput.value = '';
+                    memberSearchInput.disabled = false;
+                }
+                
+                // Hide the selected member info
+                const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+                if (selectedMemberInfo) {
+                    selectedMemberInfo.classList.add('hidden');
+                }
+                
+                // Show the change member button
+                const changeMemberBtn = document.getElementById('changeMemberBtn');
+                if (changeMemberBtn) {
+                    changeMemberBtn.classList.remove('hidden');
+                }
+                
+                // Reset the modal title
+                const modalTitle = modal.querySelector('.text-lg.font-medium.text-white');
                 if (modalTitle) {
                     modalTitle.textContent = "Add New Transaction";
                 }
-                const modalSubtitle = document.querySelector('#addTransactionModal .text-xs.text-white/90');
+                const modalSubtitle = modal.querySelector('.text-xs.text-white/90');
                 if (modalSubtitle) {
                     modalSubtitle.textContent = "Enter the payment details below";
                 }
                 
-                // Reset submit button text
-                const submitButton = document.getElementById('submitTransactionBtn');
+                // Reset the submit button
+                const submitButton = modal.querySelector('button[type="submit"]');
                 if (submitButton) {
                     submitButton.innerHTML = '<i class="fas fa-save mr-2"></i> Add Transaction';
                 }
-            }
-
-            // Toast notification functions
-            function showToast(message, isSuccess = true) {
-                const toast = document.getElementById('toast');
-                const toastMessage = document.getElementById('toastMessage');
-                const toastIcon = document.getElementById('toastIcon');
-                
-                if (!toast || !toastMessage || !toastIcon) {
-                    console.error('Toast elements not found');
-                    return;
-                }
-                
-                // Set message
-                toastMessage.textContent = message;
-                
-                // Set icon and color based on success/error
-                if (isSuccess) {
-                    toast.classList.remove('bg-red-600');
-                    toast.classList.add('bg-green-600');
-                    toastIcon.classList.remove('fa-exclamation-circle');
-                    toastIcon.classList.add('fa-check-circle');
-                } else {
-                    toast.classList.remove('bg-green-600');
-                    toast.classList.add('bg-red-600');
-                    toastIcon.classList.remove('fa-check-circle');
-                    toastIcon.classList.add('fa-exclamation-circle');
-                }
-                
-                // Show the toast
-                toast.style.display = 'flex';
-                setTimeout(() => {
-                    toast.classList.remove('translate-x-full', 'opacity-0');
-                }, 10);
-                
-                // Hide after 3 seconds
-                setTimeout(hideToast, 3000);
-            }
-            
-            function hideToast() {
-                const toast = document.getElementById('toast');
-                if (!toast) return;
-                
-                toast.classList.add('translate-x-full', 'opacity-0');
-                setTimeout(() => {
-                    toast.style.display = 'none';
-                }, 300);
             }
 
             // Add filter application functionality
@@ -1964,13 +1951,6 @@ $activeSubscriptions = getActiveSubscriptions();
 
         // Show confirmation dialog
         function showConfirmationDialog(title, message, onConfirm) {
-            // If this is a discard changes confirmation, skip dialog and proceed directly
-            if (title === 'Discard Changes') {
-                // Immediately invoke the confirmation callback
-                if (onConfirm) onConfirm();
-                return;
-            }
-            
             const confirmationDialog = document.getElementById('confirmationDialog');
             const confirmationTitle = document.getElementById('confirmationTitle');
             const confirmationMessage = document.getElementById('confirmationMessage');

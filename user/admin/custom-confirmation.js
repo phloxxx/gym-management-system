@@ -6,9 +6,27 @@
  * @param {Function} onConfirm The callback function to execute if the user confirms
  */
 function showCustomConfirmation(title, message, onConfirm) {
+    console.log('Showing confirmation dialog:', { title, message });
+    
+    // First, remove any existing dialogs to prevent duplicates
+    const existingDialogs = document.querySelectorAll('.custom-confirmation-dialog');
+    if (existingDialogs.length > 0) {
+        console.log(`Removing ${existingDialogs.length} existing dialog(s)`);
+        existingDialogs.forEach(dialog => {
+            document.body.removeChild(dialog);
+        });
+    }
+    
+    // Disable any standard browser confirmations
+    window.confirmBackup = window.confirm;
+    window.confirm = function() {
+        console.log('Blocking standard confirm dialog');
+        return false;
+    };
+    
     // Create overlay
     const overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center';
+    overlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center custom-confirmation-dialog';
     
     // Create dialog
     const dialog = document.createElement('div');
@@ -41,6 +59,8 @@ function showCustomConfirmation(title, message, onConfirm) {
     // Close dialog
     const closeDialog = () => {
         document.body.removeChild(overlay);
+        // Restore original confirm function
+        window.confirm = window.confirmBackup;
     };
     
     // Cancel button
@@ -53,4 +73,7 @@ function showCustomConfirmation(title, message, onConfirm) {
             onConfirm();
         }
     });
+    
+    // Return false to prevent any original event handlers from continuing
+    return false;
 } 

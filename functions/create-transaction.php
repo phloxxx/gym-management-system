@@ -1,6 +1,7 @@
 <?php
 require_once '../config/db_connection.php';
 require_once 'transaction-functions.php';
+require_once 'update-member-status.php'; // Include the member status update function
 
 header('Content-Type: application/json');
 
@@ -70,6 +71,10 @@ try {
     $result = createTransaction($memberId, $subscriptionId, $paymentId, $startDate, $endDate, $isRenewal, $previousSubId);
     
     if ($result) {
+        // Update member status based on subscription
+        $statusResult = updateMemberStatus($memberId);
+        error_log("Member status updated after transaction: " . json_encode($statusResult));
+        
         // Get member name for success message
         $stmt = $conn->prepare("SELECT CONCAT(MEMBER_FNAME, ' ', MEMBER_LNAME) as name, MEMBER_FNAME, MEMBER_LNAME, EMAIL FROM member WHERE MEMBER_ID = ?");
         $stmt->bind_param("i", $memberId);
@@ -101,6 +106,8 @@ try {
             'success' => true, 
             'message' => $message,
             'isRenewal' => $isRenewal,
+            'memberStatus' => $statusResult['status'],
+            'hasActiveSubscriptions' => $statusResult['hasActiveSubscriptions'],
             'transaction' => [
                 'memberId' => $memberId,
                 'memberName' => $memberName,

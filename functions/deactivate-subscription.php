@@ -7,6 +7,7 @@ ini_set('display_errors', 0);
 error_log("This version of deactivate-subscription.php was modified at " . date('Y-m-d H:i:s'));
 
 require_once __DIR__ . '/../config/db_connection.php';
+require_once __DIR__ . '/update-member-status.php'; // Include member status update function
 
 header('Content-Type: application/json');
 
@@ -72,53 +73,75 @@ try {
     $findTxnResult = $findTxnStmt->get_result();
     
     if ($findTxnResult->num_rows > 0) {
-        // We found a transaction ID to use
         $txnRow = $findTxnResult->fetch_assoc();
         $transactionId = $txnRow['TRANSACTION_ID'];
         
-        // Now create a transaction log entry
-        $operation = "DEACTIVATE";
-        
+        // Log the deactivation in transaction_log
         $logSql = "INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, MODIFIEDDATE) 
-                  VALUES (?, ?, CURRENT_DATE)";
+                  VALUES (?, 'DEACTIVATE', CURRENT_DATE)";
         
         $logStmt = $conn->prepare($logSql);
         if (!$logStmt) {
             throw new Exception("Failed to prepare log statement: " . $conn->error);
         }
         
-        $logStmt->bind_param("is", $transactionId, $operation);
+        $logStmt->bind_param("i", $transactionId);
         $logStmt->execute();
+        
+        error_log("Transaction log created for deactivation");
     } else {
-        // No transaction found for this member/subscription
-        error_log("No transaction found for member ID $memberId and subscription ID $subId");
-        // This is not a critical error, so we don't throw an exception
-        // We'll just skip the transaction log entry
+        error_log("No transaction found for this subscription");
     }
     
     // Commit the transaction
     $conn->commit();
     
+    // Update member status based on their active subscriptions
+    $statusResult = updateMemberStatus($memberId);
+    error_log("Member status updated: " . json_encode($statusResult));
+    
+    // Get member details for response
+    $memberSql = "SELECT CONCAT(MEMBER_FNAME, ' ', MEMBER_LNAME) as memberName 
+                  FROM member WHERE MEMBER_ID = ?";
+    $memberStmt = $conn->prepare($memberSql);
+    $memberStmt->bind_param("i", $memberId);
+    $memberStmt->execute();
+    $memberResult = $memberStmt->get_result();
+    $memberRow = $memberResult->fetch_assoc();
+    $memberName = $memberRow ? $memberRow['memberName'] : 'Member';
+    
+    // Get subscription details for response
+    $subSql = "SELECT SUB_NAME FROM subscription WHERE SUB_ID = ?";
+    $subStmt = $conn->prepare($subSql);
+    $subStmt->bind_param("i", $subId);
+    $subStmt->execute();
+    $subResult = $subStmt->get_result();
+    $subRow = $subResult->fetch_assoc();
+    $subName = $subRow ? $subRow['SUB_NAME'] : 'Unknown subscription';
+    
+    // Success response
     echo json_encode([
         'success' => true,
-        'message' => 'Subscription deactivated successfully'
+        'message' => "Successfully deactivated {$subName} subscription for {$memberName}",
+        'memberStatus' => $statusResult['status'],
+        'hasActiveSubscriptions' => $statusResult['hasActiveSubscriptions']
     ]);
     
 } catch (Exception $e) {
-    // Roll back the transaction in case of error
-    if (isset($conn) && !$conn->connect_error) {
+    // Rollback on error
+    if (isset($conn) && $conn instanceof mysqli) {
         $conn->rollback();
     }
     
-    error_log("Error deactivating subscription: " . $e->getMessage());
-    
-    http_response_code(500);
+    error_log("Error in deactivation: " . $e->getMessage());
+    http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'Failed to deactivate subscription: ' . $e->getMessage()
+        'message' => $e->getMessage()
     ]);
 } finally {
-    if (isset($conn)) {
+    // Close connection
+    if (isset($conn) && $conn instanceof mysqli) {
         $conn->close();
     }
 }

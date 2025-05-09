@@ -1,3 +1,32 @@
+<?php
+require_once '../../config/db_connection.php';
+
+// Fetch subscription plans from database
+function getSubscriptionPlans() {
+    $conn = getConnection();
+    $plans = [];
+    
+    try {
+        $sql = "SELECT SUB_ID, SUB_NAME, DURATION, PRICE FROM subscription WHERE IS_ACTIVE = 1 ORDER BY PRICE";
+        $result = $conn->query($sql);
+        
+        if ($result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $plans[] = $row;
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Error fetching subscription plans: " . $e->getMessage());
+    } finally {
+        $conn->close();
+    }
+    
+    return $plans;
+}
+
+// Get subscription plans for the dropdown
+$subscriptionPlans = getSubscriptionPlans();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -394,9 +423,11 @@
                                 <select id="subscriptionType" name="SUB_ID" 
                                     class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white" required>
                                     <option value="">Select Subscription Plan</option>
-                                    <option value="1" data-duration="30" data-price="1500">Monthly Plan - ₱1,500</option>
-                                    <option value="2" data-duration="90" data-price="4000">Quarterly Plan - ₱4,000</option>
-                                    <option value="3" data-duration="365" data-price="15000">Annual Plan - ₱15,000</option>
+                                    <?php foreach ($subscriptionPlans as $plan): ?>
+                                    <option value="<?php echo $plan['SUB_ID']; ?>" data-duration="<?php echo $plan['DURATION']; ?>" data-price="<?php echo $plan['PRICE']; ?>">
+                                        <?php echo htmlspecialchars($plan['SUB_NAME']); ?> - ₱<?php echo number_format($plan['PRICE'], 2); ?>
+                                    </option>
+                                    <?php endforeach; ?>
                                 </select>
                                 <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
                                     <i class="fas fa-chevron-down text-xs"></i>
@@ -1647,10 +1678,10 @@
                                         <div class="text-xs text-gray-500 mt-1">Coach: ${member.COACH_NAME || 'Not Assigned'}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${member.IS_ACTIVE == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                                            ${member.IS_ACTIVE == 1 ? 'Active' : 'Inactive'}
+                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${member.HAS_ACTIVE_SUBSCRIPTION == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                            ${member.HAS_ACTIVE_SUBSCRIPTION == 1 ? 'Active' : (member.IS_ACTIVE == 1 ? 'No Subscription' : 'Inactive')}
                                         </span>
-                                        <div class="text-xs text-gray-500 mt-1">${member.SUB_NAME || 'No subscription'}</div>
+                                        <div class="text-xs text-gray-500 mt-1">${member.SUB_NAME || 'No active subscription'}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         <div class="flex space-x-2 justify-center">

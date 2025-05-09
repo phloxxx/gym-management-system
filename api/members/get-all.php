@@ -28,12 +28,14 @@ try {
                  FROM member_subscription ms 
                  WHERE ms.MEMBER_ID = m.MEMBER_ID 
                  AND ms.IS_ACTIVE = 1 
+                 AND CURRENT_DATE() <= ms.END_DATE
                  ORDER BY ms.START_DATE DESC 
                  LIMIT 1) as START_DATE,
                 (SELECT ms.END_DATE 
                  FROM member_subscription ms 
                  WHERE ms.MEMBER_ID = m.MEMBER_ID 
                  AND ms.IS_ACTIVE = 1 
+                 AND CURRENT_DATE() <= ms.END_DATE
                  ORDER BY ms.START_DATE DESC 
                  LIMIT 1) as END_DATE,
                 (SELECT s.SUB_NAME 
@@ -41,8 +43,14 @@ try {
                  JOIN subscription s ON ms.SUB_ID = s.SUB_ID 
                  WHERE ms.MEMBER_ID = m.MEMBER_ID 
                  AND ms.IS_ACTIVE = 1 
+                 AND CURRENT_DATE() <= ms.END_DATE
                  ORDER BY ms.START_DATE DESC 
-                 LIMIT 1) as SUB_NAME
+                 LIMIT 1) as SUB_NAME,
+                (SELECT COUNT(*) > 0
+                 FROM member_subscription ms
+                 WHERE ms.MEMBER_ID = m.MEMBER_ID
+                 AND ms.IS_ACTIVE = 1
+                 AND CURRENT_DATE() <= ms.END_DATE) as HAS_ACTIVE_SUBSCRIPTION
               FROM member m
               LEFT JOIN program p ON m.PROGRAM_ID = p.PROGRAM_ID
               WHERE 1=1";

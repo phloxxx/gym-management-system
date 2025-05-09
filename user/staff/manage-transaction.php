@@ -239,27 +239,8 @@ $activeSubscriptions = getActiveSubscriptions();
                             </div>
                             <select id="subFilter" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
                                 <option value="all">All Subscriptions</option>
-                                <?php 
-                                // Modify this query to only fetch active subscriptions
-                                $subscriptionPlans = []; 
-                                try {
-                                    // Include database connection
-                                    include '../../includes/db_connection.php';
-                                    
-                                    // Query to get active subscription plans
-                                    $stmt = $conn->prepare("SELECT SUB_ID, SUB_NAME FROM subscription WHERE IS_ACTIVE = 1");
-                                    $stmt->execute();
-                                    $subscriptionPlans = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                                } catch(PDOException $e) {
-                                    // Log error (don't show to users)
-                                    error_log("Database error: " . $e->getMessage());
-                                    // Set empty array if error occurs
-                                    $subscriptionPlans = [];
-                                }
-                                
-                                foreach ($subscriptionPlans as $sub): 
-                                ?>
-                                <option value="<?php echo $sub['SUB_ID']; ?>"><?php echo htmlspecialchars($sub['SUB_NAME']); ?></option>
+                                <?php foreach ($subscriptionPlans as $plan): ?>
+                                <option value="<?php echo $plan['SUB_ID']; ?>"><?php echo htmlspecialchars($plan['SUB_NAME']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
@@ -549,11 +530,11 @@ $activeSubscriptions = getActiveSubscriptions();
                                 <option value="">Select Subscription</option>
                                 <?php foreach ($subscriptionPlans as $plan): ?>
                                     <option value="<?php echo $plan['SUB_ID']; ?>" 
-                                            data-duration="<?php echo isset($plan['DURATION']) ? $plan['DURATION'] : '30'; ?>" 
-                                            data-price="<?php echo isset($plan['PRICE']) ? $plan['PRICE'] : '0.00'; ?>">
+                                            data-duration="<?php echo htmlspecialchars($plan['DURATION']); ?>" 
+                                            data-price="<?php echo htmlspecialchars($plan['PRICE']); ?>">
                                         <?php echo htmlspecialchars($plan['SUB_NAME']); ?> 
-                                        (<?php echo isset($plan['DURATION']) ? $plan['DURATION'] : '30'; ?> Days - 
-                                        $<?php echo isset($plan['PRICE']) ? $plan['PRICE'] : '0.00'; ?>)
+                                        (<?php echo htmlspecialchars($plan['DURATION']); ?> Days - 
+                                        ₱<?php echo number_format($plan['PRICE'], 2); ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
