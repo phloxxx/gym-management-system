@@ -135,7 +135,7 @@ $comorbidities = getActiveComorbidities();
                 <ul class="space-y-1 font-medium">
                     <!-- Dashboard -->
                     <li>
-                        <a href="admin-dashboard.html" class="sidebar-menu-item">
+                        <a href="admin-dashboard.php" class="sidebar-menu-item">
                             <i class="fas fa-home"></i>
                             <span>Dashboard</span>
                         </a>
@@ -332,7 +332,7 @@ $comorbidities = getActiveComorbidities();
                 
                 <!-- Modal Body -->
                 <div class="p-6 pt-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
-                    <form id="memberForm" class="space-y-3">
+                    <form id="memberForm" class="space-y-3" onsubmit="return false" method="post">
                         <input type="hidden" id="memberId" name="memberId" value="">
                         
                         <!-- Personal Information Section -->
@@ -920,6 +920,22 @@ $comorbidities = getActiveComorbidities();
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
     <script>
+        // Flag to prevent multiple DOMContentLoaded handlers from executing
+        let domContentLoadedExecuted = false;
+        
+        // Override the addEventListener method to detect and prevent duplicate DOMContentLoaded handlers
+        const originalAddEventListener = document.addEventListener;
+        document.addEventListener = function(type, listener, options) {
+            if (type === 'DOMContentLoaded') {
+                if (domContentLoadedExecuted) {
+                    console.warn('Prevented duplicate DOMContentLoaded handler from being attached');
+                    return;
+                }
+                domContentLoadedExecuted = true;
+            }
+            return originalAddEventListener.call(this, type, listener, options);
+        };
+        
         // Base functionality
         function hideToast() {
             const toast = document.getElementById('toast');
@@ -928,8 +944,8 @@ $comorbidities = getActiveComorbidities();
                 toast.style.display = 'none';
             }, 300);
         }
-
-        // Show success toast
+        
+        // Utility function to show toast messages
         function showToast(message, isSuccess = true) {
             const toast = document.getElementById('toast');
             const toastMessage = document.getElementById('toastMessage');
@@ -959,7 +975,8 @@ $comorbidities = getActiveComorbidities();
         }
 
         // Set today's date as default for start date
-        document.addEventListener('DOMContentLoaded', function() {
+        // This code has been moved to the main DOMContentLoaded handler at the bottom of the file
+        /*document.addEventListener('DOMContentLoaded', function() {
             const today = new Date();
             const formattedDate = today.toISOString().split('T')[0];
             document.getElementById('startDate').value = formattedDate;
@@ -972,7 +989,7 @@ $comorbidities = getActiveComorbidities();
             initModalToggle();
             initCoachSelection();
             initViewAndEditButtons();
-        });
+        });*/
         
         // Coach selection logic
         function initCoachSelection() {
@@ -1352,15 +1369,19 @@ $comorbidities = getActiveComorbidities();
             });
             
             // Save member
+            // Add a variable to prevent double submissions
+            let isSubmitting = false;
+            
             saveMemberButton.addEventListener('click', function() {
+                // Prevent double submission
+                if (isSubmitting) {
+                    console.log('Form submission already in progress');
+                    return;
+                }
+                
                 if (memberForm.checkValidity()) {
-                    // Check if button is already in loading state to prevent double submission
-                    if (this.disabled) {
-                        return;
-                    }
-                    
-                    // Generate a unique request ID
-                    const requestId = Date.now().toString();
+                    // Set flag to prevent multiple submissions
+                    isSubmitting = true;
                     
                     // Show loading state
                     saveMemberButton.disabled = true;
@@ -1370,7 +1391,6 @@ $comorbidities = getActiveComorbidities();
                     const formData = new FormData(memberForm);
                     const memberId = document.getElementById('memberId').value;
                     const data = {
-                        requestId: requestId,
                         MEMBER_FNAME: formData.get('MEMBER_FNAME'),
                         MEMBER_LNAME: formData.get('MEMBER_LNAME'),
                         EMAIL: formData.get('EMAIL'),
@@ -1408,6 +1428,7 @@ $comorbidities = getActiveComorbidities();
                                 // Reset button state
                                 saveMemberButton.disabled = false;
                                 saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                                isSubmitting = false; // Reset submission flag
                                 showToast('Please fill all renewal fields', false);
                                 return;
                             }
@@ -1428,23 +1449,12 @@ $comorbidities = getActiveComorbidities();
                         },
                         body: JSON.stringify(data)
                     })
-                    .then(response => {
-                        // Check for non-200 responses and handle them
-                        if (!response.ok) {
-                            return response.json().then(errorData => {
-                                throw new Error(errorData.message || 'Server responded with an error');
-                            });
-                        }
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(result => {
                         if (result.status === 'success') {
                             showToast(memberId ? 'Member updated successfully!' : 'New member added successfully!', true);
                             closeModalDirectly();
-                            // Add a short delay before refreshing the members list
-                            setTimeout(() => {
-                                loadMembers(); // Reload the members table
-                            }, 500); // Increased delay to ensure database consistency
+                            loadMembers(); // Reload the members table
                         } else {
                             throw new Error(result.message || 'Failed to save member');
                         }
@@ -1457,6 +1467,8 @@ $comorbidities = getActiveComorbidities();
                         // Reset button state
                         saveMemberButton.disabled = false;
                         saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                        // Always reset submission flag when done, regardless of success/failure
+                        isSubmitting = false;
                     });
                 } else {
                     memberForm.reportValidity();
@@ -1598,7 +1610,8 @@ $comorbidities = getActiveComorbidities();
         }
         
         // Initialize status toggle buttons
-        document.addEventListener('DOMContentLoaded', function() {
+        // This code has been moved to the main DOMContentLoaded handler at the bottom of the file
+        /*document.addEventListener('DOMContentLoaded', function() {
             const statusToggles = document.querySelectorAll('.status-toggle');
             
             statusToggles.forEach(toggle => {
@@ -1736,7 +1749,7 @@ $comorbidities = getActiveComorbidities();
                 
                 return dialog;
             }
-        });
+        });*/
         
         // Add functionality to view and edit buttons
         function initViewAndEditButtons() {
@@ -1853,7 +1866,6 @@ $comorbidities = getActiveComorbidities();
                                 
                                 // Add event listener to the Edit Member button
                                 viewEditButton.onclick = function() {
-                                    // Close view modal
                                     document.getElementById('viewMemberModal').classList.add('hidden');
                                     // Open edit modal with this member ID
                                     editMember(id);
@@ -2197,9 +2209,6 @@ $comorbidities = getActiveComorbidities();
             emptyState.classList.add('hidden');
             tableContainer.classList.add('hidden');
             
-            // Clear existing table content to prevent duplicates
-            tableBody.innerHTML = '';
-            
             // Construct URL with filters
             let url = '../../api/members/get-all.php';
             const params = [];
@@ -2212,37 +2221,20 @@ $comorbidities = getActiveComorbidities();
                 params.push(`search=${encodeURIComponent(currentSearchTerm)}`);
             }
             
-            // Add timestamp to prevent caching
-            params.push(`_t=${Date.now()}`);
-            
             if (params.length > 0) {
                 url += '?' + params.join('&');
             }
             
             fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
                         if (data.members.length > 0) {
-                            // Process members (ensure no duplicates)
-                            const uniqueMembers = [];
-                            const memberIds = new Set();
-                            
-                            // Only add members that haven't been added yet
-                            data.members.forEach(member => {
-                                if (!memberIds.has(member.MEMBER_ID)) {
-                                    memberIds.add(member.MEMBER_ID);
-                                    uniqueMembers.push(member);
-                                }
-                            });
+                            // Clear existing table content
+                            tableBody.innerHTML = '';
                             
                             // Add members to table
-                            uniqueMembers.forEach(member => {
+                            data.members.forEach(member => {
                                 const row = document.createElement('tr');
                                 const initials = `${member.MEMBER_FNAME[0]}${member.MEMBER_LNAME[0]}`;
                                 
@@ -2271,7 +2263,7 @@ $comorbidities = getActiveComorbidities();
                                         <div class="text-xs text-gray-500 mt-1">Coach: ${member.COACH_NAME || 'Not Assigned'}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${member.IS_ACTIVE == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${member.IS_ACTIVE == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800"}">
                                             ${member.IS_ACTIVE == 1 ? 'Active' : 'Inactive'}
                                         </span>
                                         <div class="text-xs text-gray-500 mt-1">${member.SUB_NAME || 'No subscription'}</div>
@@ -2392,14 +2384,13 @@ $comorbidities = getActiveComorbidities();
                         // Set Edit Member button to pass the correct member ID
                         const viewEditButton = document.getElementById('viewEditButton');
                         if (viewEditButton) {
-                            viewEditButton.setAttribute('data-id', id);
+                            viewEditButton.setAttribute('data-id', memberId);
                             
                             // Add event listener to the Edit Member button
                             viewEditButton.onclick = function() {
-                                // Close view modal
                                 document.getElementById('viewMemberModal').classList.add('hidden');
                                 // Open edit modal with this member ID
-                                editMember(id);
+                                editMember(memberId);
                             };
                         }
                         
@@ -2689,23 +2680,38 @@ $comorbidities = getActiveComorbidities();
             }
         }
 
-        // Initialize all components
+        // Initialize all components - MAIN INITIALIZATION POINT
         document.addEventListener('DOMContentLoaded', function() {
-            loadMembers();
+            // Set today's date as default for start date
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            document.getElementById('startDate').value = formattedDate;
             
-            // Initialize all the components with their event listeners
+            // Set transaction date
+            document.getElementById('transactionDate').value = formattedDate;
+            
+            // Initialize all needed functionality
+            initSubscriptionLogic();
             initModalToggle();
             initCoachFilters();
-            initSubscriptionLogic();
+            initCoachSelection();
             initViewAndEditButtons();
             initSearchAndFilters();
-            initSubscriptionRenewal(); // Add this line
+            initSubscriptionRenewal();
+            initProgramFilter(); // Add program filter initialization
             
-            // Set today's date as default for new member form
-            const today = new Date();
-            const todayFormatted = today.toISOString().split('T')[0];
-            document.getElementById('startDate').value = todayFormatted;
-            document.getElementById('transactionDate').value = todayFormatted;
+            // Finally load members after everything else is initialized
+            loadMembers();
+            
+            // Prevent form from submitting directly
+            const memberForm = document.getElementById('memberForm');
+            if (memberForm) {
+                memberForm.addEventListener('submit', function(e) {
+                    // Prevent the default form submission
+                    e.preventDefault();
+                    console.log("Default form submission prevented");
+                });
+            }
             
             setTimeout(() => {
                 document.getElementById('coach').disabled = true;

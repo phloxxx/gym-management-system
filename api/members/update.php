@@ -1,14 +1,8 @@
 <?php
 header('Content-Type: application/json');
 require_once '../../config/db_connection.php';
-session_start();
 
 try {
-    // Check if user is logged in and has appropriate role
-    if (!isset($_SESSION['user_id']) || (strtolower($_SESSION['role']) !== 'administrator' && strtolower($_SESSION['role']) !== 'staff')) {
-        throw new Exception("Unauthorized access. Please login with appropriate credentials.");
-    }
-
     // Get member ID from URL parameter
     $memberId = isset($_GET['id']) ? $_GET['id'] : null;
     if (!$memberId) {
@@ -23,8 +17,11 @@ try {
 
     $conn = getConnection();
     
+    // Begin transaction to ensure data consistency
+    $conn->begin_transaction();
+    
     // First get current member data to preserve program_id
-    $query = "SELECT PROGRAM_ID, USER_ID FROM member WHERE MEMBER_ID = ?";
+    $query = "SELECT PROGRAM_ID FROM member WHERE MEMBER_ID = ?";
     $stmt = $conn->prepare($query);
     $stmt->bind_param('i', $memberId);
     $stmt->execute();
@@ -36,32 +33,29 @@ try {
     
     $currentMember = $result->fetch_assoc();
     
-    // For staff members, only allow them to update members they created
-    if (strtolower($_SESSION['role']) === 'staff' && $currentMember['USER_ID'] != $_SESSION['user_id']) {
-        throw new Exception("You are not authorized to modify this member");
-    }
-    
-    // Update member basic information - but preserve program_id
+    // Update member basic information
     $query = "UPDATE member SET 
               MEMBER_FNAME = ?, 
               MEMBER_LNAME = ?, 
               EMAIL = ?, 
               PHONE_NUMBER = ?, 
-              IS_ACTIVE = ?
+              IS_ACTIVE = ?,
+              PROGRAM_ID = ?
               WHERE MEMBER_ID = ?";
               
     $stmt = $conn->prepare($query);
-    $stmt->bind_param('ssssii', 
+    $stmt->bind_param('ssssiis', 
         $data['MEMBER_FNAME'],
         $data['MEMBER_LNAME'],
         $data['EMAIL'],
         $data['PHONE_NUMBER'],
         $data['IS_ACTIVE'],
+        $data['PROGRAM_ID'],
         $memberId
     );
     
     if (!$stmt->execute()) {
-        throw new Exception('Failed to update member information');
+        throw new Exception('Failed to update member information: ' . $stmt->error);
     }
 
     // Update comorbidities
@@ -82,6 +76,55 @@ try {
             }
         }
     }
+    
+    // Handle subscription renewal if requested
+    if (isset($data['RENEW_SUBSCRIPTION']) && $data['RENEW_SUBSCRIPTION'] === true) {
+        // Mark any existing active subscriptions as inactive
+        $deactivateQuery = "UPDATE member_subscription SET IS_ACTIVE = 0 WHERE MEMBER_ID = ? AND IS_ACTIVE = 1";
+        $stmt = $conn->prepare($deactivateQuery);
+        $stmt->bind_param('i', $memberId);
+        $stmt->execute();
+        
+        // Insert new subscription
+        $insertSubQuery = "INSERT INTO member_subscription 
+                          (MEMBER_ID, SUB_ID, START_DATE, END_DATE, IS_ACTIVE) 
+                          VALUES (?, ?, ?, ?, 1)";
+        $stmt = $conn->prepare($insertSubQuery);
+        $stmt->bind_param('isss', 
+            $memberId, 
+            $data['RENEW_SUB_ID'], 
+            $data['RENEW_START_DATE'], 
+            $data['RENEW_END_DATE']
+        );
+        
+        if (!$stmt->execute()) {
+            throw new Exception('Failed to create new subscription: ' . $stmt->error);
+        }
+        
+        // Get the ID of the newly created subscription
+        $newSubId = $conn->insert_id;
+        
+        // Create transaction record
+        $today = date('Y-m-d');
+        $insertTransacQuery = "INSERT INTO transaction 
+                              (MEMBER_ID, SUB_ID, PAYMENT_ID, USER_ID, TRANSAC_DATE) 
+                              VALUES (?, ?, ?, ?, ?)";
+        $stmt = $conn->prepare($insertTransacQuery);
+        $stmt->bind_param('iiiss', 
+            $memberId, 
+            $data['RENEW_SUB_ID'], 
+            $data['RENEW_PAYMENT_ID'], 
+            $data['USER_ID'], 
+            $today
+        );
+        
+        if (!$stmt->execute()) {
+            throw new Exception('Failed to create transaction record: ' . $stmt->error);
+        }
+    }
+    
+    // Commit transaction
+    $conn->commit();
 
     echo json_encode([
         'status' => 'success',
@@ -89,6 +132,11 @@ try {
     ]);
 
 } catch (Exception $e) {
+    // Rollback transaction on error
+    if (isset($conn) && $conn->ping()) {
+        $conn->rollback();
+    }
+    
     http_response_code(500);
     echo json_encode([
         'status' => 'error',

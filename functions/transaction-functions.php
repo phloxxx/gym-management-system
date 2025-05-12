@@ -147,7 +147,7 @@ function getActiveSubscriptions() {
                 JOIN member_subscription ms ON m.MEMBER_ID = ms.MEMBER_ID
                 JOIN subscription s ON ms.SUB_ID = s.SUB_ID
                 LEFT JOIN transaction t ON m.MEMBER_ID = t.MEMBER_ID AND ms.SUB_ID = t.SUB_ID
-                ORDER BY t.TRANSAC_DATE DESC, ms.END_DATE DESC";
+                ORDER BY ms.END_DATE";
         $result = $conn->query($sql);
         
         if ($result->num_rows > 0) {
@@ -306,9 +306,12 @@ function createTransaction($memberId, $subscriptionId, $paymentId, $startDate, $
         
         // Insert transaction log
         $operation = $isRenewal ? "RENEWAL" : "INSERT";
-        
-        $sql3 = "INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, MODIFIEDDATE) 
-                 VALUES (?, ?, CURRENT_DATE)";
+        $description = $isRenewal ? 
+            "Renewed subscription ID: $subscriptionId for Member ID: $memberId" :
+            "New subscription ID: $subscriptionId for Member ID: $memberId";
+            
+        $sql3 = "INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, DESCRIPTION, MODIFIEDDATE) 
+                 VALUES (?, ?, ?, CURRENT_DATE)";
         $stmt3 = $conn->prepare($sql3);
         
         // Check for preparation errors
@@ -316,7 +319,7 @@ function createTransaction($memberId, $subscriptionId, $paymentId, $startDate, $
             throw new Exception("Failed to prepare log statement: " . $conn->error);
         }
         
-        $stmt3->bind_param("is", $transactionId, $operation);
+        $stmt3->bind_param("iss", $transactionId, $operation, $description);
         $stmt3->execute();
         
         $conn->commit();
@@ -353,7 +356,7 @@ function getMemberTransactionHistory($memberId) {
                 JOIN payment p ON t.PAYMENT_ID = p.PAYMENT_ID
                 JOIN member_subscription ms ON t.MEMBER_ID = ms.MEMBER_ID AND t.SUB_ID = ms.SUB_ID
                 WHERE t.MEMBER_ID = ?
-                ORDER BY t.TRANSAC_DATE DESC, ms.END_DATE DESC";
+                ORDER BY t.TRANSAC_DATE DESC";
                 
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $memberId);

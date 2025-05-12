@@ -1,148 +1,178 @@
 <?php
-// Turn off error reporting for production
-error_reporting(0);
-ini_set('display_errors', 0);
-
-// Add a log entry to verify changes are being applied
-error_log("This version of deactivate-subscription.php was modified at " . date('Y-m-d H:i:s'));
-
 require_once __DIR__ . '/../config/db_connection.php';
-require_once __DIR__ . '/update-member-status.php'; // Include member status update function
 
-header('Content-Type: application/json');
-
-// Get POST data
-$data = json_decode(file_get_contents('php://input'), true);
-
-// Log incoming request data
-error_log("Deactivation request received: " . json_encode($data));
-
-if (!isset($data['memberId']) || !isset($data['subId'])) {
-    http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Missing required parameters'
-    ]);
-    exit;
-}
-
-$memberId = intval($data['memberId']);
-$subId = intval($data['subId']);
-
-// Important: logging exactly what data was received
-error_log("Processing deactivation for Member ID: $memberId, Subscription ID: $subId");
-
-try {
+/**
+ * Deactivates a subscription for a specific member
+ * 
+ * @param int $memberId The ID of the member
+ * @param int $subId The ID of the subscription
+ * @return bool True if successful, false otherwise
+ */
+function deactivateSubscription($memberId, $subId) {
     $conn = getConnection();
+    $success = false;
     
-    // Start transaction
-    $conn->begin_transaction();
-    error_log("Transaction started for deactivation");
+    error_log("deactivateSubscription() called with memberId: $memberId, subId: $subId");
     
-    // Update the subscription status
-    $sql = "UPDATE member_subscription SET IS_ACTIVE = 0 WHERE MEMBER_ID = ? AND SUB_ID = ?";
-    
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        throw new Exception("Failed to prepare statement: " . $conn->error);
-    }
-    
-    $stmt->bind_param("ii", $memberId, $subId);
-    $stmt->execute();
-    
-    // If no rows were affected, the membership might not exist
-    if ($stmt->affected_rows <= 0) {
-        error_log("No rows affected when updating subscription. It may not exist or is already inactive.");
-        throw new Exception("Subscription not found or already inactive");
-    }
-    
-    error_log("Successfully deactivated subscription. Rows affected: " . $stmt->affected_rows);
-    
-    // First, find the most recent transaction for this member and subscription
-    $findTxnSql = "SELECT TRANSACTION_ID FROM transaction 
-                  WHERE MEMBER_ID = ? AND SUB_ID = ?
-                  ORDER BY TRANSAC_DATE DESC LIMIT 1";
-    
-    $findTxnStmt = $conn->prepare($findTxnSql);
-    if (!$findTxnStmt) {
-        throw new Exception("Failed to prepare find transaction statement: " . $conn->error);
-    }
-    
-    $findTxnStmt->bind_param("ii", $memberId, $subId);
-    $findTxnStmt->execute();
-    $findTxnResult = $findTxnStmt->get_result();
-    
-    if ($findTxnResult->num_rows > 0) {
-        $txnRow = $findTxnResult->fetch_assoc();
-        $transactionId = $txnRow['TRANSACTION_ID'];
+    try {
+        // Start transaction
+        $conn->begin_transaction();
+        error_log("Transaction started");
         
-        // Log the deactivation in transaction_log
-        $logSql = "INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, MODIFIEDDATE) 
-                  VALUES (?, 'DEACTIVATE', CURRENT_DATE)";
+        // Check if the subscription exists and is active
+        $checkSql = "SELECT * FROM member_subscription WHERE MEMBER_ID = ? AND SUB_ID = ?";
+        $checkStmt = $conn->prepare($checkSql);
+        $checkStmt->bind_param("ii", $memberId, $subId);
+        $checkStmt->execute();
+        $result = $checkStmt->get_result();
         
-        $logStmt = $conn->prepare($logSql);
-        if (!$logStmt) {
-            throw new Exception("Failed to prepare log statement: " . $conn->error);
+        if ($result->num_rows === 0) {
+            error_log("No subscription found for memberId: $memberId, subId: $subId");
+            throw new Exception("No subscription found for this member");
         }
         
-        $logStmt->bind_param("i", $transactionId);
-        $logStmt->execute();
+        $subscription = $result->fetch_assoc();
+        error_log("Found subscription: " . json_encode($subscription));
         
-        error_log("Transaction log created for deactivation");
-    } else {
-        error_log("No transaction found for this subscription");
+        if ($subscription['IS_ACTIVE'] == 0) {
+            error_log("Subscription is already inactive");
+            throw new Exception("Subscription is already inactive");
+        }
+        
+        // Update the subscription status in member_subscription table
+        $updateSql = "UPDATE member_subscription 
+                      SET IS_ACTIVE = 0 
+                      WHERE MEMBER_ID = ? AND SUB_ID = ?";
+        
+        error_log("Preparing update query: $updateSql with memberId: $memberId, subId: $subId");
+        $stmt = $conn->prepare($updateSql);
+        $stmt->bind_param("ii", $memberId, $subId);
+        
+        if ($stmt->execute()) {
+            error_log("Update query executed. Affected rows: " . $stmt->affected_rows);
+            
+            // Check if any rows were affected
+            if ($stmt->affected_rows > 0) {
+                $success = true;
+                error_log("Update successful, subscription deactivated");
+                
+                // Log the deactivation in transaction_log table
+                $logSql = "INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, MODIFIEDDATE) 
+                           SELECT t.TRANSACTION_ID, 'DEACTIVATED', CURRENT_DATE()
+                           FROM transaction t
+                           WHERE t.MEMBER_ID = ? AND t.SUB_ID = ?
+                           ORDER BY t.TRANSACTION_ID DESC
+                           LIMIT 1";
+                
+                error_log("Preparing log query: $logSql");          
+                $logStmt = $conn->prepare($logSql);
+                $logStmt->bind_param("ii", $memberId, $subId);
+                $logResult = $logStmt->execute();
+                
+                if ($logResult) {
+                    error_log("Log entry created successfully. Affected rows: " . $logStmt->affected_rows);
+                } else {
+                    error_log("Failed to create log entry: " . $logStmt->error);
+                }
+            } else {
+                // No subscription found or it was already inactive
+                error_log("No rows affected by update - subscription may already be inactive");
+                throw new Exception("No active subscription found for this member");
+            }
+        } else {
+            error_log("Failed to execute update query: " . $stmt->error);
+            throw new Exception("Failed to execute database query: " . $stmt->error);
+        }
+        
+        // Commit transaction if everything is successful
+        $conn->commit();
+        error_log("Transaction committed");
+        
+    } catch (Exception $e) {
+        // Roll back transaction on error
+        if ($conn) {
+            $conn->rollback();
+            error_log("Transaction rolled back due to error: " . $e->getMessage());
+        }
+        throw new Exception("Failed to deactivate subscription: " . $e->getMessage());
+    } finally {
+        // Close connection
+        if ($conn) {
+            $conn->close();
+            error_log("Database connection closed");
+        }
     }
     
-    // Commit the transaction
-    $conn->commit();
+    return $success;
+}
+
+// Handle POST requests directly
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json');
     
-    // Update member status based on their active subscriptions
-    $statusResult = updateMemberStatus($memberId);
-    error_log("Member status updated: " . json_encode($statusResult));
-    
-    // Get member details for response
-    $memberSql = "SELECT CONCAT(MEMBER_FNAME, ' ', MEMBER_LNAME) as memberName 
-                  FROM member WHERE MEMBER_ID = ?";
-    $memberStmt = $conn->prepare($memberSql);
-    $memberStmt->bind_param("i", $memberId);
-    $memberStmt->execute();
-    $memberResult = $memberStmt->get_result();
-    $memberRow = $memberResult->fetch_assoc();
-    $memberName = $memberRow ? $memberRow['memberName'] : 'Member';
-    
-    // Get subscription details for response
-    $subSql = "SELECT SUB_NAME FROM subscription WHERE SUB_ID = ?";
-    $subStmt = $conn->prepare($subSql);
-    $subStmt->bind_param("i", $subId);
-    $subStmt->execute();
-    $subResult = $subStmt->get_result();
-    $subRow = $subResult->fetch_assoc();
-    $subName = $subRow ? $subRow['SUB_NAME'] : 'Unknown subscription';
-    
-    // Success response
-    echo json_encode([
-        'success' => true,
-        'message' => "Successfully deactivated {$subName} subscription for {$memberName}",
-        'memberStatus' => $statusResult['status'],
-        'hasActiveSubscriptions' => $statusResult['hasActiveSubscriptions']
-    ]);
-    
-} catch (Exception $e) {
-    // Rollback on error
-    if (isset($conn) && $conn instanceof mysqli) {
-        $conn->rollback();
-    }
-    
-    error_log("Error in deactivation: " . $e->getMessage());
-    http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage()
-    ]);
-} finally {
-    // Close connection
-    if (isset($conn) && $conn instanceof mysqli) {
-        $conn->close();
+    try {
+        // Get JSON data from request body
+        $rawInput = file_get_contents('php://input');
+        error_log("Raw POST input: " . $rawInput);
+        
+        $requestData = json_decode($rawInput, true);
+        
+        // Log the received data for debugging
+        error_log('Deactivation request data: ' . json_encode($requestData));
+        
+        // Validate required fields
+        if (!isset($requestData['memberId']) || !isset($requestData['subId'])) {
+            error_log("Missing required fields: memberId and/or subId");
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Missing required fields: memberId and/or subId'
+            ]);
+            exit;
+        }
+        
+        $memberId = intval($requestData['memberId']);
+        $subId = intval($requestData['subId']);
+        
+        error_log("Processed memberId: $memberId, subId: $subId");
+        
+        // Validate IDs
+        if ($memberId <= 0 || $subId <= 0) {
+            error_log("Invalid member ID or subscription ID: memberId=$memberId, subId=$subId");
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Invalid member ID or subscription ID'
+            ]);
+            exit;
+        }
+        
+        // Call deactivation function
+        $success = deactivateSubscription($memberId, $subId);
+        
+        if ($success) {
+            error_log("Deactivation successful");
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Subscription deactivated successfully'
+            ]);
+        } else {
+            error_log("Deactivation failed - subscription not found or already inactive");
+            http_response_code(404);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Subscription not found or already inactive'
+            ]);
+        }
+        
+    } catch (Exception $e) {
+        error_log("Exception caught in deactivation endpoint: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
     }
 }
 ?>

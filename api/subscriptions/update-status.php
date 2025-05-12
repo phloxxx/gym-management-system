@@ -1,153 +1,68 @@
 <?php
-require_once '../../config/db_connection.php';
+// Include CORS headers
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Content-Type: application/json");
 
-// Set header to return JSON
-header('Content-Type: application/json');
+// Handle preflight OPTIONS request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
-// Get parameters from URL
-$reportType = isset($_GET['type']) ? $_GET['type'] : 'subscription';
-$startDate = isset($_GET['startDate']) ? $_GET['startDate'] : date('Y-m-d', strtotime('-30 days'));
-$endDate = isset($_GET['endDate']) ? $_GET['endDate'] : date('Y-m-d');
-$program = isset($_GET['program']) ? $_GET['program'] : 'all';
-$subscription = isset($_GET['subscription']) ? $_GET['subscription'] : 'all';
-$status = isset($_GET['status']) ? $_GET['status'] : 'all';
+// Check if request method is POST
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405); // Method Not Allowed
+    echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+    exit();
+}
 
-try {
-    // Get database connection
-    $conn = getConnection();
-    
-    // Base SQL for different report types
-    if ($reportType === 'subscription') {
-        $sql = "SELECT 
-                    CONCAT(m.MEMBER_FNAME, ' ', m.MEMBER_LNAME) AS Name, 
-                    s.SUB_NAME AS Subscription, 
-                    ms.START_DATE AS StartDate, 
-                    ms.END_DATE AS EndDate,
-                    CASE WHEN ms.IS_ACTIVE = 1 THEN 'Active' ELSE 'Inactive' END AS Status,
-                    s.PRICE AS Revenue,
-                    p.PROGRAM_NAME AS Program
-                FROM member m
-                JOIN member_subscription ms ON m.MEMBER_ID = ms.MEMBER_ID
-                JOIN subscription s ON ms.SUB_ID = s.SUB_ID
-                JOIN program p ON m.PROGRAM_ID = p.PROGRAM_ID
-                WHERE 1=1";
-    } else {
-        // Revenue report
-        $sql = "SELECT 
-                    CONCAT(m.MEMBER_FNAME, ' ', m.MEMBER_LNAME) AS Name,
-                    s.SUB_NAME AS Subscription,
-                    t.TRANSAC_DATE AS TransactionDate, 
-                    ms.START_DATE AS StartDate, 
-                    ms.END_DATE AS EndDate,
-                    p.PAY_METHOD AS PaymentMethod,
-                    s.PRICE AS Revenue
-                FROM transaction t
-                JOIN member m ON t.MEMBER_ID = m.MEMBER_ID
-                JOIN member_subscription ms ON t.MEMBER_ID = ms.MEMBER_ID AND t.SUB_ID = ms.SUB_ID
-                JOIN subscription s ON t.SUB_ID = s.SUB_ID
-                JOIN payment p ON t.PAYMENT_ID = p.PAYMENT_ID
-                JOIN program prog ON m.PROGRAM_ID = prog.PROGRAM_ID
-                WHERE 1=1";
-    }
-    
-    // Add filter conditions
-    $params = [];
-    $types = '';
-    
-    // Date filters
-    if ($startDate) {
-        if ($reportType === 'subscription') {
-            $sql .= " AND (ms.START_DATE >= ? OR ms.END_DATE >= ?)";
-            $params[] = $startDate;
-            $params[] = $startDate;
-            $types .= 'ss';
-        } else {
-            $sql .= " AND t.TRANSAC_DATE >= ?";
-            $params[] = $startDate;
-            $types .= 's';
-        }
-    }
-    
-    if ($endDate) {
-        if ($reportType === 'subscription') {
-            $sql .= " AND (ms.START_DATE <= ? OR ms.END_DATE <= ?)";
-            $params[] = $endDate;
-            $params[] = $endDate;
-            $types .= 'ss';
-        } else {
-            $sql .= " AND t.TRANSAC_DATE <= ?";
-            $params[] = $endDate;
-            $types .= 's';
-        }
-    }
-    
-    // Program filter
-    if ($program !== 'all') {
-        $sql .= " AND m.PROGRAM_ID = ?";
-        $params[] = $program;
-        $types .= 'i';
-    }
-    
-    // Subscription filter
-    if ($subscription !== 'all') {
-        $sql .= " AND s.SUB_ID = ?";
-        $params[] = $subscription;
-        $types .= 'i';
-    }
-    
-    // Status filter
-    if ($status !== 'all') {
-        $isActive = ($status === 'active' || $status === '1') ? 1 : 0;
-        $sql .= " AND ms.IS_ACTIVE = ?";
-        $params[] = $isActive;
-        $types .= 'i';
-    }
-    
-    // Order by
-    $sql .= " ORDER BY " . ($reportType === 'subscription' ? "Name, StartDate" : "TransactionDate DESC");
-    
-    // Prepare and execute query
-    $stmt = $conn->prepare($sql);
-    if (!empty($params)) {
-        $stmt->bind_param($types, ...$params);
-    }
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    // Get data for response
-    $data = [];
-    while ($row = $result->fetch_assoc()) {
-        // Format dates for display
-        if (isset($row['StartDate'])) {
-            $row['StartDate'] = date('M j, Y', strtotime($row['StartDate']));
-        }
-        if (isset($row['EndDate'])) {
-            $row['EndDate'] = date('M j, Y', strtotime($row['EndDate']));
-        }
-        if (isset($row['TransactionDate'])) {
-            $row['TransactionDate'] = date('M j, Y', strtotime($row['TransactionDate']));
-        }
+// Include the deactivate-subscription function
+require_once '../../functions/deactivate-subscription.php';
+
+// Get JSON data from request body
+$jsonData = file_get_contents('php://input');
+$data = json_decode($jsonData, true);
+
+// Validate required fields
+if (!isset($data['member_id']) || !isset($data['sub_id']) || !isset($data['action'])) {
+    http_response_code(400); // Bad Request
+    echo json_encode(['status' => 'error', 'message' => 'Missing required fields']);
+    exit();
+}
+
+// Extract data
+$memberId = (int)$data['member_id'];
+$subId = (int)$data['sub_id'];
+$action = $data['action'];
+
+// Validate member_id and sub_id
+if ($memberId <= 0 || $subId <= 0) {
+    http_response_code(400); // Bad Request
+    echo json_encode(['status' => 'error', 'message' => 'Invalid member or subscription ID']);
+    exit();
+}
+
+// Process based on action
+if ($action === 'deactivate') {
+    try {
+        // Call deactivateSubscription function
+        $success = deactivateSubscription($memberId, $subId);
         
-        // Format revenue as currency
-        if (isset($row['Revenue'])) {
-            $row['Revenue'] = '₱' . number_format($row['Revenue'], 2);
+        if ($success) {
+            http_response_code(200);
+            echo json_encode(['status' => 'success', 'message' => 'Subscription deactivated successfully']);
+        } else {
+            http_response_code(404); // Not Found
+            echo json_encode(['status' => 'error', 'message' => 'Subscription not found or already inactive']);
         }
-        
-        $data[] = $row;
+    } catch (Exception $e) {
+        http_response_code(500); // Internal Server Error
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
     }
-    
-    // Return the data as JSON
-    echo json_encode($data);
-    
-} catch (Exception $e) {
-    error_log('Report generation error: ' . $e->getMessage());
-    echo json_encode([
-        'error' => true,
-        'message' => 'Error generating report: ' . $e->getMessage()
-    ]);
-} finally {
-    if (isset($conn) && $conn instanceof mysqli) {
-        $conn->close();
-    }
+} else {
+    http_response_code(400); // Bad Request
+    echo json_encode(['status' => 'error', 'message' => 'Unsupported action']);
 }
 ?>

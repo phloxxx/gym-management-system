@@ -7,7 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listener to print button if it exists
     const printButton = document.getElementById('printReportBtn');
     if (printButton) {
-        printButton.addEventListener('click', function() {
+        printButton.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent any default behavior
             printCurrentReport();
         });
     }
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /**
  * Generates and displays a print-friendly version of the current report
+ * using an in-page modal approach instead of opening a new tab
  */
 function printCurrentReport() {
     // Get the current report data
@@ -61,283 +63,303 @@ function printCurrentReport() {
         tableRows.push(rowData);
     });
     
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank', 'height=600,width=800');
+    // Create modal overlay for print preview
+    const modalOverlay = document.createElement('div');
+    modalOverlay.id = 'printPreviewModal';
+    modalOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    `;
     
-    // Generate print-friendly HTML
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>${reportTitle}</title>
-            <meta charset="UTF-8">
-            <style>
-                /* Print-specific styles */
-                @page {
-                    size: portrait;
-                    margin: 0.5in;
-                }
-                
-                body {
-                    font-family: Arial, sans-serif;
-                    line-height: 1.6;
-                    color: #333;
-                    margin: 0;
-                    padding: 20px;
-                }
-                
-                .header {
-                    text-align: center;
-                    margin-bottom: 20px;
-                    border-bottom: 2px solid #2f5496;
-                    padding-bottom: 10px;
-                }
-                
-                .company-name {
-                    font-size: 24px;
-                    font-weight: bold;
-                    color: #2f5496;
-                    text-transform: uppercase;
-                    margin: 0;
-                }
-                
-                .report-title {
-                    font-size: 18px;
-                    margin: 10px 0;
-                }
-                
-                .date-range {
-                    font-style: italic;
-                    font-size: 14px;
-                    margin-bottom: 10px;
-                }
-                
-                .summary-section {
-                    display: flex;
-                    justify-content: space-between;
-                    margin: 20px 0;
-                    flex-wrap: wrap;
-                }
-                
-                .summary-box {
-                    border: 1px solid #ddd;
-                    background: #f9f9f9;
-                    border-radius: 4px;
-                    padding: 10px;
-                    width: 30%;
-                    text-align: center;
-                    margin-bottom: 10px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }
-                
-                .summary-title {
-                    font-size: 12px;
-                    color: #666;
-                    text-transform: uppercase;
-                    margin: 0;
-                }
-                
-                .summary-value {
-                    font-size: 18px;
-                    font-weight: bold;
-                    color: #2f5496;
-                    margin: 5px 0;
-                }
-                
-                .table-section {
-                    margin-top: 20px;
-                }
-                
-                .table-title {
-                    font-size: 16px;
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                    color: #2f5496;
-                }
-                
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin: 20px 0;
-                }
-                
-                th {
-                    background-color: #2f5496;
-                    color: white;
-                    text-align: left;
-                    padding: 8px;
-                    font-weight: bold;
-                }
-                
-                td {
-                    padding: 8px;
-                    border-bottom: 1px solid #ddd;
-                }
-                
-                tr:nth-child(even) {
-                    background-color: #f2f2f2;
-                }
-                
-                .active-status {
-                    color: #046c4e;
-                    font-weight: bold;
-                }
-                
-                .inactive-status {
-                    color: #dc2626;
-                    font-weight: bold;
-                }
-                
-                .footer {
-                    text-align: center;
-                    margin-top: 30px;
-                    font-size: 12px;
-                    color: #666;
-                    border-top: 1px solid #ddd;
-                    padding-top: 10px;
-                }
-                
-                @media print {
-                    .no-print {
-                        display: none;
-                    }
-                    
-                    button {
-                        display: none;
-                    }
-                    
-                    /* Force background colors to print */
-                    th {
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
-                    }
-                    
-                    tr:nth-child(even) {
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
-                    }
-                    
-                    .summary-box {
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
-                    }
-                }
-            </style>
-            <script>
-                // Function to handle print dialog events
-                window.onload = function() {
-                    // Small delay to ensure document is fully loaded
-                    setTimeout(function() {
-                        // Store reference to this window for access from event handlers
-                        const printWindow = window;
-                        
-                        // Create a flag to track whether printing was completed
-                        let printInitiated = false;
-                        
-                        // Listen for beforeprint event (when dialog opens)
-                        printWindow.addEventListener('beforeprint', function() {
-                            printInitiated = true;
-                        });
-                        
-                        // Listen for afterprint event (after print completes or is cancelled)
-                        printWindow.addEventListener('afterprint', function() {
-                            printWindow.close();
-                        });
-                        
-                        // Trigger print dialog
-                        printWindow.print();
-                        
-                        // Set a longer timeout to check if print dialog was cancelled without triggering events
-                        // This fallback ensures the window closes even if the print events don't fire properly
-                        setTimeout(function() {
-                            if (!printInitiated) {
-                                // Print dialog was likely cancelled without triggering print events
-                                printWindow.close();
-                            }
-                        }, 500);
-                        
-                        // Final fallback to ensure window always closes
-                        setTimeout(function() {
-                            printWindow.close();
-                        }, 2000);
-                    }, 300);
-                };
-            </script>
-        </head>
-        <body>
-            <!-- Header Section -->
-            <div class="header">
-                <h1 class="company-name">GYMASTER</h1>
-                <h2 class="report-title">${reportTitle}</h2>
-                <p class="date-range">${dateRange}</p>
-                <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+    // Create modal content container
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        width: 90%;
+        max-width: 1000px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    `;
+    
+    // Create modal header
+    const modalHeader = document.createElement('div');
+    modalHeader.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background-color: #081738;
+        color: white;
+        border-bottom: 1px solid #ddd;
+    `;
+    
+    // Add title to modal header
+    const modalTitle = document.createElement('h3');
+    modalTitle.textContent = 'Print Preview: ' + reportTitle;
+    modalTitle.style.cssText = `
+        margin: 0;
+        font-size: 18px;
+    `;
+    
+    // Add close button to modal header
+    const closeButton = document.createElement('button');
+    closeButton.innerHTML = '&times;';
+    closeButton.style.cssText = `
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+    `;
+    closeButton.onclick = function() {
+        document.body.removeChild(modalOverlay);
+    };
+    
+    // Append title and close button to modal header
+    modalHeader.appendChild(modalTitle);
+    modalHeader.appendChild(closeButton);
+    
+    // Create modal body with scrollable content
+    const modalBody = document.createElement('div');
+    modalBody.style.cssText = `
+        padding: 20px;
+        overflow-y: auto;
+        flex-grow: 1;
+    `;
+    
+    // Fill modal body with print content
+    modalBody.innerHTML = `
+        <!-- Header Section -->
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2f5496; padding-bottom: 10px;">
+            <h1 style="font-size: 24px; font-weight: bold; color: #2f5496; text-transform: uppercase; margin: 0;">GYMASTER</h1>
+            <h2 style="font-size: 18px; margin: 10px 0;">${reportTitle}</h2>
+            <p style="font-style: italic; font-size: 14px; margin-bottom: 10px;">${dateRange}</p>
+            <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+        </div>
+        
+        <!-- Summary Section -->
+        <div style="display: flex; justify-content: space-between; margin: 20px 0; flex-wrap: wrap;">
+            <div style="border: 1px solid #ddd; background: #f9f9f9; border-radius: 4px; padding: 10px; width: 30%; text-align: center; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <p style="font-size: 12px; color: #666; text-transform: uppercase; margin: 0;">${card1Title}</p>
+                <p style="font-size: 18px; font-weight: bold; color: #2f5496; margin: 5px 0;">${card1Value}</p>
             </div>
-            
-            <!-- Summary Section -->
-            <div class="summary-section">
-                <div class="summary-box">
-                    <p class="summary-title">${card1Title}</p>
-                    <p class="summary-value">${card1Value}</p>
-                </div>
-                <div class="summary-box">
-                    <p class="summary-title">${card2Title}</p>
-                    <p class="summary-value">${card2Value}</p>
-                </div>
-                <div class="summary-box">
-                    <p class="summary-title">${card3Title}</p>
-                    <p class="summary-value">${card3Value}</p>
-                </div>
+            <div style="border: 1px solid #ddd; background: #f9f9f9; border-radius: 4px; padding: 10px; width: 30%; text-align: center; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <p style="font-size: 12px; color: #666; text-transform: uppercase; margin: 0;">${card2Title}</p>
+                <p style="font-size: 18px; font-weight: bold; color: #2f5496; margin: 5px 0;">${card2Value}</p>
             </div>
-            
-            <!-- Table Section -->
-            <div class="table-section">
-                <h3 class="table-title">${tableTitle}</h3>
-                <table>
+            <div style="border: 1px solid #ddd; background: #f9f9f9; border-radius: 4px; padding: 10px; width: 30%; text-align: center; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <p style="font-size: 12px; color: #666; text-transform: uppercase; margin: 0;">${card3Title}</p>
+                <p style="font-size: 18px; font-weight: bold; color: #2f5496; margin: 5px 0;">${card3Value}</p>
+            </div>
+        </div>
+        
+        <!-- Table Section -->
+        <div style="margin-top: 20px;">
+            <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #2f5496;">${tableTitle}</h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
                     <thead>
                         <tr>
-                            ${tableHeaders.map(header => `<th>${header}</th>`).join('')}
+                            ${tableHeaders.map(header => `<th style="background-color: #2f5496; color: white; text-align: left; padding: 8px; font-weight: bold;">${header}</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
                         ${tableRows.length > 0 ? 
-                            tableRows.map(row => `
-                                <tr>
+                            tableRows.map((row, rowIndex) => `
+                                <tr style="background-color: ${rowIndex % 2 === 0 ? 'white' : '#f2f2f2'};">
                                     ${row.map(cell => {
                                         if (cell === 'Active') {
-                                            return '<td class="active-status">Active</td>';
+                                            return '<td style="padding: 8px; border-bottom: 1px solid #ddd; color: #046c4e; font-weight: bold;">Active</td>';
                                         } else if (cell === 'Inactive') {
-                                            return '<td class="inactive-status">Inactive</td>';
+                                            return '<td style="padding: 8px; border-bottom: 1px solid #ddd; color: #dc2626; font-weight: bold;">Inactive</td>';
                                         } else {
-                                            return `<td>${cell}</td>`;
+                                            return `<td style="padding: 8px; border-bottom: 1px solid #ddd;">${cell}</td>`;
                                         }
                                     }).join('')}
                                 </tr>
                             `).join('') : 
-                            `<tr><td colspan="${tableHeaders.length}" style="text-align: center;">No data available</td></tr>`
+                            `<tr><td colspan="${tableHeaders.length}" style="text-align: center; padding: 8px; border-bottom: 1px solid #ddd;">No data available</td></tr>`
                         }
                     </tbody>
                 </table>
             </div>
-            
-            <!-- Footer Section -->
-            <div class="footer">
-                <p>Gymaster Gym Management System - Confidential</p>
-                <p>Page 1</p>
-            </div>
-            
-            <!-- Close Preview Button -->
-            <div class="no-print" style="text-align: center; margin-top: 20px;">
-                <button onclick="window.close();" 
-                        style="padding: 10px 20px; background-color: #2f5496; color: white; 
-                               border: none; border-radius: 4px; cursor: pointer;">
-                    Close Preview
-                </button>
-            </div>
-        </body>
-        </html>
-    `);
+        </div>
+        
+        <!-- Footer Section -->
+        <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 10px;">
+            <p>Gymaster Gym Management System - Confidential</p>
+            <p>Page 1</p>
+        </div>
+    `;
     
-    // Finalize the document and trigger print dialog
-    printWindow.document.close();
-    printWindow.focus();
+    // Create modal footer with action buttons
+    const modalFooter = document.createElement('div');
+    modalFooter.style.cssText = `
+        padding: 15px 20px;
+        background-color: #f5f5f5;
+        border-top: 1px solid #ddd;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    `;
+    
+    // Add print button
+    const printButton = document.createElement('button');
+    printButton.textContent = 'Print Report';
+    printButton.style.cssText = `
+        background-color: #081738;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-weight: 500;
+    `;
+    printButton.onclick = function() {
+        // Create a hidden iframe for printing
+        let printFrame = document.createElement('iframe');
+        printFrame.name = 'printFrame';
+        printFrame.style.position = 'fixed';
+        printFrame.style.right = '0';
+        printFrame.style.bottom = '0';
+        printFrame.style.width = '0';
+        printFrame.style.height = '0';
+        printFrame.style.border = '0';
+        document.body.appendChild(printFrame);
+        
+        // Create print-friendly content
+        let printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>${reportTitle}</title>
+                <meta charset="UTF-8">
+                <style>
+                    @page {
+                        margin: 0.5in;
+                    }
+                    body {
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                    }
+                    .header {
+                        text-align: center;
+                        margin-bottom: 20px;
+                        border-bottom: 2px solid #2f5496;
+                        padding-bottom: 10px;
+                    }
+                    .company-name {
+                        font-size: 24px;
+                        font-weight: bold;
+                        color: #2f5496;
+                        text-transform: uppercase;
+                        margin: 0;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 20px 0;
+                    }
+                    th {
+                        background-color: #2f5496;
+                        color: white;
+                        padding: 8px;
+                        text-align: left;
+                    }
+                    td {
+                        padding: 8px;
+                        border-bottom: 1px solid #ddd;
+                    }
+                    tr:nth-child(even) {
+                        background-color: #f2f2f2;
+                    }
+                    .active-status {
+                        color: #046c4e;
+                        font-weight: bold;
+                    }
+                    .inactive-status {
+                        color: #dc2626;
+                        font-weight: bold;
+                    }
+                </style>
+            </head>
+            <body>
+                ${modalBody.innerHTML}
+            </body>
+            </html>
+        `;
+        
+        // Write to the iframe and print it
+        printFrame.contentWindow.document.open();
+        printFrame.contentWindow.document.write(printContent);
+        printFrame.contentWindow.document.close();
+        
+        // Wait for content to load before printing
+        setTimeout(function() {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+            
+            // Remove the frame after printing (or after 2 seconds)
+            setTimeout(function() {
+                document.body.removeChild(printFrame);
+            }, 2000);
+        }, 500);
+    };
+    
+    // Add cancel button
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'Cancel';
+    cancelButton.style.cssText = `
+        background-color: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 8px 16px;
+        cursor: pointer;
+    `;
+    cancelButton.onclick = function() {
+        document.body.removeChild(modalOverlay);
+    };
+    
+    // Append buttons to modal footer
+    modalFooter.appendChild(cancelButton);
+    modalFooter.appendChild(printButton);
+    
+    // Assemble all modal components
+    modalContent.appendChild(modalHeader);
+    modalContent.appendChild(modalBody);
+    modalContent.appendChild(modalFooter);
+    modalOverlay.appendChild(modalContent);
+    
+    // Add event listener to close modal when clicking outside
+    modalOverlay.addEventListener('click', function(e) {
+        if (e.target === modalOverlay) {
+            document.body.removeChild(modalOverlay);
+        }
+    });
+    
+    // Add keyboard event listener to close modal with ESC key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.body.contains(modalOverlay)) {
+            document.body.removeChild(modalOverlay);
+        }
+    });
+    
+    // Add the modal to the page
+    document.body.appendChild(modalOverlay);
 }

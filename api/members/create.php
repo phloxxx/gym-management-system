@@ -1,18 +1,30 @@
 <?php
 header('Content-Type: application/json');
 require_once '../../config/db_connection.php';
-session_start();
 
 // Enable error reporting for debugging
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-try {
-    // Check if user is logged in and has appropriate role
-    if (!isset($_SESSION['user_id']) || (strtolower($_SESSION['role']) !== 'administrator' && strtolower($_SESSION['role']) !== 'staff')) {
-        throw new Exception("Unauthorized access. Please login with appropriate credentials.");
+// Create a request lock system to prevent duplicate submissions
+function createRequestLock($requestId) {
+    $lockFile = sys_get_temp_dir() . "/member_request_{$requestId}.lock";
+    
+    // Check if this request ID has already been processed
+    if (file_exists($lockFile)) {
+        return false; // Request with this ID was already processed
     }
+    
+    // Create lock file with current timestamp
+    file_put_contents($lockFile, time());
+    
+    // Set expiration (5 minutes)
+    touch($lockFile, time() + 300);
+    
+    return true;
+}
 
+try {
     $conn = getConnection();
     
     // Get POST data and log it
@@ -26,6 +38,16 @@ try {
     
     error_log("Processed data: " . print_r($data, true));
     
+    // Check for duplicate request
+    if (isset($data['requestId'])) {
+        $requestId = $data['requestId'];
+        if (!createRequestLock($requestId)) {
+            // This is a duplicate request
+            error_log("Duplicate request detected with ID: " . $requestId);
+            throw new Exception("Duplicate request. Member creation was already processed.");
+        }
+    }
+    
     // Validate required fields
     $requiredFields = ['MEMBER_FNAME', 'MEMBER_LNAME', 'EMAIL', 'PHONE_NUMBER', 'PROGRAM_ID', 'SUB_ID', 'START_DATE', 'END_DATE', 'PAYMENT_ID'];
     foreach ($requiredFields as $field) {
@@ -34,8 +56,28 @@ try {
         }
     }
 
-    // Get the current user ID from session
-    $userId = $_SESSION['user_id'];
+    // Check if email already exists
+    $checkEmailQuery = "SELECT MEMBER_ID FROM member WHERE EMAIL = ? LIMIT 1";
+    $stmtCheckEmail = $conn->prepare($checkEmailQuery);
+    $stmtCheckEmail->bind_param("s", $data['EMAIL']);
+    $stmtCheckEmail->execute();
+    $emailResult = $stmtCheckEmail->get_result();
+
+    if ($emailResult->num_rows > 0) {
+        throw new Exception("A member with this email address already exists");
+    }
+
+    // First verify that the user exists
+    $userQuery = "SELECT USER_ID FROM user WHERE USER_ID = ? AND IS_ACTIVE = 1 LIMIT 1";
+    $stmt = $conn->prepare($userQuery);
+    $userId = 1; // Default admin user
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        throw new Exception("Invalid user reference. USER_ID not found or inactive.");
+    }
     
     // Start transaction
     $conn->begin_transaction();
@@ -99,8 +141,8 @@ try {
     }
     
     // Insert subscription
-    $subSql = "INSERT INTO member_subscription (MEMBER_ID, SUB_ID, START_DATE, END_DATE) 
-               VALUES (?, ?, ?, ?)";
+    $subSql = "INSERT INTO member_subscription (MEMBER_ID, SUB_ID, START_DATE, END_DATE, IS_ACTIVE) 
+               VALUES (?, ?, ?, ?, 1)";
     $stmtSub = $conn->prepare($subSql);
     $subId = (int)$data['SUB_ID'];
     $stmtSub->bind_param("iiss", 
@@ -133,7 +175,7 @@ try {
     
     // Get the newly created member details for table display
     $memberQuery = "SELECT m.*, p.PROGRAM_NAME, 
-                          ms.START_DATE, ms.END_DATE,
+                          ms.START_DATE, ms.END_DATE, s.SUB_NAME,
                           (SELECT CONCAT(c.COACH_FNAME, ' ', c.COACH_LNAME) 
                            FROM coach c 
                            JOIN program_coach pc ON c.COACH_ID = pc.COACH_ID 
@@ -141,8 +183,10 @@ try {
                            LIMIT 1) as COACH_NAME
                    FROM member m
                    JOIN program p ON m.PROGRAM_ID = p.PROGRAM_ID
-                   LEFT JOIN member_subscription ms ON m.MEMBER_ID = ms.MEMBER_ID
-                   WHERE m.MEMBER_ID = ?";
+                   LEFT JOIN member_subscription ms ON m.MEMBER_ID = ms.MEMBER_ID AND ms.IS_ACTIVE = 1
+                   LEFT JOIN subscription s ON ms.SUB_ID = s.SUB_ID
+                   WHERE m.MEMBER_ID = ?
+                   ORDER BY ms.START_DATE DESC LIMIT 1";
                    
     $stmtMember = $conn->prepare($memberQuery);
     $stmtMember->bind_param("i", $memberId);

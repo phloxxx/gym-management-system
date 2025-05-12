@@ -24,35 +24,23 @@ try {
                  JOIN coach c ON pc.COACH_ID = c.COACH_ID 
                  WHERE pc.PROGRAM_ID = m.PROGRAM_ID 
                  LIMIT 1) as COACH_NAME,
-                (SELECT ms.START_DATE 
-                 FROM member_subscription ms 
-                 WHERE ms.MEMBER_ID = m.MEMBER_ID 
-                 AND ms.IS_ACTIVE = 1 
-                 AND CURRENT_DATE() <= ms.END_DATE
-                 ORDER BY ms.START_DATE DESC 
-                 LIMIT 1) as START_DATE,
-                (SELECT ms.END_DATE 
-                 FROM member_subscription ms 
-                 WHERE ms.MEMBER_ID = m.MEMBER_ID 
-                 AND ms.IS_ACTIVE = 1 
-                 AND CURRENT_DATE() <= ms.END_DATE
-                 ORDER BY ms.START_DATE DESC 
-                 LIMIT 1) as END_DATE,
-                (SELECT s.SUB_NAME 
-                 FROM member_subscription ms 
-                 JOIN subscription s ON ms.SUB_ID = s.SUB_ID 
-                 WHERE ms.MEMBER_ID = m.MEMBER_ID 
-                 AND ms.IS_ACTIVE = 1 
-                 AND CURRENT_DATE() <= ms.END_DATE
-                 ORDER BY ms.START_DATE DESC 
-                 LIMIT 1) as SUB_NAME,
-                (SELECT COUNT(*) > 0
-                 FROM member_subscription ms
-                 WHERE ms.MEMBER_ID = m.MEMBER_ID
-                 AND ms.IS_ACTIVE = 1
-                 AND CURRENT_DATE() <= ms.END_DATE) as HAS_ACTIVE_SUBSCRIPTION
+                latest_sub.START_DATE,
+                latest_sub.END_DATE,
+                s.SUB_NAME
               FROM member m
               LEFT JOIN program p ON m.PROGRAM_ID = p.PROGRAM_ID
+              LEFT JOIN (
+                  SELECT ms.MEMBER_ID, ms.SUB_ID, ms.START_DATE, ms.END_DATE
+                  FROM member_subscription ms
+                  WHERE ms.IS_ACTIVE = 1
+                  AND (ms.MEMBER_ID, ms.START_DATE) IN (
+                      SELECT MEMBER_ID, MAX(START_DATE)
+                      FROM member_subscription
+                      WHERE IS_ACTIVE = 1
+                      GROUP BY MEMBER_ID
+                  )
+              ) latest_sub ON m.MEMBER_ID = latest_sub.MEMBER_ID
+              LEFT JOIN subscription s ON latest_sub.SUB_ID = s.SUB_ID
               WHERE 1=1";
     
     $params = array();
