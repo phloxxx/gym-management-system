@@ -26,6 +26,38 @@ $role = ucfirst(strtolower($_SESSION['role']));
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../../styles/admin-styles.css">
+    <style>
+        /* Toggle Switch Styles */
+        .toggle-checkbox:checked {
+            transform: translateX(1.5rem);
+            border-color: #fff;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #10B981;
+        }
+        .toggle-checkbox:not(:checked) + .toggle-label {
+            background-color: #D1D5DB;
+        }
+        
+        /* Custom Scrollbar Styles */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c5c5c5;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
     <script>
         tailwind.config = {
             theme: {
@@ -246,105 +278,257 @@ $role = ucfirst(strtolower($_SESSION['role']));
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Add/Edit Program Modal -->
-    <div id="programModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-xl font-semibold" id="programModalTitle">Add Program</h3>
+    </div>    <!-- Add/Edit Program Modal -->
+    <div id="programModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center hidden modal backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 modal-content transform scale-95 overflow-hidden">
+            <!-- Modal Title Banner -->
+            <div id="modalBanner" class="px-6 py-4 flex items-center justify-between bg-gradient-to-r from-blue-900 to-blue-800 relative overflow-hidden">
+                <div class="flex items-center z-10">
+                    <div class="mr-4 h-10 w-10 rounded-full bg-white/25 flex items-center justify-center text-white shadow-sm">
+                        <i id="modalIcon" class="fas fa-dumbbell text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 id="programModalTitle" class="text-lg font-medium text-white leading-tight">Add New Program</h2>
+                        <p class="text-xs text-white/90">Enter the required information below</p>
+                    </div>
+                </div>
+                <button type="button" class="closeModal w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 focus:outline-none transition-all duration-300 hover:rotate-90 z-20 cursor-pointer">
+                    <i class="fas fa-times"></i>
+                </button>
+                <!-- Decorative background elements -->
+                <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-white/10 rounded-full"></div>
+                <div class="absolute -top-6 -left-6 w-24 h-24 bg-white/5 rounded-full"></div>
             </div>
-            <form id="programForm">
-                <div class="p-6">
+
+            <!-- Modal Body -->
+            <div class="p-6 pt-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                <form id="programForm" class="space-y-3">
                     <input type="hidden" id="programId" name="PROGRAM_ID">
-                    <div class="mb-4">
-                        <label for="programName" class="block text-sm font-medium text-gray-700">Program Name</label>
-                        <input type="text" id="programName" name="PROGRAM_NAME" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-light focus:ring focus:ring-primary-light focus:ring-opacity-50" required>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">Status</label>
-                        <div class="mt-2">
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" id="programStatus" name="IS_ACTIVE" class="rounded border-gray-300 text-primary-dark focus:ring-primary-light" checked>
-                                <span class="ml-2">Active</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
-                    <button type="button" class="closeModal px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50">Cancel</button>
-                    <button type="button" id="saveProgramButton" class="px-4 py-2 bg-primary-dark text-white rounded-md hover:bg-opacity-90">Save Program</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
-    <!-- Add/Edit Coach Modal -->
-    <div id="coachModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-xl font-semibold" id="coachModalTitle">Add Coach</h3>
+                    <!-- Program Information Section -->
+                    <div class="mb-1">
+                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-info-circle text-primary-light mr-2"></i>
+                            <span>Program Information</span>
+                        </h4>
+                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="programName" class="block text-sm font-medium text-gray-700 mb-1">Program Name</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                <i class="fas fa-dumbbell"></i>
+                            </div>
+                            <input type="text" id="programName" name="PROGRAM_NAME" 
+                                class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
+                                placeholder="Enter program name" required>
+                        </div>
+                    </div>
+
+                    <!-- Program Status Section -->
+                    <div class="mb-1 mt-6">
+                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-toggle-on text-primary-light mr-2"></i>
+                            <span>Program Status</span>
+                        </h4>
+                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Program Status</label>
+                        <div class="flex items-center">
+                            <div class="relative inline-block w-12 mr-3 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="IS_ACTIVE" id="programStatus" checked
+                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-2 border-gray-300 appearance-none cursor-pointer transition-transform duration-300 ease-in-out">
+                                <label for="programStatus" 
+                                    class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-colors duration-300 ease-in-out"></label>
+                            </div>
+                            <span id="programStatusLabel" class="text-sm text-green-600 font-medium flex items-center">
+                                <i class="fas fa-check-circle mr-1.5"></i> Active
+                            </span>
+                        </div>
+                    </div>
+                </form>
             </div>
-            <form id="coachForm">
-                <div class="p-6">
+
+            <!-- Modal Footer -->
+            <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
+                <button type="button" class="closeModal px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none transition-colors duration-300 shadow-sm font-medium cursor-pointer relative z-10">
+                    Cancel
+                </button>
+                <button type="button" id="saveProgramButton" class="px-5 py-2.5 bg-primary-dark text-white rounded-lg hover:bg-opacity-90 focus:outline-none transition-all duration-300 shadow-md font-medium flex items-center justify-center cursor-pointer relative z-10">
+                    <i class="fas fa-save mr-2"></i> Save Program
+                </button>
+            </div>
+        </div>
+    </div>    <!-- Add/Edit Coach Modal -->
+    <div id="coachModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center hidden modal backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 modal-content transform scale-95 overflow-hidden">
+            <!-- Modal Title Banner -->
+            <div id="modalBanner" class="px-6 py-4 flex items-center justify-between bg-gradient-to-r from-primary-dark to-primary-light relative overflow-hidden">
+                <div class="flex items-center z-10">
+                    <div class="mr-4 h-10 w-10 rounded-full bg-white/25 flex items-center justify-center text-white shadow-sm">
+                        <i id="modalIcon" class="fas fa-user-tie text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 id="coachModalTitle" class="text-lg font-medium text-white leading-tight">Add New Coach</h2>
+                        <p class="text-xs text-white/90">Enter the required information below</p>
+                    </div>
+                </div>
+                <button type="button" class="closeModal w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 focus:outline-none transition-all duration-300 hover:rotate-90 z-20 cursor-pointer">
+                    <i class="fas fa-times"></i>
+                </button>
+                <!-- Decorative background elements -->
+                <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-white/10 rounded-full"></div>
+                <div class="absolute -top-6 -left-6 w-24 h-24 bg-white/5 rounded-full"></div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 pt-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                <form id="coachForm" class="space-y-3">
                     <input type="hidden" id="coachId" name="COACH_ID">
-                    <div class="grid grid-cols-2 gap-4 mb-4">
+
+                    <!-- Personal Information Section -->
+                    <div class="mb-1">
+                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-id-card text-primary-light mr-2"></i>
+                            <span>Personal Information</span>
+                        </h4>
+                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- First Name -->
                         <div>
-                            <label for="coachFname" class="block text-sm font-medium text-gray-700">First Name</label>
-                            <input type="text" id="coachFname" name="COACH_FNAME" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-light focus:ring focus:ring-primary-light focus:ring-opacity-50" required>
+                            <label for="coachFname" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                            <div class="relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <input type="text" id="coachFname" name="COACH_FNAME" 
+                                    class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
+                                    placeholder="Enter first name" required>
+                            </div>
                         </div>
+                        <!-- Last Name -->
                         <div>
-                            <label for="coachLname" class="block text-sm font-medium text-gray-700">Last Name</label>
-                            <input type="text" id="coachLname" name="COACH_LNAME" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-light focus:ring focus:ring-primary-light focus:ring-opacity-50" required>
+                            <label for="coachLname" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                            <div class="relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <input type="text" id="coachLname" name="COACH_LNAME" 
+                                    class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
+                                    placeholder="Enter last name" required>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Gender -->
                     <div class="mb-4">
-                        <label for="coachEmail" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" id="coachEmail" name="EMAIL" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-light focus:ring focus:ring-primary-light focus:ring-opacity-50" required>
-                    </div>
-                    <div class="mb-4">
-                        <label for="coachPhone" class="block text-sm font-medium text-gray-700">Phone</label>
-                        <input type="tel" id="coachPhone" name="PHONE_NUMBER" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-light focus:ring focus:ring-primary-light focus:ring-opacity-50" required>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">Gender</label>
-                        <div class="mt-2 space-x-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                        <div class="flex items-center space-x-4">
                             <label class="inline-flex items-center">
-                                <input type="radio" name="GENDER" value="MALE" class="text-primary-dark focus:ring-primary-light" checked>
-                                <span class="ml-2">Male</span>
+                                <input type="radio" name="GENDER" value="MALE" class="text-primary-light focus:ring-primary-light h-4 w-4" checked>
+                                <span class="ml-2 text-sm text-gray-700">Male</span>
                             </label>
                             <label class="inline-flex items-center">
-                                <input type="radio" name="GENDER" value="FEMALE" class="text-primary-dark focus:ring-primary-light">
-                                <span class="ml-2">Female</span>
+                                <input type="radio" name="GENDER" value="FEMALE" class="text-primary-light focus:ring-primary-light h-4 w-4">
+                                <span class="ml-2 text-sm text-gray-700">Female</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="GENDER" value="OTHER" class="text-primary-light focus:ring-primary-light h-4 w-4">
+                                <span class="ml-2 text-sm text-gray-700">Other</span>
                             </label>
                         </div>
                     </div>
+
+                    <!-- Contact Information Section -->
+                    <div class="mb-1 mt-6">
+                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-address-card text-primary-light mr-2"></i>
+                            <span>Contact Information</span>
+                        </h4>
+                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
+                    </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">Program Assignments</label>
-                        <div class="mt-2 space-y-2" id="programAssignments">
+                        <label for="coachEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <input type="email" id="coachEmail" name="EMAIL" 
+                                class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
+                                placeholder="Enter email address" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="coachPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <input type="tel" id="coachPhone" name="PHONE_NUMBER" 
+                                class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
+                                placeholder="Enter phone number" required>
+                        </div>
+                    </div>
+
+                    <!-- Program Assignments Section -->
+                    <div class="mb-1 mt-6">
+                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-dumbbell text-primary-light mr-2"></i>
+                            <span>Specializations</span>
+                        </h4>
+                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
+                    </div>
+                    <div class="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <p class="text-xs text-gray-500 mb-3">Select the coach's specializations and program assignments:</p>
+                        <div id="programAssignments" class="grid grid-cols-1 gap-2">
                             <?php foreach ($programs as $program): ?>
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" name="PROGRAM_ASSIGNMENTS[]" value="<?php echo $program['PROGRAM_ID']; ?>" class="rounded border-gray-300 text-primary-dark focus:ring-primary-light">
-                                <span class="ml-2"><?php echo htmlspecialchars($program['PROGRAM_NAME']); ?></span>
-                            </label>
+                            <div class="flex items-center">
+                                <input type="checkbox" name="PROGRAM_ASSIGNMENTS[]" value="<?php echo $program['PROGRAM_ID']; ?>" 
+                                    class="h-4 w-4 rounded text-primary-dark focus:ring-primary-light mr-2">
+                                <span class="inline-flex items-center px-2 py-1 mr-2 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                    <i class="fas fa-dumbbell mr-1"></i><?php echo htmlspecialchars($program['PROGRAM_NAME']); ?>
+                                </span>
+                            </div>
                             <?php endforeach; ?>
                         </div>
                     </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">Status</label>
-                        <div class="mt-2">
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" id="coachStatus" name="IS_ACTIVE" class="rounded border-gray-300 text-primary-dark focus:ring-primary-light" checked>
-                                <span class="ml-2">Active</span>
-                            </label>
+
+                    <!-- Status Section -->
+                    <div class="mb-1 mt-6">
+                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-toggle-on text-primary-light mr-2"></i>
+                            <span>Status</span>
+                        </h4>
+                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Coach Status</label>
+                        <div class="flex items-center">
+                            <div class="relative inline-block w-12 mr-3 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="IS_ACTIVE" id="coachStatus" checked
+                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-2 border-gray-300 appearance-none cursor-pointer transition-transform duration-300 ease-in-out">
+                                <label for="coachStatus" 
+                                    class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-colors duration-300 ease-in-out"></label>
+                            </div>
+                            <span id="coachStatusLabel" class="text-sm text-green-600 font-medium flex items-center">
+                                <i class="fas fa-check-circle mr-1.5"></i> Active
+                            </span>
                         </div>
                     </div>
-                </div>
-                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
-                    <button type="button" class="closeModal px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50">Cancel</button>
-                    <button type="button" id="saveCoachButton" class="px-4 py-2 bg-primary-dark text-white rounded-md hover:bg-opacity-90">Save Coach</button>
-                </div>
-            </form>
+                </form>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
+                <button type="button" class="closeModal px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none transition-colors duration-300 shadow-sm font-medium cursor-pointer relative z-10">
+                    Cancel
+                </button>
+                <button type="button" id="saveCoachButton" class="px-5 py-2.5 bg-primary-dark text-white rounded-lg hover:bg-opacity-90 focus:outline-none transition-all duration-300 shadow-md font-medium flex items-center justify-center cursor-pointer relative z-10">
+                    <i class="fas fa-save mr-2"></i> Save Coach
+                </button>
+            </div>
         </div>
     </div>
 
@@ -741,6 +925,44 @@ $role = ucfirst(strtolower($_SESSION['role']));
         // Initial table load
         refreshProgramsTable();
         refreshCoachesTable();
+
+        // Handle program status toggle
+        document.getElementById('programStatus').addEventListener('change', function() {
+            const label = document.getElementById('programStatusLabel');
+            if (this.checked) {
+                label.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                label.className = 'text-sm text-green-600 font-medium flex items-center';
+            } else {
+                label.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                label.className = 'text-sm text-red-600 font-medium flex items-center';
+            }
+        });
+
+        // Reset status label when opening modal
+        document.getElementById('addProgramBtn').addEventListener('click', function() {
+            const statusLabel = document.getElementById('programStatusLabel');
+            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+            statusLabel.className = 'text-sm text-green-600 font-medium flex items-center';
+        });
+
+        // Handle coach status toggle
+        document.getElementById('coachStatus').addEventListener('change', function() {
+            const label = document.getElementById('coachStatusLabel');
+            if (this.checked) {
+                label.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                label.className = 'text-sm text-green-600 font-medium flex items-center';
+            } else {
+                label.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                label.className = 'text-sm text-red-600 font-medium flex items-center';
+            }
+        });
+
+        // Reset coach status label when opening modal
+        document.getElementById('addCoachBtn').addEventListener('click', function() {
+            const statusLabel = document.getElementById('coachStatusLabel');
+            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+            statusLabel.className = 'text-sm text-green-600 font-medium flex items-center';
+        });
     </script>
 </body>
 </html>
