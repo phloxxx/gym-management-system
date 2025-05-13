@@ -292,7 +292,7 @@ $activeSubscriptions = getActiveSubscriptions();
                     <div class="lg:col-span-2 flex justify-end items-end">
                         <div class="grid grid-cols-2 gap-2 w-full">
                             <button id="resetFiltersBtn" class="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center gap-2">
-                                <i class="fas fa-redo-alt"></i> Reset Filters+
+                                <i class="fas fa-redo-alt"></i> Reset Filters
                             </button>
                             <button id="applyFiltersBtn" class="px-4 py-2.5 bg-primary-dark text-white rounded-lg hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2">
                                 <i class="fas fa-filter"></i> Apply Filters
@@ -1746,6 +1746,11 @@ $activeSubscriptions = getActiveSubscriptions();
                     const loadingState = document.getElementById('subscriptionLoadingState');
                     const emptyState = document.getElementById('subscriptionEmptyState');
                     
+                    // Save original button text and disable button during processing
+                    const originalBtnText = applyFiltersBtn.innerHTML;
+                    applyFiltersBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+                    applyFiltersBtn.disabled = true;
+                    
                     // Hide table body and empty state, show loading
                     tableBody.closest('table').classList.add('hidden');
                     emptyState.classList.add('hidden');
@@ -1761,6 +1766,26 @@ $activeSubscriptions = getActiveSubscriptions();
                         memberSearch: document.getElementById('selectedFilterMemberId').value ? '' : document.getElementById('memberSearch').value
                     };
                     
+                    // Validate date range if both are provided
+                    if (filterData.startDate && filterData.endDate) {
+                        const start = new Date(filterData.startDate);
+                        const end = new Date(filterData.endDate);
+                        
+                        if (start > end) {
+                            // Reset button state
+                            applyFiltersBtn.innerHTML = originalBtnText;
+                            applyFiltersBtn.disabled = false;
+                            
+                            // Hide loading
+                            loadingState.classList.add('hidden');
+                            tableBody.closest('table').classList.remove('hidden');
+                            
+                            // Show error
+                            showToast('Start date cannot be after end date', false);
+                            return;
+                        }
+                    }
+                    
                     // Make API call to get filtered data
                     fetch('../../functions/filter-transactions.php', {
                         method: 'POST',
@@ -1769,10 +1794,24 @@ $activeSubscriptions = getActiveSubscriptions();
                         },
                         body: JSON.stringify(filterData)
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Server responded with status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        // Reset button state
+                        applyFiltersBtn.innerHTML = originalBtnText;
+                        applyFiltersBtn.disabled = false;
+                        
                         // Hide loading state
                         loadingState.classList.add('hidden');
+                        
+                        // Check if there's an error in the response
+                        if (data.status === 'error') {
+                            throw new Error(data.error || 'Unknown error occurred');
+                        }
                         
                         if (data.length === 0) {
                             // Show empty state if no results
@@ -1784,14 +1823,15 @@ $activeSubscriptions = getActiveSubscriptions();
                             data.forEach(sub => {
                                 // Calculate status class based on days left
                                 let statusClass, statusText;
+                                const daysLeft = sub.daysLeft;
                                 
                                 if (!sub.isActive) {
                                     statusClass = 'bg-red-100 text-red-800';
                                     statusText = 'Inactive';
-                                } else if (sub.daysLeft < 0) {
+                                } else if (daysLeft < 0) {
                                     statusClass = 'bg-red-100 text-red-800';
                                     statusText = 'Expired';
-                                } else if (sub.daysLeft <= 7) {
+                                } else if (daysLeft <= 7) {
                                     statusClass = 'bg-yellow-100 text-yellow-800';
                                     statusText = daysLeft === 0 ? 'Expires Today' : 
                                                  daysLeft === 1 ? 'Expires Tomorrow' : 
@@ -1871,12 +1911,18 @@ $activeSubscriptions = getActiveSubscriptions();
                         showToast('Filters applied successfully', true);
                     })
                     .catch(error => {
-                        console.error('Error applying filters:', error);
+                        // Reset button state
+                        applyFiltersBtn.innerHTML = originalBtnText;
+                        applyFiltersBtn.disabled = false;
+                        
+                        // Hide loading state
                         loadingState.classList.add('hidden');
-                        showToast('Error applying filters. Please try again.', false);
                         
                         // Show table again in case of error
                         tableBody.closest('table').classList.remove('hidden');
+                        
+                        // Use centralized error handling
+                        handleFetchError(error, 'Error applying filters.');
                     });
                 });
             }
@@ -1910,13 +1956,175 @@ $activeSubscriptions = getActiveSubscriptions();
                 document.getElementById('subFilter').selectedIndex = 0;
                 document.getElementById('programFilter').selectedIndex = 0;
                 
-                // Show notification
-                showToast('Filters reset!', true);
+                // Save original button text and disable reset button during processing
+                const resetBtn = document.getElementById('resetFiltersBtn');
+                const originalBtnText = resetBtn.innerHTML;
+                resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+                resetBtn.disabled = true;
                 
-                // Reload data with no filters
-                document.getElementById('applyFiltersBtn').click();
+                // Show loading state
+                const tableBody = document.getElementById('subscriptionStatusBody');
+                const loadingState = document.getElementById('subscriptionLoadingState');
+                const emptyState = document.getElementById('subscriptionEmptyState');
+                
+                // Hide table body and empty state, show loading
+                tableBody.closest('table').classList.add('hidden');
+                emptyState.classList.add('hidden');
+                loadingState.classList.remove('hidden');
+                
+                // Make a direct fetch with empty filters instead of triggering the apply button
+                fetch('../../functions/filter-transactions.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        startDate: document.getElementById('startDate').value,
+                        endDate: document.getElementById('endDate').value,
+                        subscription: 'all',
+                        program: 'all',
+                        memberId: '',
+                        memberSearch: ''
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Server responded with status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Reset button state
+                    resetBtn.innerHTML = originalBtnText;
+                    resetBtn.disabled = false;
+                    
+                    // Hide loading state
+                    loadingState.classList.add('hidden');
+                    
+                    // Check if there's an error in the response
+                    if (data.status === 'error') {
+                        throw new Error(data.error || 'Unknown error occurred');
+                    }
+                    
+                    if (data.length === 0) {
+                        // Show empty state if no results
+                        emptyState.classList.remove('hidden');
+                    } else {
+                        // Populate table with results
+                        tableBody.innerHTML = ''; // Clear existing rows
+                        
+                        data.forEach(sub => {
+                            // Calculate status class based on days left
+                            let statusClass, statusText;
+                            const daysLeft = sub.daysLeft;
+                            
+                            if (!sub.isActive) {
+                                statusClass = 'bg-red-100 text-red-800';
+                                statusText = 'Inactive';
+                            } else if (daysLeft < 0) {
+                                statusClass = 'bg-red-100 text-red-800';
+                                statusText = 'Expired';
+                            } else if (daysLeft <= 7) {
+                                statusClass = 'bg-yellow-100 text-yellow-800';
+                                statusText = daysLeft === 0 ? 'Expires Today' : 
+                                             daysLeft === 1 ? 'Expires Tomorrow' : 
+                                             `Expires in ${daysLeft} days`;
+                            } else {
+                                statusClass = 'bg-green-100 text-green-800';
+                                statusText = 'Active';
+                            }
+                            
+                            // Create row HTML
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="h-8 w-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs">
+                                            ${sub.memberInitials}
+                                        </div>
+                                        <div class="ml-3">
+                                            <div class="text-sm font-medium text-gray-900">
+                                                ${sub.memberName}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">${sub.subscriptionName}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">${sub.startDate}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">${sub.endDate}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">${sub.paidDate || '-'}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                                        ${statusText}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                    ${sub.isActive ? 
+                                        `<button class="text-red-600 hover:text-red-800 transition-colors" 
+                                                title="Deactivate subscription" 
+                                                data-sub-id="${sub.SUB_ID}" 
+                                                data-member-id="${sub.MEMBER_ID}" 
+                                                data-action="deactivate">
+                                            <i class="fas fa-toggle-off"></i>
+                                        </button>` :
+                                        `<button class="text-green-600 hover:text-green-800 transition-colors" 
+                                                title="Renew subscription" 
+                                                data-sub-id="${sub.SUB_ID}" 
+                                                data-member-id="${sub.MEMBER_ID}" 
+                                                data-action="renew">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>`
+                                    }
+                                </td>
+                            `;
+                            
+                            tableBody.appendChild(row);
+                        });
+                        
+                        // Show the table
+                        tableBody.closest('table').classList.remove('hidden');
+                        
+                        // Update summary numbers (expiring subscriptions)
+                        document.getElementById('expiringSubscriptions').textContent = 
+                            data.filter(sub => sub.daysLeft >= 0 && sub.daysLeft <= 7 && sub.isActive).length;
+                        
+                        // Reinitialize action buttons
+                        initActionButtons();
+                    }
+                    
+                    // Show success notification
+                    showToast('Filters reset!', true);
+                })
+                .catch(error => {
+                    // Reset button state
+                    resetBtn.innerHTML = originalBtnText;
+                    resetBtn.disabled = false;
+                    
+                    // Hide loading state
+                    loadingState.classList.add('hidden');
+                    
+                    console.error('Error resetting filters:', error);
+                    
+                    // Show helpful error message
+                    let errorMessage = 'Error resetting filters.';
+                    if (error.message) {
+                        errorMessage += ' ' + error.message;
+                    }
+                    showToast(errorMessage, false);
+                    
+                    // Show table again in case of error
+                    tableBody.closest('table').classList.remove('hidden');
+                });
             }
-            
+
             // Add refresh subscriptions functionality
             const refreshSubsBtn = document.getElementById('refreshSubsBtn');
             if (refreshSubsBtn) {
@@ -3666,5 +3874,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 </script>
+
+
+    </script>
+    <!-- Toast notification for showing success/error messages -->
+    <div id="toast" class="fixed top-4 right-4 flex items-center p-4 space-x-4 w-full max-w-xs text-white transform transition-transform duration-300 translate-x-full opacity-0 z-50" style="display: none;">
+        <div class="inline-flex flex-shrink-0 justify-center items-center w-8 h-8 rounded-lg">
+            <i id="toastIcon" class="fas fa-check-circle text-xl"></i>
+        </div>
+        <div id="toastMessage" class="text-sm font-normal">Success message here.</div>
+        <div class="flex items-center ml-auto space-x-2">
+            <button type="button" class="bg-white/20 text-white hover:bg-white/30 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-white/10 inline-flex h-8 w-8 justify-center items-center" onclick="hideToast()">
+                <span class="sr-only">Close</span>
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
 </body>
 </html>
