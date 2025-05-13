@@ -147,7 +147,7 @@ function getActiveSubscriptions() {
                 JOIN member_subscription ms ON m.MEMBER_ID = ms.MEMBER_ID
                 JOIN subscription s ON ms.SUB_ID = s.SUB_ID
                 LEFT JOIN transaction t ON m.MEMBER_ID = t.MEMBER_ID AND ms.SUB_ID = t.SUB_ID
-                ORDER BY ms.END_DATE";
+                ORDER BY t.TRANSAC_DATE DESC, m.MEMBER_FNAME, m.MEMBER_LNAME";
         $result = $conn->query($sql);
         
         if ($result->num_rows > 0) {

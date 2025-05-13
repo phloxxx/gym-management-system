@@ -101,7 +101,7 @@ try {
         $types .= 'ssss';
     }
     
-    $sql .= " ORDER BY ms.IS_ACTIVE DESC, ms.END_DATE ASC";
+    $sql .= " ORDER BY t.TRANSAC_DATE DESC, m.MEMBER_FNAME, m.MEMBER_LNAME";
     
     $stmt = $conn->prepare($sql);
     
