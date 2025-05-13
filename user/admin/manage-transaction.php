@@ -931,6 +931,126 @@ $activeSubscriptions = getActiveSubscriptions();
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
     <script>
+        // Define these functions in global scope so they're always available
+        window.resetTransactionModalUI = function() {
+            try {
+                console.log("Reset UI called");
+                const modal = document.getElementById('addTransactionModal');
+                if (!modal) return;
+                
+                // Properly close the modal
+                if (typeof closeModal === 'function') {
+                    closeModal(modal);
+                } else {
+                    modal.classList.add('hidden');
+                }
+                
+                // Reset form
+                const form = document.getElementById('addTransactionForm');
+                if (form) form.reset();
+                
+                // Reset member search
+                const memberSearchContainer = document.getElementById('memberSearch');
+                if (memberSearchContainer) {
+                    memberSearchContainer.value = '';
+                    const memberSearchParent = memberSearchContainer.parentElement;
+                    if (memberSearchParent && memberSearchParent.parentElement) {
+                        memberSearchParent.parentElement.classList.remove('hidden');
+                    }
+                }
+                
+                // Hide member info
+                const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+                if (selectedMemberInfo) {
+                    selectedMemberInfo.classList.add('hidden');
+                }
+                
+                console.log("Transaction modal UI reset successfully");
+            } catch (e) {
+                console.error("Error in resetTransactionModalUI:", e);
+            }
+        };
+        
+        window.hideToast = function() {
+            try {
+                const toast = document.getElementById('toast');
+                if (!toast) return;
+                
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 300);
+            } catch (e) {
+                console.error("Error in hideToast:", e);
+            }
+        };
+        
+        window.showToast = function(message, isSuccess = true) {
+            try {
+                const toast = document.getElementById('toast');
+                const toastMessage = document.getElementById('toastMessage');
+                const toastIcon = document.getElementById('toastIcon');
+                
+                if (!toast || !toastMessage || !toastIcon) {
+                    console.error("Toast elements not found");
+                    alert(message);
+                    return;
+                }
+                
+                toastMessage.textContent = message;
+                
+                if (isSuccess) {
+                    toast.classList.remove('bg-red-600');
+                    toast.classList.add('bg-green-600');
+                    toastIcon.classList.remove('fa-times-circle');
+                    toastIcon.classList.add('fa-check-circle');
+                } else {
+                    toast.classList.remove('bg-green-600');
+                    toast.classList.add('bg-red-600');
+                    toastIcon.classList.remove('fa-check-circle');
+                    toastIcon.classList.add('fa-times-circle');
+                }
+                
+                toast.style.display = 'flex';
+                setTimeout(() => {
+                    toast.classList.remove('translate-x-full', 'opacity-0');
+                }, 10);
+                
+                // Auto hide after 5 seconds
+                setTimeout(window.hideToast, 5000);
+            } catch (e) {
+                console.error("Error in showToast:", e);
+                alert(message);
+            }
+        };
+        
+        window.updateSummaryCards = function() {
+            try {
+                // Get current values
+                const totalTransactions = document.getElementById('totalTransactions');
+                const totalRevenue = document.getElementById('totalRevenue');
+                const recentTransactions = document.getElementById('recentTransactions');
+                
+                if (!totalTransactions || !totalRevenue || !recentTransactions) {
+                    console.error("Summary card elements not found");
+                    return;
+                }
+                
+                // Increment values
+                totalTransactions.textContent = (parseInt(totalTransactions.textContent || '0') + 1).toString();
+                
+                // Update revenue
+                const currentRevenue = parseFloat(totalRevenue.textContent.replace(/[^0-9.]/g, '') || '0');
+                const subscriptionPrice = parseFloat(document.getElementById('subPrice')?.textContent.replace(/[^0-9.]/g, '') || '0');
+                totalRevenue.textContent = '$' + (currentRevenue + subscriptionPrice).toFixed(2);
+                
+                // Increment recent transactions
+                recentTransactions.textContent = (parseInt(recentTransactions.textContent || '0') + 1).toString();
+            } catch (e) {
+                console.error("Error in updateSummaryCards:", e);
+            }
+        };
+        
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize dropdown toggle functionality
             const dropdownButtons = document.querySelectorAll('[data-collapse-toggle]');
@@ -1544,24 +1664,44 @@ $activeSubscriptions = getActiveSubscriptions();
                         
                         // Simulate API call with timeout
                         setTimeout(() => {
-                            // Close modal
-                            closeModal(document.getElementById('addTransactionModal'));
-                            
-                            // Reset form
-                            addTransactionForm.reset();
-                            
-                            // Reset the UI for future new transactions
-                            resetTransactionModalUI();
-                            
-                            // Update summary cards (simulating data refresh)
-                            updateSummaryCards();
-                            
-                            // Show success notification using the toast
-                            showToast(`${subscriptionName} successfully added for ${memberName}!`, true);
-                            
-                            // Reset button
-                            submitBtn.innerHTML = originalBtnText;
-                            submitBtn.disabled = false;
+                            try {
+                                // Close modal
+                                if (typeof closeModal === 'function') {
+                                    closeModal(document.getElementById('addTransactionModal'));
+                                } else {
+                                    document.getElementById('addTransactionModal').classList.add('hidden');
+                                }
+                                
+                                // Reset form
+                                addTransactionForm.reset();
+                                
+                                // Try to use the global function
+                                if (typeof window.updateSummaryCards === 'function') {
+                                    window.updateSummaryCards();
+                                }
+                                
+                                // Show success notification
+                                if (typeof window.showToast === 'function') {
+                                    window.showToast(`${subscriptionName} successfully added for ${memberName}!`, true);
+                                } else {
+                                    alert(`${subscriptionName} successfully added for ${memberName}!`);
+                                }
+                                
+                                // Reset button
+                                submitBtn.innerHTML = originalBtnText;
+                                submitBtn.disabled = false;
+                                
+                                // Refresh the page after a delay for a clean reset
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 2000);
+                            } catch (error) {
+                                console.error("Error in transaction processing:", error);
+                                alert("Transaction successful but there was an error updating the UI. The page will refresh.");
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 2000);
+                            }
                         }, 1000);
                     }
                 });
@@ -1731,7 +1871,7 @@ $activeSubscriptions = getActiveSubscriptions();
                 }
                 
                 // Reset the submit button
-                const submitButton = modal.querySelector('button[type="submit"]');
+                const submitButton = document.getElementById('submitTransactionBtn');
                 if (submitButton) {
                     submitButton.innerHTML = '<i class="fas fa-save mr-2"></i> Add Transaction';
                 }
@@ -2286,162 +2426,170 @@ $activeSubscriptions = getActiveSubscriptions();
             if (submitTransactionBtn) {
                 // Replace the existing click event with enhanced validation
                 submitTransactionBtn.addEventListener('click', function() {
-                    // Get form fields
-                    const memberId = document.getElementById('selectedMemberId').value;
-                    const subscriptionId = subscriptionSelect.value;
-                    const paymentMethod = paymentSelect.value;
-                    // Use the existing variables without redeclaration
-                    const startDate = startDateInput.value;
-                    const endDate = endDateInput.value;
-                    
-                    // Reset previous error states
-                    document.querySelectorAll('#addTransactionForm .error-border').forEach(el => {
-                        el.classList.remove('error-border');
-                    });
-                    document.querySelectorAll('#addTransactionForm .error-message').forEach(el => {
-                        el.remove();
-                    });
-                    
-                    // Validate form and show inline errors
-                    let hasErrors = false;
-                    
-                    // Member validation - check just once, avoid duplicate errors
-                    if (!memberId) {
-                        hasErrors = true;
-                        // Find the member search field and add error only once
-                        const memberSearchContainer = document.querySelector('#addTransactionForm #memberSearch').closest('div');
-                        if (memberSearchContainer && !memberSearchContainer.querySelector('.error-message')) {
-                            highlightError(memberSearchContainer, 'Please select a member');
-                        }
-                    }
-                    
-                    // Subscription validation
-                    if (!subscriptionId) {
-                        hasErrors = true;
-                        highlightError(subscriptionSelect.parentElement, 'Please select a subscription plan');
-                    }
-                    
-                    // Payment method validation
-                    if (!paymentMethod) {
-                        hasErrors = true;
-                        highlightError(paymentSelect.parentElement, 'Please select a payment method');
-                    }
-                    
-                    // Date validation
-                    if (!startDate) {
-                        hasErrors = true;
-                        highlightError(startDateInput.parentElement, 'Please set a start date');
-                    }
-                    
-                    if (!endDate) {
-                        hasErrors = true;
-                        highlightError(endDateInput.parentElement, 'Please set an end date');
-                    }
-                    
-                    // If validation fails, exit
-                    if (hasErrors) {
-                        return;
-                    }
-                    
-                    // Show loading state on the button
-                    const originalBtnText = this.innerHTML;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
-                    this.disabled = true;
-                    
-                    // First check if the member already has an active subscription on the start date
-                    fetch('../../functions/check-active-subscription.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            memberId: memberId,
-                            startDate: startDate,
-                            endDate: endDate
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.hasActiveSubscription) {
-                            // Show error for overlapping subscription
-                            highlightError(startDateInput.parentElement, 'Member already has an active subscription during this period');
-                            throw new Error('Member already has an active subscription that overlaps with these dates');
+                    try {
+                        // Get form fields
+                        const memberId = document.getElementById('selectedMemberId').value;
+                        const subscriptionId = subscriptionSelect.value;
+                        const paymentMethod = paymentSelect.value;
+                        // Use the existing variables without redeclaration
+                        const startDate = startDateInput.value;
+                        const endDate = endDateInput.value;
+                        
+                        // Reset previous error states
+                        document.querySelectorAll('#addTransactionForm .error-border').forEach(el => {
+                            el.classList.remove('error-border');
+                        });
+                        document.querySelectorAll('#addTransactionForm .error-message').forEach(el => {
+                            el.remove();
+                        });
+                        
+                        // Validate form and show inline errors
+                        let hasErrors = false;
+                        
+                        // Member validation - check just once, avoid duplicate errors
+                        if (!memberId) {
+                            hasErrors = true;
+                            // Find the member search field and add error only once
+                            const memberSearchContainer = document.querySelector('#addTransactionForm #memberSearch').closest('div');
+                            if (memberSearchContainer && !memberSearchContainer.querySelector('.error-message')) {
+                                highlightError(memberSearchContainer, 'Please select a member');
+                            }
                         }
                         
-                        // If no active subscription for this date, proceed with creating the transaction
-                        // Get subscription details for the notification
-                        const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
-                        const subscriptionName = selectedOption.text.split('(')[0].trim();
-                        const memberName = document.getElementById('memberName').textContent;
-                        const memberInitials = document.getElementById('memberInitials').textContent;
-                        const price = selectedOption.dataset.price;
+                        // Subscription validation
+                        if (!subscriptionId) {
+                            hasErrors = true;
+                            highlightError(subscriptionSelect.parentElement, 'Please select a subscription plan');
+                        }
                         
-                        // Create transaction data to send to server
-                        const transactionData = {
-                            memberId: memberId,
-                            subscriptionId: subscriptionId,
-                            paymentId: paymentMethod,
-                            startDate: startDate,
-                            endDate: endDate
-                        };
+                        // Payment method validation
+                        if (!paymentMethod) {
+                            hasErrors = true;
+                            highlightError(paymentSelect.parentElement, 'Please select a payment method');
+                        }
                         
-                        // Send transaction data to server
-                        return fetch('../../functions/create-transaction.php', {
+                        // Date validation
+                        if (!startDate) {
+                            hasErrors = true;
+                            highlightError(startDateInput.parentElement, 'Please set a start date');
+                        }
+                        
+                        if (!endDate) {
+                            hasErrors = true;
+                            highlightError(endDateInput.parentElement, 'Please set an end date');
+                        }
+                        
+                        // If validation fails, exit
+                        if (hasErrors) {
+                            return;
+                        }
+                        
+                        // Show loading state on the button
+                        const originalBtnText = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+                        this.disabled = true;
+                        
+                        // First check if the member already has an active subscription on the start date
+                        fetch('../../functions/check-active-subscription.php', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify(transactionData)
-                        });
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Close modal
-                            closeModal(document.getElementById('addTransactionModal'));
-                            
-                            // Reset form
-                            document.getElementById('addTransactionForm').reset();
-                            
-                            // Reset the UI for future new transactions
-                            resetTransactionModalUI();
-                            
-                            // Update summary cards
-                            updateSummaryCards();
-                            
-                            // Get the entered dates
-                            const startDateFormatted = formatDisplayDate(new Date(startDate));
-                            const endDateFormatted = formatDisplayDate(new Date(endDate));
-                            
-                            // Add the new transaction to the table with the admin-entered dates
-                            addTransactionToTable({
+                            body: JSON.stringify({
                                 memberId: memberId,
-                                memberName: data.transaction.memberName,
-                                memberInitials: getInitials(data.transaction.memberName),
-                                subscriptionName: data.transaction.subscriptionName,
-                                startDate: startDateFormatted,
-                                endDate: endDateFormatted,
-                                paidDate: formatDisplayDate(new Date()),
-                                isActive: 1,
-                                daysLeft: calculateDaysLeft(endDate)
-                            });
+                                startDate: startDate,
+                                endDate: endDate
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.hasActiveSubscription) {
+                                // Show error for overlapping subscription
+                                highlightError(startDateInput.parentElement, 'Member already has an active subscription during this period');
+                                throw new Error('Member already has an active subscription that overlaps with these dates');
+                            }
                             
-                            // Show success notification
-                            showToast(data.message || `${data.transaction.subscriptionName} successfully added for ${data.transaction.memberName}!`, true);
-                        } else {
-                            // Show error notification
-                            showToast(data.message || 'Transaction failed. Please try again.', false);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showToast(error.message || 'An error occurred while processing the transaction. Please try again.', false);
-                    })
-                    .finally(() => {
-                        // Reset button state
-                        this.innerHTML = originalBtnText;
+                            // If no active subscription for this date, proceed with creating the transaction
+                            const transactionData = {
+                                memberId: memberId,
+                                subscriptionId: subscriptionId,
+                                paymentId: paymentMethod,
+                                startDate: startDate,
+                                endDate: endDate
+                            };
+                            
+                            // Send transaction data to server
+                            return fetch('../../functions/create-transaction.php', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(transactionData)
+                            });
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Close modal using global function if available
+                                if (typeof closeModal === 'function') {
+                                    closeModal(document.getElementById('addTransactionModal'));
+                                } else {
+                                    document.getElementById('addTransactionModal').classList.add('hidden');
+                                }
+                                
+                                // Reset form
+                                document.getElementById('addTransactionForm').reset();
+                                
+                                // Try to use global functions for UI reset
+                                if (typeof window.resetTransactionModalUI === 'function') {
+                                    window.resetTransactionModalUI();
+                                }
+                                
+                                if (typeof window.updateSummaryCards === 'function') {
+                                    window.updateSummaryCards();
+                                }
+                                
+                                // Show success message using global toast if available
+                                if (typeof window.showToast === 'function') {
+                                    window.showToast(data.message || `${data.transaction.subscriptionName} successfully added for ${data.transaction.memberName}!`, true);
+                                } else {
+                                    // Fallback to local function
+                                    showToast(data.message || `${data.transaction.subscriptionName} successfully added for ${data.transaction.memberName}!`, true);
+                                }
+                                
+                                // Refresh page after short delay for clean reset
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 2000);
+                            } else {
+                                // Show error notification
+                                if (typeof window.showToast === 'function') {
+                                    window.showToast(data.message || 'Transaction failed. Please try again.', false);
+                                } else {
+                                    showToast(data.message || 'Transaction failed. Please try again.', false);
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            if (typeof window.showToast === 'function') {
+                                window.showToast(error.message || 'An error occurred while processing the transaction. Please try again.', false);
+                            } else {
+                                showToast(error.message || 'An error occurred while processing the transaction. Please try again.', false);
+                            }
+                        })
+                        .finally(() => {
+                            // Reset button state
+                            this.innerHTML = originalBtnText;
+                            this.disabled = false;
+                        });
+                    } catch (error) {
+                        console.error("Critical error in transaction submission:", error);
+                        // Use alert as last resort
+                        alert("An unexpected error occurred: " + error.message);
+                        this.innerHTML = '<i class="fas fa-save mr-2"></i> Add Transaction';
                         this.disabled = false;
-                    });
+                    }
                 });
             }
             
