@@ -233,42 +233,117 @@ if ($role === 'Administrator') $role = 'Administrator';
 
     <!-- Add/Edit Subscription Modal -->
     <div id="subscriptionModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center hidden modal backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 modal-content transform scale-95">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-gray-800" id="modalTitle">Add New Subscription</h3>
-                    <button type="button" class="text-gray-400 hover:text-gray-500" id="closeModal">
-                        <i class="fas fa-times"></i>
-                    </button>
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 modal-content transform scale-95 overflow-hidden">
+            <!-- Modal Title Banner -->
+            <div id="modalBanner" class="px-6 py-4 flex items-center justify-between bg-gradient-to-r from-blue-900 to-blue-800 relative overflow-hidden">
+                <div class="flex items-center z-10">
+                    <div class="mr-4 h-10 w-10 rounded-full bg-white/25 flex items-center justify-center text-white shadow-sm">
+                        <i id="modalIcon" class="fas fa-tags text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 id="modalTitle" class="text-lg font-medium text-white leading-tight">Add New Subscription Plan</h2>
+                        <p class="text-xs text-white/90">Enter the required information below</p>
+                    </div>
                 </div>
+                <button type="button" id="closeModal" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 focus:outline-none transition-all duration-300 hover:rotate-90 z-20 cursor-pointer">
+                    <i class="fas fa-times"></i>
+                </button>
+
+                <!-- Decorative background elements -->
+                <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-white/10 rounded-full"></div>
+                <div class="absolute -top-6 -left-6 w-24 h-24 bg-white/5 rounded-full"></div>
             </div>
-            <form id="subscriptionForm" class="p-6">
-                <input type="hidden" id="subscriptionId" name="SUB_ID">
-                <div class="space-y-4">
-                    <div>
-                        <label for="subName" class="block text-sm font-medium text-gray-700">Subscription Name</label>
-                        <input type="text" id="subName" name="SUB_NAME" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-light focus:ring focus:ring-primary-light focus:ring-opacity-50" required>
+
+            <!-- Modal Body -->
+            <div class="p-6 pt-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                <form id="subscriptionForm" class="space-y-3">
+                    <input type="hidden" id="subscriptionId" name="SUB_ID">
+
+                    <!-- Basic Information Section -->
+                    <div class="mb-1">
+                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-info-circle text-primary-light mr-2"></i>
+                            <span>Subscription Information</span>
+                        </h4>
+                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
                     </div>
-                    <div>
-                        <label for="duration" class="block text-sm font-medium text-gray-700">Duration (Days)</label>
-                        <input type="number" id="duration" name="DURATION" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-light focus:ring focus:ring-primary-light focus:ring-opacity-50" required>
+
+                    <div class="mb-4">
+                        <label for="subName" class="block text-sm font-medium text-gray-700 mb-1">Subscription Name</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                <i class="fas fa-tag"></i>
+                            </div>
+                            <input type="text" id="subName" name="SUB_NAME" 
+                                class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" required>
+                        </div>
                     </div>
-                    <div>
-                        <label for="price" class="block text-sm font-medium text-gray-700">Price ($)</label>
-                        <input type="number" id="price" name="PRICE" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-light focus:ring focus:ring-primary-light focus:ring-opacity-50" required>
+
+                    <!-- Duration and Price in a flex container -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <!-- Duration -->
+                        <div>
+                            <label for="duration" class="block text-sm font-medium text-gray-700 mb-1">Duration (Days)</label>
+                            <div class="relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                    <i class="fas fa-calendar-day"></i>
+                                </div>
+                                <input type="number" id="duration" name="DURATION" 
+                                    class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" required>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Example: 30, 90, 365</p>
+                        </div>
+
+                        <!-- Price -->
+                        <div>
+                            <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                            <div class="relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </div>
+                                <input type="number" id="price" name="PRICE" min="0" step="0.01"
+                                    class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" required>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="isActive" name="IS_ACTIVE" class="rounded border-gray-300 text-primary-dark focus:ring-primary-light" checked>
-                        <label for="isActive" class="ml-2 block text-sm text-gray-700">Active</label>
+
+                    <!-- Status Container -->
+                    <div class="mb-1 mt-6">
+                        <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-toggle-on text-primary-light mr-2"></i>
+                            <span>Subscription Status</span>
+                        </h4>
+                        <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
                     </div>
-                </div>
-            </form>
-            <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
-                <button type="button" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md" id="cancelBtn">Cancel</button>
-                <button type="button" class="px-4 py-2 text-white bg-primary-dark hover:bg-opacity-90 rounded-md" id="saveBtn">Save</button>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm mt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Subscription Status</label>
+                        <div class="flex items-center">
+                            <div class="relative inline-block w-12 mr-3 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" id="isActive" name="IS_ACTIVE" checked
+                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-2 border-gray-300 appearance-none cursor-pointer transition-transform duration-300 ease-in-out">
+                                <label for="isActive" 
+                                    class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-colors duration-300 ease-in-out"></label>
+                            </div>
+                            <span id="statusText" class="text-sm text-green-600 font-medium flex items-center">
+                                <i class="fas fa-check-circle mr-1.5"></i> Active
+                            </span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
+                <button type="button" id="cancelBtn" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none transition-colors duration-300 shadow-sm font-medium cursor-pointer relative z-10">
+                    Cancel
+                </button>
+                <button type="button" id="saveBtn" class="px-5 py-2.5 bg-primary-dark text-white rounded-lg hover:bg-opacity-90 focus:outline-none transition-all duration-300 shadow-md font-medium flex items-center justify-center cursor-pointer relative z-10">
+                    <i class="fas fa-save mr-2"></i> Save Plan
+                </button>
             </div>
         </div>
     </div>
+
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
     <script>

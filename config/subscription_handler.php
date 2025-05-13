@@ -29,6 +29,30 @@ try {
             break;
 
         case 'update':
+            // Check if trying to deactivate
+            if (!isset($_POST['IS_ACTIVE']) || $_POST['IS_ACTIVE'] == 0) {
+                // Call stored procedure to check if item is new
+                $checkStmt = $conn->prepare("CALL sp_CheckIfItemNew(?, ?, ?, ?, ?)");
+                $table = 'subscription';
+                $idColumn = 'SUB_ID';
+                $createdColumn = 'CREATED_AT';
+                $threshold = 1; // 1 day threshold
+                
+                $checkStmt->bind_param("ssisi", $table, $idColumn, $_POST['SUB_ID'], $createdColumn, $threshold);
+                $checkStmt->execute();
+                $result = $checkStmt->get_result();
+                $row = $result->fetch_assoc();
+                $checkStmt->close();
+                
+                if ($row['is_new'] == 1) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Cannot deactivate a newly created subscription. Please wait 24 hours.'
+                    ]);
+                    exit;
+                }
+            }
+            
             $stmt = $conn->prepare("CALL sp_UpdateSubscription(?, ?, ?, ?, ?)");
             $isActive = isset($_POST['IS_ACTIVE']) ? 1 : 0;
             $stmt->bind_param("issdi", $_POST['SUB_ID'], $_POST['SUB_NAME'], $_POST['DURATION'], $_POST['PRICE'], $isActive);

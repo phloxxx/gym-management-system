@@ -49,3 +49,19 @@ function fetchOne($sql, $params = [], $types = '') {
     }
     return false;
 }
+
+function isItemNewlyCreated($table, $idColumn, $id, $createdDateColumn = 'CREATED_AT', $daysThreshold = 1) {
+    try {
+        $conn = getConnection();
+        $stmt = $conn->prepare("CALL sp_CheckIfItemNew(?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssisi", $table, $idColumn, $id, $createdDateColumn, $daysThreshold);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        
+        return $row['is_new'] == 1;
+    } catch (Exception $e) {
+        error_log("Error checking if item is new: " . $e->getMessage());
+        return false;
+    }
+}
