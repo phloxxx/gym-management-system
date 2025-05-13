@@ -873,7 +873,7 @@ $comorbidities = getActiveComorbidities();
                 
                 <!-- Modal Footer -->
                 <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
-                    <button type="button" id="viewEditButton" class="px-4 py-2.5 border border-primary-dark text-primary-dark rounded-lg hover:bg-primary-dark hover:text-white focus:outline-none transition-colors duration-300 shadow-sm font-medium flex items-center">
+                    <button type="button" id="viewEditButton" onclick="handleEditMember(this.getAttribute('data-id'))" class="px-4 py-2.5 border border-primary-dark text-primary-dark rounded-lg hover:bg-primary-dark hover:text-white focus:outline-none transition-colors duration-300 shadow-sm font-medium flex items-center">
                         <i class="fas fa-edit mr-2"></i> Edit Member
                     </button>
                     <button type="button" id="viewCloseButton" class="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none transition-colors duration-300 shadow-sm font-medium">
@@ -972,6 +972,19 @@ $comorbidities = getActiveComorbidities();
             initModalToggle();
             initCoachSelection();
             initViewAndEditButtons();
+            
+            // Make sure Edit Member button in view modal works
+            console.log("Setting up View Edit Button direct handler");
+            const viewEditButton = document.getElementById('viewEditButton');
+            if (viewEditButton) {
+                console.log("View Edit Button found, ensuring onclick works");
+                // Ensure the onclick attribute works properly
+                viewEditButton.onclick = function() {
+                    console.log("View Edit Button clicked with ID:", this.getAttribute('data-id'));
+                    handleEditMember(this.getAttribute('data-id'));
+                    return false; // Prevent default action
+                };
+            }
         });
         
         // Coach selection logic
@@ -1293,11 +1306,8 @@ $comorbidities = getActiveComorbidities();
             
             // Close modal button - force showing the confirmation dialog
             closeModal.addEventListener('click', function() {
-                const formHasChanges = isFormDirty && hasFormChanged();
-                console.log("Form dirty:", isFormDirty, "Has changes:", formHasChanges);
-                
-                // Always show confirmation if form is dirty
-                if (isFormDirty) {
+                // Only show confirm dialog if form has actual changes
+                if (isFormDirty && hasFormChanged()) {
                     confirmDialog.classList.remove('hidden');
                 } else {
                     closeModalDirectly();
@@ -1306,11 +1316,8 @@ $comorbidities = getActiveComorbidities();
             
             // Cancel button - force showing the confirmation dialog
             cancelButton.addEventListener('click', function() {
-                const formHasChanges = isFormDirty && hasFormChanged();
-                console.log("Form dirty:", isFormDirty, "Has changes:", formHasChanges);
-                
-                // Always show confirmation if form is dirty
-                if (isFormDirty) {
+                // Only show confirm dialog if form has actual changes
+                if (isFormDirty && hasFormChanged()) {
                     confirmDialog.classList.remove('hidden');
                 } else {
                     closeModalDirectly();
@@ -1369,13 +1376,15 @@ $comorbidities = getActiveComorbidities();
                     // Collect form data
                     const formData = new FormData(memberForm);
                     const memberId = document.getElementById('memberId').value;
+                    const isActive = document.getElementById('status').checked ? 1 : 0;
+                    
                     const data = {
                         requestId: requestId,
                         MEMBER_FNAME: formData.get('MEMBER_FNAME'),
                         MEMBER_LNAME: formData.get('MEMBER_LNAME'),
                         EMAIL: formData.get('EMAIL'),
                         PHONE_NUMBER: formData.get('PHONE_NUMBER'),
-                        IS_ACTIVE: document.getElementById('status').checked ? 1 : 0,
+                        IS_ACTIVE: isActive,
                         PROGRAM_ID: document.getElementById('program').value,
                         COACH_ID: document.getElementById('coach').value,
                         USER_ID: 1, // Current logged in user ID
@@ -1388,80 +1397,133 @@ $comorbidities = getActiveComorbidities();
                         '../../api/members/create.php';
 
                     const method = memberId ? 'PUT' : 'POST';
-
-                    // If editing, include subscription data but don't allow changes
-                    if (memberId) {
-                        data.MEMBER_ID = memberId;
-                        
-                        // Check if subscription renewal is requested
-                        const renewSubscription = document.getElementById('renewSubscription');
-                        if (renewSubscription && renewSubscription.checked) {
-                            // Add renewal data
-                            data.RENEW_SUBSCRIPTION = true;
-                            data.RENEW_SUB_ID = document.getElementById('renewSubscriptionType').value;
-                            data.RENEW_START_DATE = document.getElementById('renewStartDate').value;
-                            data.RENEW_END_DATE = document.getElementById('renewEndDate').value;
-                            data.RENEW_PAYMENT_ID = document.getElementById('renewPaymentMethod').value;
-                            
-                            // Validate renewal fields
-                            if (!data.RENEW_SUB_ID || !data.RENEW_START_DATE || !data.RENEW_END_DATE || !data.RENEW_PAYMENT_ID) {
-                                // Reset button state
-                                saveMemberButton.disabled = false;
-                                saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
-                                showToast('Please fill all renewal fields', false);
-                                return;
-                            }
-                        }
-                    } else {
-                        // Only include subscription data for new members
-                        data.SUB_ID = document.getElementById('subscriptionType').value;
-                        data.START_DATE = document.getElementById('startDate').value;
-                        data.END_DATE = document.getElementById('endDate').value;
-                        data.PAYMENT_ID = document.getElementById('paymentMethod').value;
-                        data.TRANSAC_DATE = document.getElementById('transactionDate').value;
-                    }
-
-                    fetch(url, {
-                        method: method,
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(data)
-                    })
-                    .then(response => {
-                        // Check for non-200 responses and handle them
-                        if (!response.ok) {
-                            return response.json().then(errorData => {
-                                throw new Error(errorData.message || 'Server responded with an error');
+                    
+                    // If deactivating an existing member, we need to confirm
+                    if (memberId && isActive === 0) {
+                        // Check if member has active subscriptions
+                        fetch(`../../api/members/check-active-subscription.php?id=${memberId}`)
+                            .then(response => response.json())
+                            .then(subscriptionData => {
+                                if (subscriptionData.has_active_subscription) {
+                                    // Show warning dialog
+                                    saveMemberButton.disabled = false;
+                                    saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                                    
+                                    const subscriptionWarningDialog = createSubscriptionWarningDialog(() => {
+                                        // User confirmed deactivation, proceed with save
+                                        submitMemberForm(url, method, data);
+                                    }, () => {
+                                        // User cancelled deactivation, reset status toggle and abort save
+                                        document.getElementById('status').checked = true;
+                                        const statusLabel = document.getElementById('statusLabel');
+                                        statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                                        statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                                        statusLabel.classList.add('text-green-600');
+                                        
+                                        saveMemberButton.disabled = false;
+                                        saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                                    });
+                                    
+                                    // Append the dialog to the body
+                                    document.body.appendChild(subscriptionWarningDialog);
+                                    
+                                    // Show the dialog
+                                    subscriptionWarningDialog.classList.remove('hidden');
+                                } else {
+                                    // No active subscriptions, proceed with save
+                                    submitMemberForm(url, method, data);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error checking subscription status:', error);
+                                // Proceed with save but show error
+                                showToast('Error checking subscription status, proceeding with save', false);
+                                submitMemberForm(url, method, data);
                             });
-                        }
-                        return response.json();
-                    })
-                    .then(result => {
-                        if (result.status === 'success') {
-                            showToast(memberId ? 'Member updated successfully!' : 'New member added successfully!', true);
-                            closeModalDirectly();
-                            // Add a short delay before refreshing the members list
-                            setTimeout(() => {
-                                loadMembers(); // Reload the members table
-                            }, 500); // Increased delay to ensure database consistency
-                        } else {
-                            throw new Error(result.message || 'Failed to save member');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showToast(error.message || 'Failed to save member. Please try again.', false);
-                    })
-                    .finally(() => {
-                        // Reset button state
-                        saveMemberButton.disabled = false;
-                        saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
-                    });
+                    } else {
+                        // Not deactivating a member, proceed with save
+                        submitMemberForm(url, method, data);
+                    }
                 } else {
                     memberForm.reportValidity();
                 }
             });
+            
+            // Helper function to submit the member form
+            function submitMemberForm(url, method, data) {
+                const saveMemberButton = document.getElementById('saveMemberButton');
+                const memberId = document.getElementById('memberId').value;
+                
+                // If editing, include subscription data but don't allow changes
+                if (memberId) {
+                    data.MEMBER_ID = memberId;
+                    
+                    // Check if subscription renewal is requested
+                    const renewSubscription = document.getElementById('renewSubscription');
+                    if (renewSubscription && renewSubscription.checked) {
+                        // Add renewal data
+                        data.RENEW_SUBSCRIPTION = true;
+                        data.RENEW_SUB_ID = document.getElementById('renewSubscriptionType').value;
+                        data.RENEW_START_DATE = document.getElementById('renewStartDate').value;
+                        data.RENEW_END_DATE = document.getElementById('renewEndDate').value;
+                        data.RENEW_PAYMENT_ID = document.getElementById('renewPaymentMethod').value;
+                        
+                        // Validate renewal fields
+                        if (!data.RENEW_SUB_ID || !data.RENEW_START_DATE || !data.RENEW_END_DATE || !data.RENEW_PAYMENT_ID) {
+                            // Reset button state
+                            saveMemberButton.disabled = false;
+                            saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                            showToast('Please fill all renewal fields', false);
+                            return;
+                        }
+                    }
+                } else {
+                    // Only include subscription data for new members
+                    data.SUB_ID = document.getElementById('subscriptionType').value;
+                    data.START_DATE = document.getElementById('startDate').value;
+                    data.END_DATE = document.getElementById('endDate').value;
+                    data.PAYMENT_ID = document.getElementById('paymentMethod').value;
+                    data.TRANSAC_DATE = document.getElementById('transactionDate').value;
+                }
+
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    // Check for non-200 responses and handle them
+                    if (!response.ok) {
+                        return response.json().then(errorData => {
+                            throw new Error(errorData.message || 'Server responded with an error');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    if (result.status === 'success') {
+                        showToast(memberId ? 'Member updated successfully!' : 'New member added successfully!', true);
+                        closeModalDirectly();
+                        // Add a short delay before refreshing the members list
+                        setTimeout(() => {
+                            loadMembers(); // Reload the members table
+                        }, 500); // Increased delay to ensure database consistency
+                    } else {
+                        throw new Error(result.message || 'Failed to save member');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast(error.message || 'Failed to save member. Please try again.', false);
+                })
+                .finally(() => {
+                    // Reset button state
+                    saveMemberButton.disabled = false;
+                    saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                });
+            }
 
             // Function to close modal directly
             function closeModalDirectly() {
@@ -1578,9 +1640,50 @@ $comorbidities = getActiveComorbidities();
                 console.log("Form state captured:", originalFormValues);
             }
             
-            // Check if form has been modified (this function is no longer needed, but kept for compatibility)
+            // Check if form has been modified
             function hasFormChanged() {
-                return true; // Always return true to ensure dialog shows
+                const formElements = memberForm.elements;
+                
+                for (let i = 0; i < formElements.length; i++) {
+                    const element = formElements[i];
+                    const name = element.name || element.id;
+                    
+                    // Skip elements without a name (they're not form fields)
+                    if (!name) continue;
+                    
+                    // Skip hidden member ID field
+                    if (name === 'memberId') continue;
+                    
+                    // Check appropriate value based on element type
+                    if (element.type === 'checkbox') {
+                        if (originalFormValues[name] !== element.checked) {
+                            console.log(`Changed field: ${name}, Original: ${originalFormValues[name]}, Current: ${element.checked}`);
+                            return true;
+                        }
+                    } else if (element.type === 'select-multiple') {
+                        const selected = [];
+                        for (let j = 0; j < element.options.length; j++) {
+                            if (element.options[j].selected) {
+                                selected.push(element.options[j].value);
+                            }
+                        }
+                        
+                        // Compare arrays
+                        if (!arraysEqual(originalFormValues[name], selected)) {
+                            console.log(`Changed field: ${name}, Original: ${originalFormValues[name]}, Current: ${selected}`);
+                            return true;
+                        }
+                    } else {
+                        // For regular inputs, selects, etc.
+                        if (originalFormValues[name] !== element.value) {
+                            console.log(`Changed field: ${name}, Original: ${originalFormValues[name]}, Current: ${element.value}`);
+                            return true;
+                        }
+                    }
+                }
+                
+                // No changes detected
+                return false;
             }
             
             // Helper function to compare arrays
@@ -1637,52 +1740,144 @@ $comorbidities = getActiveComorbidities();
                         statusLabel.classList.remove('text-green-600', 'text-red-600');
                         statusLabel.classList.add('text-gray-500');
                         
-                        // Check if member has active subscriptions
-                        fetch(`../../api/members/check-active-subscription.php?id=${memberId.value}`)
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.has_active_subscription) {
-                                    // Show a subscription warning dialog
-                                    const subscriptionWarningDialog = createSubscriptionWarningDialog(() => {
-                                        // If confirmed, continue with deactivation
-                                        statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
-                                        statusLabel.classList.remove('text-green-600', 'text-gray-500');
-                                        statusLabel.classList.add('text-red-600');
-                                    }, () => {
-                                        // If cancelled, revert to active
-                                        this.checked = true;
-                                        statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
-                                        statusLabel.classList.remove('text-red-600', 'text-gray-500');
-                                        statusLabel.classList.add('text-green-600');
-                                    });
-                                    
-                                    // Append the dialog to the body
-                                    document.body.appendChild(subscriptionWarningDialog);
-                                    
-                                    // Show the dialog
-                                    subscriptionWarningDialog.classList.remove('hidden');
-                                } else {
-                                    // No active subscriptions, proceed with status change
-                                    statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
-                                    statusLabel.classList.remove('text-green-600', 'text-gray-500');
-                                    statusLabel.classList.add('text-red-600');
-                                }
+                        // Call our new API endpoint to check and update status
+                        fetch(`../../api/members/update-status.php?id=${memberId.value}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                status: false, // Deactivating
+                                force: false   // Not forcing, check for active subscriptions
                             })
-                            .catch(error => {
-                                console.error('Error checking subscription status:', error);
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'warning' && data.requires_confirmation) {
+                                // Show warning dialog for active subscriptions
+                                const subscriptionWarningDialog = createSubscriptionWarningDialog(() => {
+                                    // User confirmed deactivation despite warning
+                                    // Now force the status update
+                                    updateMemberStatus(memberId.value, false, true);
+                                }, () => {
+                                    // User cancelled, revert the toggle
+                                    statusToggle.checked = true;
+                                    statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                                    statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                                    statusLabel.classList.add('text-green-600');
+                                });
                                 
-                                // In case of error, proceed with status change but show error
+                                // Append the dialog to the body
+                                document.body.appendChild(subscriptionWarningDialog);
+                                
+                                // Show the dialog
+                                subscriptionWarningDialog.classList.remove('hidden');
+                            } else if (data.status === 'success') {
+                                // Successfully updated
                                 statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
                                 statusLabel.classList.remove('text-green-600', 'text-gray-500');
                                 statusLabel.classList.add('text-red-600');
-                                showToast('Error checking subscription status', false);
-                            });
+                                showToast('Member has been deactivated', true);
+                            } else {
+                                // Error occurred
+                                showToast('Error updating member status: ' + data.message, false);
+                                // Revert UI
+                                statusToggle.checked = true;
+                                statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                                statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                                statusLabel.classList.add('text-green-600');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            // Revert UI on error
+                            statusToggle.checked = true;
+                            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                            statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                            statusLabel.classList.add('text-green-600');
+                            showToast('Error updating member status', false);
+                        });
+                    } else if (memberId.value) {
+                        // Toggling to active, update directly
+                        updateMemberStatus(memberId.value, true, false);
                     } else {
-                        // Toggling to active, just update the status
+                        // New member, just update the UI
                         statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
                         statusLabel.classList.remove('text-red-600');
                         statusLabel.classList.add('text-green-600');
                     }
+                });
+            }
+            
+            // Function to update member status
+            function updateMemberStatus(memberId, isActive, force) {
+                // Show loading state
+                const statusLabel = document.getElementById('statusLabel');
+                statusLabel.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Updating...';
+                statusLabel.classList.remove('text-green-600', 'text-red-600');
+                statusLabel.classList.add('text-gray-500');
+                
+                fetch(`../../api/members/update-status.php?id=${memberId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        status: isActive,
+                        force: force
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Update UI based on the new status
+                        if (isActive) {
+                            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                            statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                            statusLabel.classList.add('text-green-600');
+                            showToast('Member has been activated', true);
+                        } else {
+                            statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                            statusLabel.classList.remove('text-green-600', 'text-gray-500');
+                            statusLabel.classList.add('text-red-600');
+                            
+                            // Show toast with subscription information if any were deactivated
+                            if (data.subscriptions_deactivated > 0) {
+                                showToast(`Member deactivated. ${data.subscriptions_deactivated} subscription${data.subscriptions_deactivated > 1 ? 's' : ''} also deactivated.`, true);
+                            } else {
+                                showToast('Member has been deactivated', true);
+                            }
+                        }
+                    } else {
+                        // Error occurred
+                        showToast('Error updating member status: ' + data.message, false);
+                        // Reset toggle to reflect actual state
+                        document.getElementById('status').checked = isActive;
+                        if (isActive) {
+                            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                            statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                            statusLabel.classList.add('text-green-600');
+                        } else {
+                            statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                            statusLabel.classList.remove('text-green-600', 'text-gray-500');
+                            statusLabel.classList.add('text-red-600');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Reset toggle to reflect actual state
+                    document.getElementById('status').checked = isActive;
+                    if (isActive) {
+                        statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                        statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                        statusLabel.classList.add('text-green-600');
+                    } else {
+                        statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                        statusLabel.classList.remove('text-green-600', 'text-gray-500');
+                        statusLabel.classList.add('text-red-600');
+                    }
+                    showToast('Error updating member status', false);
                 });
             }
             
@@ -1703,15 +1898,19 @@ $comorbidities = getActiveComorbidities();
                                 </div>
                                 <div>
                                     <h3 class="text-lg font-semibold text-gray-800">Active Subscription Warning</h3>
-                                    <p class="text-sm text-gray-600 mt-1">This member has an active subscription. Deactivating this member may prevent them from accessing gym facilities.</p>
+                                    <p class="text-sm text-gray-600 mt-1">This member has active subscription(s). Deactivating this member will also deactivate all their subscriptions.</p>
                                 </div>
+                            </div>
+                            <div class="mt-4 p-3 bg-blue-50 rounded-md text-sm text-blue-800 border border-blue-100">
+                                <i class="fas fa-info-circle mr-1.5"></i>
+                                <span>Deactivated members cannot access gym facilities and will be removed from active member lists.</span>
                             </div>
                             <div class="flex justify-end gap-3 mt-6">
                                 <button id="cancelDeactivation" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">
                                     Keep Active
                                 </button>
                                 <button id="confirmDeactivation" class="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-colors">
-                                    Deactivate Anyway
+                                    Deactivate All
                                 </button>
                             </div>
                         </div>
@@ -1774,16 +1973,16 @@ $comorbidities = getActiveComorbidities();
                     .then(member => {
                         if (member) {
                             // Rest of the view member logic remains the same
-                            document.getElementById('viewMemberName').textContent = `${member.firstName} ${member.lastName}`;
-                            document.getElementById('viewFullName').textContent = `${member.firstName} ${member.lastName}`;
-                            document.getElementById('viewEmail').textContent = member.email;
-                            document.getElementById('viewPhone').textContent = member.phone;
+                            document.getElementById('viewMemberName').textContent = `${member.MEMBER_FNAME} ${member.MEMBER_LNAME}`;
+                            document.getElementById('viewFullName').textContent = `${member.MEMBER_FNAME} ${member.MEMBER_LNAME}`;
+                            document.getElementById('viewEmail').textContent = member.EMAIL;
+                            document.getElementById('viewPhone').textContent = member.PHONE_NUMBER;
                             
                             // Display joined date
-                            const joinDate = new Date(member.joinDate);
+                            const joinDate = new Date(member.JOINED_DATE);
                             document.getElementById('viewJoinDate').textContent = formatDate(joinDate);
                             
-                            document.getElementById('viewProgramDetail').textContent = member.programName;
+                            document.getElementById('viewProgramDetail').textContent = member.PROGRAM_NAME;
                             document.getElementById('viewCoach').textContent = member.COACH_NAME || 'Not Assigned';
 
                             // Set subscription details
@@ -1832,11 +2031,11 @@ $comorbidities = getActiveComorbidities();
                             const viewComorbidities = document.getElementById('viewComorbidities');
                             viewComorbidities.innerHTML = '';
                             
-                            if (member.comorbidities.length > 0) {
+                            if (member.comorbidities && member.comorbidities.length > 0) {
                                 member.comorbidities.forEach(comorbidity => {
                                     const span = document.createElement('span');
                                     span.className = 'px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800';
-                                    span.textContent = comorbidity;
+                                    span.textContent = comorbidity.COMOR_NAME;
                                     viewComorbidities.appendChild(span);
                                 });
                             } else {
@@ -2278,16 +2477,28 @@ $comorbidities = getActiveComorbidities();
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         <div class="flex space-x-2 justify-center">
-                                            <button onclick="handleViewMember(${member.MEMBER_ID})" class="text-primary-dark hover:text-primary-light view-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200">
+                                            <button type="button" class="text-primary-dark hover:text-primary-light view-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${member.MEMBER_ID}">
                                                 <i class="fas fa-eye text-lg"></i>
                                             </button>
-                                            <button onclick="handleEditMember(${member.MEMBER_ID})" class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200">
+                                            <button type="button" class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${member.MEMBER_ID}">
                                                 <i class="fas fa-edit text-lg"></i>
                                             </button>
                                         </div>
                                     </td>
                                 `;
                                 tableBody.appendChild(row);
+                                
+                                // Add click event listeners to the buttons in this row
+                                const viewButton = row.querySelector('.view-button');
+                                const editButton = row.querySelector('.edit-button');
+                                
+                                viewButton.addEventListener('click', function() {
+                                    handleViewMember(this.getAttribute('data-id'));
+                                });
+                                
+                                editButton.addEventListener('click', function() {
+                                    handleEditMember(this.getAttribute('data-id'));
+                                });
                             });
                             
                             // Show table, hide empty state
@@ -2392,15 +2603,7 @@ $comorbidities = getActiveComorbidities();
                         // Set Edit Member button to pass the correct member ID
                         const viewEditButton = document.getElementById('viewEditButton');
                         if (viewEditButton) {
-                            viewEditButton.setAttribute('data-id', id);
-                            
-                            // Add event listener to the Edit Member button
-                            viewEditButton.onclick = function() {
-                                // Close view modal
-                                document.getElementById('viewMemberModal').classList.add('hidden');
-                                // Open edit modal with this member ID
-                                editMember(id);
-                            };
+                            viewEditButton.setAttribute('data-id', memberId);
                         }
                         
                         // Show the view modal
@@ -2547,9 +2750,9 @@ $comorbidities = getActiveComorbidities();
                                 option.selected = false;
                             });
                             // Set selected comorbidities
-                            member.comorbidities.forEach(comorbidityId => {
+                            member.comorbidities.forEach(comorbidity => {
                                 Array.from(comorbidities.options).forEach(option => {
-                                    if (option.value == comorbidityId) {
+                                    if (option.value == comorbidity.COMOR_ID) {
                                         option.selected = true;
                                     }
                                 });
@@ -2714,8 +2917,8 @@ $comorbidities = getActiveComorbidities();
             }, 100);
         });
 
-        // Initialize the view edit button
-        document.body.addEventListener('click', function(e) {
+        // No need for this duplicate event listener as we already set up the click handler in handleViewMember
+        /* document.body.addEventListener('click', function(e) {
             if (e.target && e.target.id === 'viewEditButton') {
                 // Get the member ID from the button's data attribute
                 const memberId = e.target.getAttribute('data-id');
@@ -2727,7 +2930,7 @@ $comorbidities = getActiveComorbidities();
                 // Open the edit modal
                 editMember(memberId);
             }
-        });
+        }); */
     </script>
 </body>
 </html>

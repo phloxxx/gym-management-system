@@ -239,7 +239,26 @@ $activeSubscriptions = getActiveSubscriptions();
                             </div>
                             <select id="subFilter" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
                                 <option value="all">All Subscriptions</option>
-                                <?php foreach ($subscriptionPlans as $sub): ?>
+                                <?php 
+                                // Modify this query to only fetch active subscriptions
+                                $subscriptionPlans = []; 
+                                try {
+                                    // Include database connection
+                                    include '../../includes/db_connection.php';
+                                    
+                                    // Query to get active subscription plans
+                                    $stmt = $conn->prepare("SELECT SUB_ID, SUB_NAME FROM subscription WHERE IS_ACTIVE = 1");
+                                    $stmt->execute();
+                                    $subscriptionPlans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                } catch(PDOException $e) {
+                                    // Log error (don't show to users)
+                                    error_log("Database error: " . $e->getMessage());
+                                    // Set empty array if error occurs
+                                    $subscriptionPlans = [];
+                                }
+                                
+                                foreach ($subscriptionPlans as $sub): 
+                                ?>
                                 <option value="<?php echo $sub['SUB_ID']; ?>"><?php echo htmlspecialchars($sub['SUB_NAME']); ?></option>
                                 <?php endforeach; ?>
                             </select>
@@ -532,9 +551,11 @@ $activeSubscriptions = getActiveSubscriptions();
                                 <option value="">Select Subscription</option>
                                 <?php foreach ($subscriptionPlans as $plan): ?>
                                     <option value="<?php echo $plan['SUB_ID']; ?>" 
-                                            data-duration="<?php echo $plan['DURATION']; ?> Days" 
-                                            data-price="<?php echo number_format($plan['PRICE'], 2); ?>">
-                                        <?php echo $plan['SUB_NAME']; ?> ($<?php echo number_format($plan['PRICE'], 2); ?>)
+                                            data-duration="<?php echo htmlspecialchars($plan['DURATION']); ?>" 
+                                            data-price="<?php echo htmlspecialchars($plan['PRICE']); ?>">
+                                        <?php echo htmlspecialchars($plan['SUB_NAME']); ?> 
+                                        (<?php echo htmlspecialchars($plan['DURATION']); ?> Days - 
+                                        ₱<?php echo number_format($plan['PRICE'], 2); ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -1176,9 +1197,12 @@ $activeSubscriptions = getActiveSubscriptions();
                 const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
                 
                 if (selectedOption && selectedOption.value && startDateInput.value) {
+                    // Get the duration value from the data attribute (now just the number)
                     const duration = selectedOption.getAttribute('data-duration');
                     const startDate = new Date(startDateInput.value);
-                    const endDate = calculateEndDateFromDuration(startDate, duration);
+                    // Add duration days to the start date
+                    const endDate = new Date(startDate);
+                    endDate.setDate(startDate.getDate() + parseInt(duration));
                     
                     // Set the end date input value
                     endDateInput.value = formatDate(endDate);
@@ -1203,10 +1227,10 @@ $activeSubscriptions = getActiveSubscriptions();
                     
                     // Update subscription summary fields
                     document.getElementById('subName').textContent = name;
-                    document.getElementById('subDuration').textContent = duration;
+                    document.getElementById('subDuration').textContent = duration + ' Days';
                     document.getElementById('subStartDate').textContent = formatDisplayDate(startDate);
                     document.getElementById('subEndDate').textContent = formatDisplayDate(endDate);
-                    document.getElementById('subPrice').textContent = '$' + price;
+                    document.getElementById('subPrice').textContent = '₱' + parseFloat(price).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
                 }
             }
             
@@ -1410,6 +1434,13 @@ $activeSubscriptions = getActiveSubscriptions();
 
             // Function to open renew modal with pre-filled data
             function openRenewModal(memberId, subId, memberName, subscriptionName) {
+                console.log(`Opening renewal modal for member ID: ${memberId}, subscription ID: ${subId}`);
+                
+                if (!memberId) {
+                    showToast('Error: Member ID is missing', false);
+                    return;
+                }
+                
                 const modal = document.getElementById('addTransactionModal');
                 if (modal) {
                     // Show the modal first
@@ -1443,8 +1474,29 @@ $activeSubscriptions = getActiveSubscriptions();
                     const initials = memberName.split(' ').map(n => n[0]).join('');
                     memberInitials.textContent = initials;
                     memberNameElement.textContent = memberName;
-                    memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+                    
+                    // IMPORTANT: Set the actual member ID from the parameter, not hardcoded
                     selectedMemberId.value = memberId;
+                    
+                    // Fetch actual member email from database
+                    fetch(`../../functions/get-member-details.php?id=${memberId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                memberEmail.textContent = data.member.email;
+                            } else {
+                                memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+                                console.warn(`Could not fetch email for member ID ${memberId}: ${data.message}`);
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('Error fetching member details:', error);
+                            memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+                        });
+                    
+                    // Add data attribute to form to indicate this is a renewal
+                    document.getElementById('addTransactionForm').setAttribute('data-is-renewal', 'true');
+                    document.getElementById('addTransactionForm').setAttribute('data-previous-sub-id', subId);
                     
                     // Completely hide the change button for renewals
                     if (changeMemberBtn) {
@@ -1462,17 +1514,13 @@ $activeSubscriptions = getActiveSubscriptions();
                         }
                     }
                     
-                    // Set start date to today
-                    const today = new Date();
-                    document.getElementById('startDateInput').valueAsDate = today;
+                    // Set start date to tomorrow
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    document.getElementById('startDateInput').valueAsDate = tomorrow;
                     
                     // Calculate and set end date based on subscription
-                    const selectedOption = subscriptionSelect.options[subscriptionSelect.selectedIndex];
-                    if (selectedOption.value) {
-                        const duration = selectedOption.getAttribute('data-duration');
-                        const endDate = calculateEndDate(today, duration);
-                        document.getElementById('endDateInput').valueAsDate = endDate;
-                    }
+                    updateEndDate();
                     
                     // Change modal title to indicate renewal
                     const modalTitle = modal.querySelector('.text-lg.font-medium.text-white');
@@ -1485,7 +1533,7 @@ $activeSubscriptions = getActiveSubscriptions();
                     }
                     
                     // Change submit button text
-                    const submitButton = modal.querySelector('button[type="submit"]');
+                    const submitButton = document.getElementById('submitTransactionBtn');
                     if (submitButton) {
                         submitButton.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Renew Subscription';
                     }

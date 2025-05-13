@@ -58,6 +58,19 @@ try {
         throw new Exception('Failed to update member information: ' . $stmt->error);
     }
 
+    // If member is deactivated, also deactivate all their subscriptions
+    if (isset($data['IS_ACTIVE']) && $data['IS_ACTIVE'] == 0) {
+        $deactivateSubsQuery = "UPDATE member_subscription SET IS_ACTIVE = 0 WHERE MEMBER_ID = ?";
+        $subStmt = $conn->prepare($deactivateSubsQuery);
+        $subStmt->bind_param('i', $memberId);
+        
+        if (!$subStmt->execute()) {
+            throw new Exception('Failed to deactivate member subscriptions: ' . $subStmt->error);
+        }
+        
+        $subsDeactivated = $subStmt->affected_rows;
+    }
+
     // Update comorbidities
     if (isset($data['COMORBIDITIES'])) {
         // First delete existing comorbidities
