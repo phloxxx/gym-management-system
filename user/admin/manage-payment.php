@@ -514,24 +514,23 @@ $role = isset($_SESSION['role']) ? ucfirst(strtolower($_SESSION['role'])) : 'Unk
                 saveButtonText.textContent = 'Save Payment Method';
                 paymentId.value = '';
                 payMethod.value = '';
-                document.getElementById('status').checked = true;
                 
-                // Update status label
-                const statusLabel = document.getElementById('statusLabel');
-                statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
-                statusLabel.classList.remove('text-red-600');
-                statusLabel.classList.add('text-green-600');
+                // Set status to active and disable it
+                const statusToggle = document.getElementById('status');
+                const statusContainer = document.querySelector('.bg-gray-50.p-4.rounded-lg');
+                statusToggle.checked = true;
+                statusToggle.disabled = true;
+                statusContainer.classList.add('opacity-60', 'cursor-not-allowed');
                 
-                // Reset payment icons
-                paymentIcons.forEach(i => i.classList.remove('bg-primary-light', 'text-white'));
-                paymentIcons[0].classList.add('bg-primary-light', 'text-white');
-                document.getElementById('selectedIcon').value = 'fa-credit-card';
-                
-                showModal(paymentMethodModal);
+                // Add help text
+                if (!statusContainer.querySelector('.status-help-text')) {
+                    const helpText = document.createElement('p');
+                    helpText.className = 'text-xs text-blue-600 mt-2 status-help-text';
+                    helpText.innerHTML = '<i class="fas fa-info-circle mr-1"></i> New payment methods are set as active by default';
+                    statusContainer.appendChild(helpText);
+                }
 
-                // Reset form change tracking
-                formChanged = false;
-                captureFormState();
+                showModal(paymentMethodModal);
             });
 
             // Empty state add button click
@@ -624,6 +623,25 @@ $role = isset($_SESSION['role']) ? ucfirst(strtolower($_SESSION['role'])) : 'Unk
                     captureFormState();
                 });
             });
+
+            // Modify edit function to re-enable status toggle
+            function editPaymentMethod(id) {
+                // ...existing code...
+                
+                // Re-enable status toggle for edit mode
+                const statusToggle = document.getElementById('status');
+                const statusContainer = document.querySelector('.bg-gray-50.p-4.rounded-lg');
+                statusToggle.disabled = false;
+                statusContainer.classList.remove('opacity-60', 'cursor-not-allowed');
+                
+                // Remove help text if it exists
+                const helpText = statusContainer.querySelector('.status-help-text');
+                if (helpText) {
+                    helpText.remove();
+                }
+                
+                // ...existing code...
+            }
 
             // Toggle status in add/edit form
             const statusToggle = document.getElementById('status');

@@ -57,6 +57,8 @@ try {
                     // Add explicit isActive conversion to integer
                     $isActive = isset($data['isActive']) ? ($data['isActive'] ? 1 : 0) : 1;
                     
+                   
+
                     echo json_encode(updateComorbidity(
                         $data['id'],
                         trim($data['name']),
