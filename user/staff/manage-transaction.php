@@ -2260,5 +2260,62 @@ $activeSubscriptions = getActiveSubscriptions();
         row.classList.add('bg-gray-50');
     }
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create a Set to track processed member IDs
+            const processedMembers = new Set();
+            
+            function openRenewModal(memberName, subscriptionName, memberId) {
+                // Skip if this member is already being processed (prevents duplicate processing)
+                if (processedMembers.has(memberId)) {
+                    console.log(`Member ${memberId} already being processed, skipping duplicate`);
+                    return;
+                }
+                
+                // Add to processed set
+                processedMembers.add(memberId);
+                
+                if (modal) {
+                    
+                    // Show member info without the search UI or change option
+                    const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+                    selectedMemberInfo.classList.remove('hidden');
+                    
+                    // Replace the heading to indicate member is fixed for renewal
+                    const memberInfoSection = document.querySelector('.mb-1');
+                    if (memberInfoSection) {
+                        const memberHeading = memberInfoSection.querySelector('span');
+                        if (memberHeading) {
+                            memberHeading.textContent = "Member (Fixed for Renewal)";
+                        }
+                    }
+                    
+                    // Set member information in the static display
+                    const memberInitials = document.getElementById('memberInitials');
+                    const memberNameElement = document.getElementById('memberName');
+                    const memberEmail = document.getElementById('memberEmail');
+                    const selectedMemberId = document.getElementById('selectedMemberId');
+                    const changeMemberBtn = document.getElementById('changeMemberBtn');
+                    
+                    // Set member details
+                    const initials = memberName.split(' ').map(n => n[0]).join('');
+                    memberInitials.textContent = initials;
+                    memberNameElement.textContent = memberName;
+                    memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+                }
+            }
+            
+            // Function to clear processed members when modal is closed
+            function clearProcessedMembers() {
+                processedMembers.clear();
+            }
+            
+            // Attach clear handler to modal close events
+            document.querySelectorAll('.modal-close-btn').forEach(btn => {
+                btn.addEventListener('click', clearProcessedMembers);
+            });
+            
+            initActionButtons();
+    </script>
 </body>
 </html>

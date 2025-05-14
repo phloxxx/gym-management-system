@@ -18,35 +18,34 @@ function deactivateSubscription($memberId, $subId) {
         // Start transaction
         $conn->begin_transaction();
         error_log("Transaction started");
-        
-        // Check if the subscription exists and is active
-        $checkSql = "SELECT * FROM member_subscription WHERE MEMBER_ID = ? AND SUB_ID = ?";
+          // Check if any active subscription exists for this member and subscription ID
+        // We need to be specific and look for the ACTIVE subscription
+        $checkSql = "SELECT * FROM member_subscription 
+                     WHERE MEMBER_ID = ? AND SUB_ID = ? AND IS_ACTIVE = 1
+                     ORDER BY END_DATE DESC LIMIT 1";
         $checkStmt = $conn->prepare($checkSql);
         $checkStmt->bind_param("ii", $memberId, $subId);
         $checkStmt->execute();
         $result = $checkStmt->get_result();
         
         if ($result->num_rows === 0) {
-            error_log("No subscription found for memberId: $memberId, subId: $subId");
-            throw new Exception("No subscription found for this member");
+            error_log("No active subscription found for memberId: $memberId, subId: $subId");
+            throw new Exception("No active subscription found for this member");
         }
         
         $subscription = $result->fetch_assoc();
-        error_log("Found subscription: " . json_encode($subscription));
+        error_log("Found active subscription: " . json_encode($subscription));
         
-        if ($subscription['IS_ACTIVE'] == 0) {
-            error_log("Subscription is already inactive");
-            throw new Exception("Subscription is already inactive");
-        }
+        // We already know it's active from our query, so we don't need to check IS_ACTIVE again
         
         // Update the subscription status in member_subscription table
+        // We need to be specific about which record to update by including the start and end dates
         $updateSql = "UPDATE member_subscription 
                       SET IS_ACTIVE = 0 
-                      WHERE MEMBER_ID = ? AND SUB_ID = ?";
-        
-        error_log("Preparing update query: $updateSql with memberId: $memberId, subId: $subId");
+                      WHERE MEMBER_ID = ? AND SUB_ID = ? AND START_DATE = ? AND END_DATE = ?";
+          error_log("Preparing update query: $updateSql with memberId: $memberId, subId: $subId, start: {$subscription['START_DATE']}, end: {$subscription['END_DATE']}");
         $stmt = $conn->prepare($updateSql);
-        $stmt->bind_param("ii", $memberId, $subId);
+        $stmt->bind_param("iiss", $memberId, $subId, $subscription['START_DATE'], $subscription['END_DATE']);
         
         if ($stmt->execute()) {
             error_log("Update query executed. Affected rows: " . $stmt->affected_rows);
@@ -56,13 +55,29 @@ function deactivateSubscription($memberId, $subId) {
                 $success = true;
                 error_log("Update successful, subscription deactivated");
                 
-                // Log the deactivation in transaction_log table
-                $logSql = "INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, MODIFIEDDATE) 
-                           SELECT t.TRANSACTION_ID, 'DEACTIVATED', CURRENT_DATE()
-                           FROM transaction t
-                           WHERE t.MEMBER_ID = ? AND t.SUB_ID = ?
-                           ORDER BY t.TRANSACTION_ID DESC
-                           LIMIT 1";
+                // Check if transaction_log table has a DESCRIPTION column
+                $checkTableQuery = "SHOW COLUMNS FROM transaction_log LIKE 'DESCRIPTION'";
+                $checkResult = $conn->query($checkTableQuery);
+                $hasDescriptionColumn = ($checkResult && $checkResult->num_rows > 0);
+                
+                // Log the deactivation in transaction_log table with appropriate columns
+                if ($hasDescriptionColumn) {
+                    $logSql = "INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, DESCRIPTION, MODIFIEDDATE) 
+                               SELECT t.TRANSACTION_ID, 'DEACTIVATED', 
+                                      CONCAT('Deactivated subscription for Member ID: ', t.MEMBER_ID), 
+                                      CURRENT_DATE()
+                               FROM transaction t
+                               WHERE t.MEMBER_ID = ? AND t.SUB_ID = ?
+                               ORDER BY t.TRANSACTION_ID DESC
+                               LIMIT 1";
+                } else {
+                    $logSql = "INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, MODIFIEDDATE) 
+                               SELECT t.TRANSACTION_ID, 'DEACTIVATED', CURRENT_DATE()
+                               FROM transaction t
+                               WHERE t.MEMBER_ID = ? AND t.SUB_ID = ?
+                               ORDER BY t.TRANSACTION_ID DESC
+                               LIMIT 1";
+                }
                 
                 error_log("Preparing log query: $logSql");          
                 $logStmt = $conn->prepare($logSql);

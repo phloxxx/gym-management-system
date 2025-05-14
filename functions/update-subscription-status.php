@@ -26,19 +26,35 @@ function updateSubscriptionStatuses() {
         // Get count of affected rows
         $updateCount = $stmt->affected_rows;
         
+        // Check if transaction_log table has a DESCRIPTION column
+        $checkTableQuery = "SHOW COLUMNS FROM transaction_log LIKE 'DESCRIPTION'";
+        $checkResult = $conn->query($checkTableQuery);
+        $hasDescriptionColumn = ($checkResult && $checkResult->num_rows > 0);
+        
         // Log the updates in transaction_log
         if ($updateCount > 0) {
             // Get IDs of affected subscriptions
-            $logSql = "INSERT INTO transaction_log 
-                       (TRANSACTION_ID, OPERATION, DESCRIPTION, MODIFIEDDATE)
-                       SELECT t.TRANSACTION_ID, 'AUTO-DEACTIVATED', 
-                              CONCAT('Automatically deactivated expired subscription for Member ID: ', t.MEMBER_ID), 
-                              CURRENT_DATE()
-                       FROM transaction t
-                       JOIN member_subscription ms ON t.MEMBER_ID = ms.MEMBER_ID AND t.SUB_ID = ms.SUB_ID
-                       WHERE ms.END_DATE < CURRENT_DATE() 
-                       AND ms.IS_ACTIVE = 0
-                       ORDER BY t.TRANSACTION_ID DESC";
+            if ($hasDescriptionColumn) {
+                $logSql = "INSERT INTO transaction_log 
+                           (TRANSACTION_ID, OPERATION, DESCRIPTION, MODIFIEDDATE)
+                           SELECT t.TRANSACTION_ID, 'AUTO-DEACTIVATED', 
+                                  CONCAT('Automatically deactivated expired subscription for Member ID: ', t.MEMBER_ID), 
+                                  CURRENT_DATE()
+                           FROM transaction t
+                           JOIN member_subscription ms ON t.MEMBER_ID = ms.MEMBER_ID AND t.SUB_ID = ms.SUB_ID
+                           WHERE ms.END_DATE < CURRENT_DATE() 
+                           AND ms.IS_ACTIVE = 0
+                           ORDER BY t.TRANSACTION_ID DESC";
+            } else {
+                $logSql = "INSERT INTO transaction_log 
+                           (TRANSACTION_ID, OPERATION, MODIFIEDDATE)
+                           SELECT t.TRANSACTION_ID, 'AUTO-DEACTIVATED', CURRENT_DATE()
+                           FROM transaction t
+                           JOIN member_subscription ms ON t.MEMBER_ID = ms.MEMBER_ID AND t.SUB_ID = ms.SUB_ID
+                           WHERE ms.END_DATE < CURRENT_DATE() 
+                           AND ms.IS_ACTIVE = 0
+                           ORDER BY t.TRANSACTION_ID DESC";
+            }
             
             $logStmt = $conn->prepare($logSql);
             $logStmt->execute();
@@ -78,4 +94,4 @@ try {
         'message' => $e->getMessage()
     ]);
 }
-?> 
+?>

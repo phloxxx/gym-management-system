@@ -21,7 +21,18 @@ try {
     $result = $conn->query($sql);
     
     if ($result->num_rows > 0) {
+        // Keep track of members we've already displayed to avoid duplicates
+        $processedMembers = [];
+        
         while ($row = $result->fetch_assoc()) {
+            // Skip if we've already displayed this member
+            if (in_array($row['MEMBER_ID'], $processedMembers)) {
+                continue;
+            }
+            
+            // Add to processed list
+            $processedMembers[] = $row['MEMBER_ID'];
+            
             $statusBadge = $row['IS_ACTIVE'] ? 
                 '<span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>' : 
                 '<span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Inactive</span>';

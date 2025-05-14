@@ -1194,8 +1194,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 currentUserId = null;
                 document.getElementById('userId').value = '';
                 
-                // Show status container
-                document.getElementById('statusContainer').classList.remove('hidden');
+                // Set default status to active and disable toggle
+                const statusToggle = document.getElementById('status');
+                const statusContainer = document.getElementById('statusContainer');
+                statusToggle.checked = true;
+                statusToggle.disabled = true;
+                statusContainer.classList.add('opacity-60', 'cursor-not-allowed');
+                
+                // Add helper text
+                if (!statusContainer.querySelector('.status-help-text')) {
+                    const helpText = document.createElement('p');
+                    helpText.className = 'text-xs text-blue-600 mt-2 status-help-text';
+                    helpText.innerHTML = '<i class="fas fa-info-circle mr-1"></i> New users are set as active by default';
+                    statusContainer.appendChild(helpText);
+                }
                 
                 // Show modal - ensure it's visible
                 userModal.style.display = 'flex';
@@ -1263,6 +1275,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         // Reset change password checkbox
                         document.getElementById('changePassword').checked = false;
                         document.getElementById('newPassword').required = false;
+                        
+                        // Show status container for edit mode
+                        document.getElementById('statusContainer').classList.remove('hidden');
+                        
+                        // Enable status toggle for edit mode
+                        const statusToggle = document.getElementById('status');
+                        const statusContainer = document.getElementById('statusContainer');
+                        statusToggle.disabled = false;
+                        statusContainer.classList.remove('opacity-60', 'cursor-not-allowed');
+                        
+                        // Remove help text if it exists
+                        const helpText = statusContainer.querySelector('.status-help-text');
+                        if (helpText) {
+                            helpText.remove();
+                        }
                     } else {
                         showToast(data.message || 'Failed to load user data', 'error');
                         closeUserModal();

@@ -2428,6 +2428,10 @@ $comorbidities = getActiveComorbidities();
                 .then(data => {
                     if (data.status === 'success') {
                         if (data.members.length > 0) {
+                            // Clear existing table content first to prevent duplicates
+                            const tableBody = document.getElementById('memberTableBody');
+                            tableBody.innerHTML = '';
+                            
                             // Process members (ensure no duplicates)
                             const uniqueMembers = [];
                             const memberIds = new Set();

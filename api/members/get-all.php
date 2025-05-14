@@ -9,8 +9,8 @@ try {
     $programId = isset($_GET['program_id']) ? $_GET['program_id'] : null;
     $searchTerm = isset($_GET['search']) ? $_GET['search'] : null;
     
-    // Base query
-    $query = "SELECT DISTINCT
+    // Base query - use DISTINCT to avoid duplicates and only get latest subscription
+    $query = "SELECT 
                 m.MEMBER_ID,
                 m.MEMBER_FNAME,
                 m.MEMBER_LNAME,
@@ -30,13 +30,11 @@ try {
               FROM member m
               LEFT JOIN program p ON m.PROGRAM_ID = p.PROGRAM_ID
               LEFT JOIN (
-                  SELECT ms.MEMBER_ID, ms.SUB_ID, ms.START_DATE, ms.END_DATE
+                  SELECT DISTINCT ms.MEMBER_ID, ms.SUB_ID, ms.START_DATE, ms.END_DATE
                   FROM member_subscription ms
-                  WHERE ms.IS_ACTIVE = 1
-                  AND (ms.MEMBER_ID, ms.START_DATE) IN (
+                  WHERE (ms.MEMBER_ID, ms.START_DATE) IN (
                       SELECT MEMBER_ID, MAX(START_DATE)
                       FROM member_subscription
-                      WHERE IS_ACTIVE = 1
                       GROUP BY MEMBER_ID
                   )
               ) latest_sub ON m.MEMBER_ID = latest_sub.MEMBER_ID
@@ -62,6 +60,9 @@ try {
         $params[] = $searchTerm;
         $types .= "sss"; // String types
     }
+    
+    // Add "GROUP BY" to ensure no duplicates
+    $query .= " GROUP BY m.MEMBER_ID";
     
     // Add ordering
     $query .= " ORDER BY m.MEMBER_ID DESC";

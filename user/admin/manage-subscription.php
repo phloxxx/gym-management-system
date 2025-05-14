@@ -229,8 +229,8 @@ if ($role === 'Administrator') $role = 'Administrator';
                 </div>
             </div>
         </div>
-    </div>
-
+    </div>    
+    
     <!-- Add/Edit Subscription Modal -->
     <div id="subscriptionModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center hidden modal backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 modal-content transform scale-95 overflow-hidden">
@@ -308,7 +308,7 @@ if ($role === 'Administrator') $role = 'Administrator';
                     </div>
 
                     <!-- Status Container -->
-                    <div class="mb-1 mt-6">
+                    <div id="isActiveContainer" class="mb-1 mt-6">
                         <h4 class="text-base font-semibold text-gray-800 flex items-center">
                             <i class="fas fa-toggle-on text-primary-light mr-2"></i>
                             <span>Subscription Status</span>
@@ -343,7 +343,6 @@ if ($role === 'Administrator') $role = 'Administrator';
             </div>
         </div>
     </div>
-
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
     <script>
@@ -413,6 +412,22 @@ if ($role === 'Administrator') $role = 'Administrator';
             addButton.addEventListener('click', () => {
                 document.getElementById('modalTitle').textContent = 'Add New Subscription';
                 document.getElementById('subscriptionId').value = '';
+                
+                // Set status to active and disable it
+                const statusToggle = document.getElementById('isActive');
+                const statusContainer = document.querySelector('.bg-gray-50.p-4.rounded-lg');
+                statusToggle.checked = true;
+                statusToggle.disabled = true;
+                statusContainer.classList.add('opacity-60', 'cursor-not-allowed');
+                
+                // Add help text if it doesn't exist
+                if (!statusContainer.querySelector('.status-help-text')) {
+                    const helpText = document.createElement('p');
+                    helpText.className = 'text-xs text-blue-600 mt-2 status-help-text';
+                    helpText.innerHTML = '<i class="fas fa-info-circle mr-1"></i> New subscriptions are set as active by default';
+                    statusContainer.appendChild(helpText);
+                }
+
                 showModal();
             });
 
@@ -504,6 +519,19 @@ if ($role === 'Administrator') $role = 'Administrator';
                         document.getElementById('duration').value = sub.DURATION;
                         document.getElementById('price').value = sub.PRICE;
                         document.getElementById('isActive').checked = sub.IS_ACTIVE == 1;
+                        
+                        // Re-enable status toggle for edit mode
+                        const statusToggle = document.getElementById('isActive');
+                        const statusContainer = document.querySelector('.bg-gray-50.p-4.rounded-lg');
+                        statusToggle.disabled = false;
+                        statusContainer.classList.remove('opacity-60', 'cursor-not-allowed');
+                        
+                        // Remove help text if it exists
+                        const helpText = statusContainer.querySelector('.status-help-text');
+                        if (helpText) {
+                            helpText.remove();
+                        }
+
                         showModal();
                     }
                 } catch (error) {
@@ -590,6 +618,25 @@ if ($role === 'Administrator') $role = 'Administrator';
             }
 
             loadSubscriptions();
+        });
+
+        // Handle subscription status toggle
+        document.getElementById('isActive').addEventListener('change', function() {
+            const statusText = document.getElementById('statusText');
+            if (this.checked) {
+                statusText.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                statusText.className = 'text-sm text-green-600 font-medium flex items-center';
+            } else {
+                statusText.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                statusText.className = 'text-sm text-red-600 font-medium flex items-center';
+            }
+        });
+
+        // Reset status text when opening modal
+        document.getElementById('addSubscriptionBtn').addEventListener('click', function() {
+            const statusText = document.getElementById('statusText');
+            statusText.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+            statusText.className = 'text-sm text-green-600 font-medium flex items-center';
         });
     </script>
 </body>

@@ -26,6 +26,38 @@ $role = ucfirst(strtolower($_SESSION['role']));
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../../styles/admin-styles.css">
+    <style>
+        /* Toggle Switch Styles */
+        .toggle-checkbox:checked {
+            transform: translateX(1.5rem);
+            border-color: #fff;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #10B981;
+        }
+        .toggle-checkbox:not(:checked) + .toggle-label {
+            background-color: #D1D5DB;
+        }
+        
+        /* Custom Scrollbar Styles */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c5c5c5;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
     <script>
         tailwind.config = {
             theme: {
@@ -246,8 +278,7 @@ $role = ucfirst(strtolower($_SESSION['role']));
                 </div>
             </div>
         </div>
-    </div>
-
+    </div>    
     <!-- Add/Edit Program Modal -->
     <div id="programModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center hidden modal backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 modal-content transform scale-95 overflow-hidden">
@@ -331,7 +362,6 @@ $role = ucfirst(strtolower($_SESSION['role']));
             </div>
         </div>
     </div>    
-
     <!-- Add/Edit Coach Modal -->
     <div id="coachModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center hidden modal backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 modal-content transform scale-95 overflow-hidden">
@@ -471,11 +501,11 @@ $role = ucfirst(strtolower($_SESSION['role']));
                     <div class="mb-1 mt-6">
                         <h4 class="text-base font-semibold text-gray-800 flex items-center">
                             <i class="fas fa-toggle-on text-primary-light mr-2"></i>
-                            <span>Status</span>
+                            <span>Coach Status</span>
                         </h4>
                         <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mb-3 mt-1"></div>
                     </div>
-                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div class="bg-white bg-opacity-50 p-4 rounded-lg border border-gray-200 shadow-sm backdrop-blur-sm">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Coach Status</label>
                         <div class="flex items-center">
                             <div class="relative inline-block w-12 mr-3 align-middle select-none transition duration-200 ease-in">
@@ -487,6 +517,9 @@ $role = ucfirst(strtolower($_SESSION['role']));
                             <span id="coachStatusLabel" class="text-sm text-green-600 font-medium flex items-center">
                                 <i class="fas fa-check-circle mr-1.5"></i> Active
                             </span>
+                            <p class="status-help-text text-xs text-blue-600 mt-2 ml-3 hidden">
+                                <i class="fas fa-info-circle mr-1"></i> New coaches are set as active by default
+                            </p>
                         </div>
                     </div>
                 </form>
@@ -674,6 +707,19 @@ $role = ucfirst(strtolower($_SESSION['role']));
             document.getElementById('programName').value = name;
             document.getElementById('programStatus').checked = isActive;
             document.getElementById('programModalTitle').textContent = 'Edit Program';
+            
+            // Re-enable status toggle for edit mode
+            const statusToggle = document.getElementById('programStatus');
+            const statusContainer = document.querySelector('#programModal .bg-gray-50.p-4.rounded-lg');
+            statusToggle.disabled = false;
+            statusContainer.classList.remove('opacity-60', 'cursor-not-allowed');
+            
+            // Remove help text if it exists
+            const helpText = statusContainer.querySelector('.status-help-text');
+            if (helpText) {
+                helpText.remove();
+            }
+
             document.getElementById('programModal').classList.remove('hidden');
         }
 
@@ -699,6 +745,15 @@ $role = ucfirst(strtolower($_SESSION['role']));
                     }
                 });
             }
+
+            // Re-enable status toggle for edit mode
+            const statusToggle = document.getElementById('coachStatus');
+            const statusContainer = document.querySelector('#coachModal .bg-white.bg-opacity-50');
+            const helpText = statusContainer.querySelector('.status-help-text');
+            
+            statusToggle.disabled = false;
+            statusContainer.classList.remove('opacity-60', 'cursor-not-allowed');
+            helpText.classList.add('hidden');
 
             document.getElementById('coachModalTitle').textContent = 'Edit Coach';
             document.getElementById('coachModal').classList.remove('hidden');
@@ -868,6 +923,22 @@ $role = ucfirst(strtolower($_SESSION['role']));
             document.getElementById('programForm').reset();
             document.getElementById('programId').value = '';
             document.getElementById('programModalTitle').textContent = 'Add Program';
+            
+            // Set status to active and disable it
+            const statusToggle = document.getElementById('programStatus');
+            const statusContainer = document.querySelector('#programModal .bg-gray-50.p-4.rounded-lg');
+            statusToggle.checked = true;
+            statusToggle.disabled = true;
+            statusContainer.classList.add('opacity-60', 'cursor-not-allowed');
+            
+            // Add help text
+            if (!statusContainer.querySelector('.status-help-text')) {
+                const helpText = document.createElement('p');
+                helpText.className = 'text-xs text-blue-600 mt-2 status-help-text';
+                helpText.innerHTML = '<i class="fas fa-info-circle mr-1"></i> New programs are set as active by default';
+                statusContainer.appendChild(helpText);
+            }
+
             document.getElementById('programModal').classList.remove('hidden');
         });
 
@@ -876,27 +947,93 @@ $role = ucfirst(strtolower($_SESSION['role']));
             document.getElementById('coachForm').reset();
             document.getElementById('coachId').value = '';
             document.getElementById('coachModalTitle').textContent = 'Add Coach';
+            
+            // Set status to active and disable it with blurred effect
+            const statusToggle = document.getElementById('coachStatus');
+            const statusContainer = document.querySelector('#coachModal .bg-white.bg-opacity-50');
+            const helpText = statusContainer.querySelector('.status-help-text');
+            
+            statusToggle.checked = true;
+            statusToggle.disabled = true;
+            statusContainer.classList.add('opacity-60', 'cursor-not-allowed');
+            helpText.classList.remove('hidden');
+
             document.getElementById('coachModal').classList.remove('hidden');
         });
 
-        // Close modal functionality
+        // Add cleanup for modal closing
         document.querySelectorAll('.closeModal').forEach(button => {
             button.addEventListener('click', function() {
-                document.getElementById('programModal').classList.add('hidden');
-                document.getElementById('coachModal').classList.add('hidden');
+                const programModal = document.getElementById('programModal');
+                const coachModal = document.getElementById('coachModal');
+                
+                // Clean up program modal
+                if (programModal.contains(this)) {
+                    const statusToggle = document.getElementById('programStatus');
+                    statusToggle.disabled = false;
+                    const statusContainer = programModal.querySelector('.bg-gray-50.p-4.rounded-lg');
+                    statusContainer.classList.remove('opacity-60', 'cursor-not-allowed');
+                    const helpText = statusContainer.querySelector('.status-help-text');
+                    if (helpText) helpText.remove();
+                }
+                
+                // Clean up coach modal
+                if (coachModal.contains(this)) {
+                    const statusToggle = document.getElementById('coachStatus');
+                    const statusContainer = coachModal.querySelector('.bg-white.bg-opacity-50');
+                    const helpText = statusContainer.querySelector('.status-help-text');
+                    
+                    statusToggle.disabled = false;
+                    statusContainer.classList.remove('opacity-60', 'cursor-not-allowed');
+                    helpText.classList.add('hidden');
+                }
+                
+                programModal.classList.add('hidden');
+                coachModal.classList.add('hidden');
             });
-        });
-
-        // Close modals when clicking outside
-        window.addEventListener('click', function(event) {
-            if (event.target.classList.contains('fixed')) {
-                event.target.classList.add('hidden');
-            }
         });
 
         // Initial table load
         refreshProgramsTable();
         refreshCoachesTable();
+
+        // Handle program status toggle
+        document.getElementById('programStatus').addEventListener('change', function() {
+            const label = document.getElementById('programStatusLabel');
+            if (this.checked) {
+                label.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                label.className = 'text-sm text-green-600 font-medium flex items-center';
+            } else {
+                label.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                label.className = 'text-sm text-red-600 font-medium flex items-center';
+            }
+        });
+
+        // Reset status label when opening modal
+        document.getElementById('addProgramBtn').addEventListener('click', function() {
+            const statusLabel = document.getElementById('programStatusLabel');
+            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+            statusLabel.className = 'text-sm text-green-600 font-medium flex items-center';
+        });
+
+        // Handle coach status toggle
+        document.getElementById('coachStatus').addEventListener('change', function() {
+            const label = document.getElementById('coachStatusLabel');
+            if (this.checked) {
+                label.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                label.className = 'text-sm text-green-600 font-medium flex items-center';
+            } else {
+                label.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                label.className = 'text-sm text-red-600 font-medium flex items-center';
+            }
+        });
+
+        // Reset coach status label when opening modal
+        document.getElementById('addCoachBtn').addEventListener('click', function() {
+            const statusLabel = document.getElementById('coachStatusLabel');
+            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+            statusLabel.className = 'text-sm text-green-600 font-medium flex items-center';
+        });
     </script>
 </body>
 </html>

@@ -172,7 +172,7 @@ $activeSubscriptions = getActiveSubscriptions();
                 
                 <div class="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow duration-300">
                     <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Total Revenue</h3>
-                    <p class="text-3xl font-bold text-gray-800" id="totalRevenue">$<?php echo number_format($transactionSummary['revenue'], 2); ?></p>
+                    <p class="text-3xl font-bold text-gray-800" id="totalRevenue">₱<?php echo number_format($transactionSummary['revenue'], 2); ?></p>
                     <div class="flex items-center mt-2">
                         <span class="text-<?php echo $transactionSummary['growth']['revenue'] >= 0 ? 'green' : 'red'; ?>-600 text-sm mr-1">
                             <?php echo ($transactionSummary['growth']['revenue'] >= 0 ? '+' : '') . $transactionSummary['growth']['revenue']; ?>%
@@ -534,7 +534,7 @@ $activeSubscriptions = getActiveSubscriptions();
                                     <option value="<?php echo $plan['SUB_ID']; ?>" 
                                             data-duration="<?php echo $plan['DURATION']; ?> Days" 
                                             data-price="<?php echo number_format($plan['PRICE'], 2); ?>">
-                                        <?php echo $plan['SUB_NAME']; ?> ($<?php echo number_format($plan['PRICE'], 2); ?>)
+                                        <?php echo $plan['SUB_NAME']; ?> (₱<?php echo number_format($plan['PRICE'], 2); ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -594,7 +594,7 @@ $activeSubscriptions = getActiveSubscriptions();
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
                                     <i class="fas fa-calendar-check"></i>
                                 </div>
-                                <input type="date" id="endDateInput" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200">
+                                <input type="date" id="endDateInput" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" readonly>
                             </div>
                         </div>
                     </div>

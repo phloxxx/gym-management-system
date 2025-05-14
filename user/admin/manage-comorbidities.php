@@ -411,10 +411,22 @@ $role = ucfirst(strtolower($_SESSION['role']));
                 document.getElementById('comorbidityId').value = '';
                 document.getElementById('modalTitle').textContent = 'Add New Health Condition';
                 document.getElementById('saveButtonText').textContent = 'Save Condition';
-                document.getElementById('status').checked = true;
-                document.getElementById('statusLabel').innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
-                document.getElementById('statusLabel').className = 'text-sm text-green-600 font-medium flex items-center';
                 
+                // Set status to active and disable it
+                const statusToggle = document.getElementById('status');
+                const statusContainer = document.querySelector('.bg-gray-50.p-4.rounded-lg');
+                statusToggle.checked = true;
+                statusToggle.disabled = true;
+                statusContainer.classList.add('opacity-60', 'cursor-not-allowed');
+                
+                // Add help text
+                if (!statusContainer.querySelector('.status-help-text')) {
+                    const helpText = document.createElement('p');
+                    helpText.className = 'text-xs text-blue-600 mt-2 status-help-text';
+                    helpText.innerHTML = '<i class="fas fa-info-circle mr-1"></i> New conditions are set as active by default';
+                    statusContainer.appendChild(helpText);
+                }
+
                 showModal(document.getElementById('comorbidityModal'));
             });
 
@@ -664,6 +676,18 @@ $role = ucfirst(strtolower($_SESSION['role']));
                         document.getElementById('statusLabel').className = isActive ? 
                             'text-sm text-green-600 font-medium flex items-center' : 
                             'text-sm text-red-600 font-medium flex items-center';
+
+                        // Re-enable status toggle for edit mode
+                        const statusToggle = document.getElementById('status');
+                        const statusContainer = document.querySelector('.bg-gray-50.p-4.rounded-lg');
+                        statusToggle.disabled = false;
+                        statusContainer.classList.remove('opacity-60', 'cursor-not-allowed');
+                        
+                        // Remove help text if it exists
+                        const helpText = statusContainer.querySelector('.status-help-text');
+                        if (helpText) {
+                            helpText.remove();
+                        }
 
                         showModal(comorbidityModal);
                         formChanged = false;

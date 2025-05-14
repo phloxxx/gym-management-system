@@ -4,6 +4,108 @@
  */
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Transaction fix script loaded');
+    
+    // Make all end date fields read-only
+    document.querySelectorAll('input[id$="endDate"], input[name$="END_DATE"], input[id="renewEndDate"]').forEach(field => {
+        field.readOnly = true;
+        field.classList.add('bg-gray-100', 'cursor-not-allowed');
+        field.setAttribute('tabindex', '-1');
+        
+        // Add a helper message
+        const container = field.closest('.relative') || field.parentElement;
+        if (container) {
+            // Check if helper text already exists
+            const existingHelper = container.querySelector('.text-xs.text-gray-500.mt-1');
+            if (!existingHelper) {
+                const helperText = document.createElement('div');
+                helperText.className = 'text-xs text-gray-500 mt-1';
+                helperText.textContent = 'Auto-calculated based on subscription duration';
+                container.appendChild(helperText);
+            }
+        }
+    });
+    
+    // Function to calculate end date based on start date and subscription ID
+    function calculateEndDate(startDateValue, subscriptionId, targetField) {
+        if (!startDateValue || !subscriptionId || !targetField) return;
+        
+        // Get subscription details and calculate end date
+        getSubscriptionDuration(subscriptionId, function(duration) {
+            if (!duration) return;
+            
+            const startDate = new Date(startDateValue);
+            if (isNaN(startDate.getTime())) return;
+            
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + parseInt(duration));
+            
+            // Format date as YYYY-MM-DD
+            const endDateFormatted = endDate.toISOString().split('T')[0];
+            
+            // Update the target field
+            targetField.value = endDateFormatted;
+        });
+    }
+    
+    // Function to get subscription duration
+    function getSubscriptionDuration(subscriptionId, callback) {
+        fetch(`../../api/subscriptions/get.php?id=${subscriptionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.subscription && data.subscription.DURATION) {
+                    callback(data.subscription.DURATION);
+                } else {
+                    // Try to get duration from a dropdown if available
+                    const option = document.querySelector(`option[value="${subscriptionId}"]`);
+                    if (option && option.dataset.duration) {
+                        callback(option.dataset.duration);
+                    } else {
+                        console.error('Failed to get subscription duration', data);
+                        callback(30); // Default to 30 days if error
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching subscription data', error);
+                callback(30); // Default to 30 days if error
+            });
+    }
+    
+    // Add event listeners to all relevant dropdowns and start date fields
+    function setupEndDateCalculation() {
+        // For transaction modal
+        const subDropdown = document.getElementById('subscriptionId');
+        const startDateField = document.getElementById('startDate');
+        const endDateField = document.getElementById('endDate');
+        
+        if (subDropdown && startDateField && endDateField) {
+            subDropdown.addEventListener('change', () => {
+                calculateEndDate(startDateField.value, subDropdown.value, endDateField);
+            });
+            
+            startDateField.addEventListener('change', () => {
+                calculateEndDate(startDateField.value, subDropdown.value, endDateField);
+            });
+        }
+        
+        // For renewal modal
+        const renewSubDropdown = document.getElementById('renewSubscriptionId');
+        const renewStartDate = document.getElementById('renewStartDate');
+        const renewEndDate = document.getElementById('renewEndDate');
+        
+        if (renewSubDropdown && renewStartDate && renewEndDate) {
+            renewSubDropdown.addEventListener('change', () => {
+                calculateEndDate(renewStartDate.value, renewSubDropdown.value, renewEndDate);
+            });
+            
+            renewStartDate.addEventListener('change', () => {
+                calculateEndDate(renewStartDate.value, renewSubDropdown.value, renewEndDate);
+            });
+        }
+    }
+    
+    // Run the setup
+    setupEndDateCalculation();
 
     // Wait for page to fully load
     setTimeout(function() {
@@ -221,4 +323,4 @@ document.addEventListener('DOMContentLoaded', function() {
         errorMessage.textContent = message;
         fieldContainer.appendChild(errorMessage);
     }
-}); 
+});

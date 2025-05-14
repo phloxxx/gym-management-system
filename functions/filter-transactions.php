@@ -75,31 +75,47 @@ try {
     
     if (!$conn) {
         throw new Exception('Failed to connect to database');
-    }
-    
-    // Build the SQL query
-    $sql = "SELECT 
+    }    // Build the SQL query to display all subscriptions (active and inactive) without duplicates
+    $sql = "WITH LatestTransactions AS (
+                SELECT 
+                    t.MEMBER_ID,
+                    t.SUB_ID,
+                    t.TRANSACTION_ID,
+                    t.TRANSAC_DATE,
+                    ROW_NUMBER() OVER (PARTITION BY t.MEMBER_ID, t.SUB_ID ORDER BY t.TRANSAC_DATE DESC) as rn
+                FROM transaction t
+            ),
+            SubscriptionDates AS (
+                -- This gets unique start/end date combinations for each member+subscription
+                SELECT 
+                    ms.MEMBER_ID,
+                    ms.SUB_ID,
+                    ms.START_DATE,
+                    ms.END_DATE,
+                    ms.IS_ACTIVE
+                FROM member_subscription ms
+                GROUP BY ms.MEMBER_ID, ms.SUB_ID, ms.START_DATE, ms.END_DATE, ms.IS_ACTIVE
+            )
+            SELECT 
                 m.MEMBER_ID, 
                 m.MEMBER_FNAME, 
                 m.MEMBER_LNAME, 
                 s.SUB_ID,
                 s.SUB_NAME, 
-                ms.START_DATE, 
-                ms.END_DATE, 
-                ms.IS_ACTIVE,
-                t.TRANSACTION_ID,
-                t.TRANSAC_DATE as PAID_DATE, 
+                sd.START_DATE, 
+                sd.END_DATE, 
+                sd.IS_ACTIVE,
+                lt.TRANSACTION_ID,
+                lt.TRANSAC_DATE as PAID_DATE, 
                 p.PROGRAM_NAME,
-                DATEDIFF(ms.END_DATE, CURRENT_DATE) as DAYS_LEFT
+                DATEDIFF(sd.END_DATE, CURRENT_DATE) as DAYS_LEFT
             FROM member m
-            JOIN member_subscription ms ON m.MEMBER_ID = ms.MEMBER_ID
-            JOIN subscription s ON ms.SUB_ID = s.SUB_ID
+            JOIN SubscriptionDates sd ON m.MEMBER_ID = sd.MEMBER_ID
+            JOIN subscription s ON sd.SUB_ID = s.SUB_ID
             JOIN program p ON m.PROGRAM_ID = p.PROGRAM_ID
-            LEFT JOIN transaction t ON m.MEMBER_ID = t.MEMBER_ID AND ms.SUB_ID = t.SUB_ID AND t.TRANSAC_DATE = (
-                SELECT MAX(t2.TRANSAC_DATE) 
-                FROM transaction t2 
-                WHERE t2.MEMBER_ID = m.MEMBER_ID AND t2.SUB_ID = ms.SUB_ID
-            )
+            LEFT JOIN LatestTransactions lt ON sd.MEMBER_ID = lt.MEMBER_ID 
+                                           AND sd.SUB_ID = lt.SUB_ID 
+                                           AND lt.rn = 1
             WHERE 1=1";
     
     $params = [];
@@ -171,10 +187,12 @@ try {
         $params[] = $searchTerm;
         $params[] = $searchTerm;
         $types .= 'ssss';
-    }
-    
-    // Apply sorting
-    $sql .= " ORDER BY t.TRANSAC_DATE DESC, m.MEMBER_FNAME, m.MEMBER_LNAME";
+    }    // Apply sorting to prioritize active subscriptions while still showing inactive ones
+    $sql .= " ORDER BY m.MEMBER_ID, s.SUB_ID, 
+                      sd.IS_ACTIVE DESC,         -- Active subscriptions first
+                      sd.END_DATE DESC,          -- Latest end date next
+                      sd.START_DATE DESC,        -- Then latest start date
+                      lt.TRANSAC_DATE DESC";
     
     // Log the query for debugging
     error_log("SQL Query: " . $sql);
@@ -202,11 +220,22 @@ try {
     if (!$result) {
         throw new Exception('Result error: ' . $stmt->error);
     }
-    
-    // Process the results
+      // Process the results - track subscription plans to avoid duplicates
     $subscriptions = [];
+    $processedItems = []; // Track items we've already processed
+    
     while ($row = $result->fetch_assoc()) {
         $initials = strtoupper(substr($row['MEMBER_FNAME'], 0, 1) . substr($row['MEMBER_LNAME'], 0, 1));
+        
+        // Create a unique key for this combination
+        $uniqueKey = $row['MEMBER_ID'] . '_' . $row['SUB_ID'] . '_' . $row['START_DATE'] . '_' . $row['END_DATE'];
+        
+        // Skip if we've already processed this specific combination
+        if (in_array($uniqueKey, $processedItems)) {
+            continue;
+        }
+        
+        $processedItems[] = $uniqueKey;
         
         $subscriptions[] = [
             'MEMBER_ID' => $row['MEMBER_ID'],

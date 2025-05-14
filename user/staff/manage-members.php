@@ -229,10 +229,42 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200" id="memberTableBody">
-                            <!-- Member rows will be dynamically populated from database -->
+                            <!-- Member rows will be dynamically populated and uniquely identified -->
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Add a script to prevent duplicate entries -->
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Function to ensure no duplicate members are displayed
+                        window.ensureUniqueMembers = function() {
+                            const memberRows = document.querySelectorAll('#memberTableBody tr[data-member-id]');
+                            const processedIds = new Set();
+                            
+                            memberRows.forEach(row => {
+                                const memberId = row.getAttribute('data-member-id');
+                                if (processedIds.has(memberId)) {
+                                    // This is a duplicate, remove it
+                                    row.parentNode.removeChild(row);
+                                } else {
+                                    processedIds.add(memberId);
+                                }
+                            });
+                        };
+                        
+                        // Call this after any member data is loaded
+                        const originalFetch = window.fetch;
+                        window.fetch = function() {
+                            return originalFetch.apply(this, arguments)
+                                .then(response => {
+                                    // Wait for response and subsequent DOM updates
+                                    setTimeout(window.ensureUniqueMembers, 500);
+                                    return response;
+                                });
+                        };
+                    });
+                </script>
                 
                 <!-- Empty state -->
                 <div id="emptyState" class="py-8 text-center">

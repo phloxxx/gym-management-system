@@ -15,7 +15,7 @@ if (!isset($data['memberId']) || !isset($data['startDate']) || !isset($data['end
     echo json_encode([
         'success' => false, 
         'message' => 'Missing required fields',
-        'hasActiveSubscription' => false
+        'hasOverlappingSubscription' => false
     ]);
     exit;
 }
@@ -23,72 +23,82 @@ if (!isset($data['memberId']) || !isset($data['startDate']) || !isset($data['end
 $memberId = intval($data['memberId']);
 $startDate = $data['startDate'];
 $endDate = $data['endDate'];
+$renewalId = isset($data['renewalId']) ? intval($data['renewalId']) : null;
 
 try {
     $conn = getConnection();
     
-    // Check if there's any active subscription that overlaps with the given date range
-    $sql = "SELECT COUNT(*) as overlap_count 
-            FROM member_subscription 
-            WHERE MEMBER_ID = ? 
-            AND IS_ACTIVE = 1
-            AND (
-                (? BETWEEN START_DATE AND END_DATE) OR  -- New start date is within existing subscription
-                (? BETWEEN START_DATE AND END_DATE) OR  -- New end date is within existing subscription
-                (START_DATE BETWEEN ? AND ?) OR         -- Existing start date is within new subscription
-                (END_DATE BETWEEN ? AND ?)              -- Existing end date is within new subscription
+    // Build the SQL query to check for overlapping subscriptions
+    // Exclude the subscription being renewed if renewalId is provided
+    $sql = "SELECT ms.START_DATE, ms.END_DATE, ms.IS_ACTIVE, s.SUB_NAME, ms.SUB_ID
+            FROM member_subscription ms
+            JOIN subscription s ON ms.SUB_ID = s.SUB_ID
+            WHERE ms.MEMBER_ID = ? AND (
+                (? BETWEEN ms.START_DATE AND ms.END_DATE) OR  -- New start date is within existing subscription
+                (? BETWEEN ms.START_DATE AND ms.END_DATE) OR  -- New end date is within existing subscription
+                (ms.START_DATE BETWEEN ? AND ?) OR           -- Existing start date is within new subscription
+                (ms.END_DATE BETWEEN ? AND ?)               -- Existing end date is within new subscription
             )";
+    
+    // If this is a renewal, exclude the subscription being renewed from the check
+    if ($renewalId) {
+        $sql .= " AND ms.SUB_ID != ?";
+    }
+    
+    $sql .= " ORDER BY ms.IS_ACTIVE DESC, ms.END_DATE DESC LIMIT 1";
     
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         throw new Exception("Failed to prepare query: " . $conn->error);
     }
     
-    $stmt->bind_param("issssss", $memberId, $startDate, $endDate, $startDate, $endDate, $startDate, $endDate);
+    if ($renewalId) {
+        $stmt->bind_param("isssssi", 
+            $memberId, 
+            $startDate, $endDate, 
+            $startDate, $endDate, 
+            $startDate, $endDate,
+            $renewalId
+        );
+    } else {
+        $stmt->bind_param("issssss", 
+            $memberId, 
+            $startDate, $endDate, 
+            $startDate, $endDate, 
+            $startDate, $endDate
+        );
+    }
+    
     $stmt->execute();
     $result = $stmt->get_result();
-    $row = $result->fetch_assoc();
     
-    $hasActiveSubscription = ($row['overlap_count'] > 0);
+    $hasOverlappingSubscription = ($result->num_rows > 0);
     
-    // If there's an active subscription, get the details for the error message
-    $activeSubscriptionDetails = null;
-    if ($hasActiveSubscription) {
-        $detailSql = "SELECT 
-                ms.START_DATE, 
-                ms.END_DATE, 
-                s.SUB_NAME 
-            FROM member_subscription ms
-            JOIN subscription s ON ms.SUB_ID = s.SUB_ID
-            WHERE ms.MEMBER_ID = ? 
-            AND ms.IS_ACTIVE = 1
-            AND (
-                (? BETWEEN ms.START_DATE AND ms.END_DATE) OR
-                (? BETWEEN ms.START_DATE AND ms.END_DATE) OR
-                (ms.START_DATE BETWEEN ? AND ?) OR
-                (ms.END_DATE BETWEEN ? AND ?)
-            )
-            LIMIT 1";
-        
-        $detailStmt = $conn->prepare($detailSql);
-        $detailStmt->bind_param("issssss", $memberId, $startDate, $endDate, $startDate, $endDate, $startDate, $endDate);
-        $detailStmt->execute();
-        $activeSubscriptionDetails = $detailStmt->get_result()->fetch_assoc();
+    // Get the details of any overlapping subscription for the error message
+    $overlappingSubscriptionDetails = null;
+    if ($hasOverlappingSubscription) {
+        $overlappingSubscriptionDetails = $result->fetch_assoc();
     }
     
     echo json_encode([
         'success' => true,
-        'hasActiveSubscription' => $hasActiveSubscription,
-        'activeSubscription' => $activeSubscriptionDetails
+        'hasOverlappingSubscription' => $hasOverlappingSubscription,
+        'overlappingSubscription' => $overlappingSubscriptionDetails,
+        'renewalId' => $renewalId,
+        'message' => $hasOverlappingSubscription ? 
+            "This date range overlaps with a " . 
+            ($overlappingSubscriptionDetails['IS_ACTIVE'] ? "current" : "past") . 
+            " subscription ({$overlappingSubscriptionDetails['SUB_NAME']}) from {$overlappingSubscriptionDetails['START_DATE']} to {$overlappingSubscriptionDetails['END_DATE']}." : 
+            "No overlapping subscriptions found"
     ]);
     
 } catch (Exception $e) {
-    error_log('Error checking active subscription: ' . $e->getMessage());
+    error_log('Error checking subscription overlap: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false, 
         'message' => 'Error: ' . $e->getMessage(),
-        'hasActiveSubscription' => false
+        'hasOverlappingSubscription' => false
     ]);
 } finally {
     if (isset($conn)) {

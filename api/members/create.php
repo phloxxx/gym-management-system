@@ -67,16 +67,62 @@ try {
         throw new Exception("A member with this email address already exists");
     }
 
-    // First verify that the user exists
-    $userQuery = "SELECT USER_ID FROM user WHERE USER_ID = ? AND IS_ACTIVE = 1 LIMIT 1";
-    $stmt = $conn->prepare($userQuery);
-    $userId = 1; // Default admin user
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    // Determine user ID to use
+    // First check if there's a valid user ID in the session
+    session_start();
+    $userId = null;
     
-    if ($result->num_rows === 0) {
-        throw new Exception("Invalid user reference. USER_ID not found or inactive.");
+    if (isset($_SESSION['user_id'])) {
+        $userId = $_SESSION['user_id'];
+        error_log("Found user ID in session: $userId");
+    }
+    // Then check if there's a valid user ID in the request data
+    else if (isset($data['USER_ID']) && !empty($data['USER_ID'])) {
+        $userId = $data['USER_ID'];
+        error_log("Using user ID from request data: $userId");
+    }
+    
+    // Now, BEFORE proceeding, verify that this user ID exists in the database
+    // If it doesn't, find the first available admin user
+    if ($userId !== null) {
+        $userCheckQuery = "SELECT USER_ID FROM user WHERE USER_ID = ? LIMIT 1";
+        $stmtUserCheck = $conn->prepare($userCheckQuery);
+        $stmtUserCheck->bind_param("i", $userId);
+        $stmtUserCheck->execute();
+        $userCheckResult = $stmtUserCheck->get_result();
+        
+        if ($userCheckResult->num_rows == 0) {
+            // User ID doesn't exist, we need to find a different one
+            $userId = null;
+            error_log("User ID $userId does not exist in the database");
+        } else {
+            error_log("Verified user ID $userId exists in the database");
+        }
+    }
+    
+    // If we still don't have a valid user ID, find the first admin user
+    if ($userId === null) {
+        $adminQuery = "SELECT USER_ID FROM user WHERE USER_TYPE = 'ADMINISTRATOR' AND IS_ACTIVE = 1 LIMIT 1";
+        $adminResult = $conn->query($adminQuery);
+        
+        if ($adminResult->num_rows > 0) {
+            $adminRow = $adminResult->fetch_assoc();
+            $userId = $adminRow['USER_ID'];
+            error_log("Using first active admin user ID: $userId");
+        } else {
+            // If no admin user found, try any active user
+            $anyUserQuery = "SELECT USER_ID FROM user WHERE IS_ACTIVE = 1 LIMIT 1";
+            $anyUserResult = $conn->query($anyUserQuery);
+            
+            if ($anyUserResult->num_rows > 0) {
+                $anyUserRow = $anyUserResult->fetch_assoc();
+                $userId = $anyUserRow['USER_ID'];
+                error_log("Using first active user ID: $userId");
+            } else {
+                // No active users found - this is a serious issue with the database
+                throw new Exception("No active users found in the database. Cannot create member without a valid USER_ID reference.");
+            }
+        }
     }
     
     // Start transaction
@@ -92,7 +138,7 @@ try {
     }
     
     // Convert values to appropriate types
-    $isActive = $data['IS_ACTIVE'] ? 1 : 0;
+    $isActive = isset($data['IS_ACTIVE']) ? ($data['IS_ACTIVE'] ? 1 : 0) : 1;
     $programId = (int)$data['PROGRAM_ID'];
     
     // Debug log
@@ -160,11 +206,14 @@ try {
                  VALUES (?, ?, ?, ?)";
     $stmtTrans = $conn->prepare($transSql);
     $paymentId = (int)$data['PAYMENT_ID'];
+    // Use current date if TRANSAC_DATE is not provided
+    $transacDate = isset($data['TRANSAC_DATE']) && !empty($data['TRANSAC_DATE']) ? 
+                   $data['TRANSAC_DATE'] : date('Y-m-d');
     $stmtTrans->bind_param("iiis", 
         $memberId,
         $subId,
         $paymentId,
-        $data['TRANSAC_DATE']
+        $transacDate
     );
     if (!$stmtTrans->execute()) {
         throw new Exception("Error inserting transaction: " . $stmtTrans->error);

@@ -86,6 +86,18 @@ try {
         throw new Exception("A member with this name and program was already added today. This may be a duplicate.");
     }
     
+    // Additional check for email uniqueness
+    $checkEmailSql = "SELECT COUNT(*) as count FROM member WHERE EMAIL = ?";
+    $emailStmt = $conn->prepare($checkEmailSql);
+    $emailStmt->bind_param("s", $email);
+    $emailStmt->execute();
+    $emailResult = $emailStmt->get_result();
+    $emailRow = $emailResult->fetch_assoc();
+    
+    if ($emailRow['count'] > 0) {
+        throw new Exception("A member with this email already exists in the system.");
+    }
+    
     // Insert new member
     $insertSql = "INSERT INTO member (MEMBER_FNAME, MEMBER_LNAME, EMAIL, PHONE_NUMBER, PROGRAM_ID, IS_ACTIVE, GENDER, BIRTHDATE, JOINED_DATE) 
                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_DATE())";
