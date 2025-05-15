@@ -1,42 +1,93 @@
 <?php
+// Start session to access user data
 session_start();
-require_once '../../config/db_connection.php';
+require_once '../../functions/role-helpers.php';
 
-// Fetch subscription plans from database
-function getSubscriptionPlans() {
+// Check page access for admin and staff roles
+checkPageAccess(['administrator', 'staff']);
+
+// Get user data from session
+$fullName = $_SESSION['name'] ?? 'Admin User';
+$role = ucfirst(strtolower($_SESSION['role'] ?? 'Administrator'));
+
+require_once '../../config/db_connection.php';
+require_once '../../functions/transaction-functions.php';
+
+// Get program data
+function getActivePrograms() {
     $conn = getConnection();
-    $plans = [];
+    $programs = [];
     
     try {
-        $sql = "SELECT SUB_ID, SUB_NAME, DURATION, PRICE FROM subscription WHERE IS_ACTIVE = 1 ORDER BY PRICE";
+        $sql = "SELECT PROGRAM_ID, PROGRAM_NAME FROM program WHERE IS_ACTIVE = 1 ORDER BY PROGRAM_NAME";
         $result = $conn->query($sql);
         
         if ($result->num_rows > 0) {
             while ($row = $result->fetch_assoc()) {
-                $plans[] = $row;
+                $programs[] = $row;
             }
         }
     } catch (Exception $e) {
-        error_log("Error fetching subscription plans: " . $e->getMessage());
+        error_log("Error fetching programs: " . $e->getMessage());
     } finally {
         $conn->close();
     }
     
-    return $plans;
+    return $programs;
 }
 
-// Get subscription plans for the dropdown
+// Get coach data
+function getActiveCoaches() {
+    $conn = getConnection();
+    $coaches = [];
+    
+    try {
+        $sql = "SELECT COACH_ID, COACH_FNAME, COACH_LNAME, GENDER FROM coach WHERE IS_ACTIVE = 1 ORDER BY COACH_FNAME";
+        $result = $conn->query($sql);
+        
+        if ($result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $coaches[] = $row;
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Error fetching coaches: " . $e->getMessage());
+    } finally {
+        $conn->close();
+    }
+    
+    return $coaches;
+}
+
+// Get comorbidities data
+function getActiveComorbidities() {
+    $conn = getConnection();
+    $comorbidities = [];
+    
+    try {
+        $sql = "SELECT COMOR_ID, COMOR_NAME FROM comorbidities WHERE IS_ACTIVE = 1 ORDER BY COMOR_NAME";
+        $result = $conn->query($sql);
+        
+        if ($result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $comorbidities[] = $row;
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Error fetching comorbidities: " . $e->getMessage());
+    } finally {
+        $conn->close();
+    }
+    
+    return $comorbidities;
+}
+
+// Fetch data for dropdowns
+$programs = getActivePrograms();
+$coaches = getActiveCoaches();
 $subscriptionPlans = getSubscriptionPlans();
-
-// Check if user is logged in and is staff or admin
-if (!isset($_SESSION['user_id']) || (strtolower($_SESSION['role']) !== 'administrator' && strtolower($_SESSION['role']) !== 'staff')) {
-    header("Location: ../../login.php");
-    exit();
-}
-
-// Get user data from session
-$fullName = $_SESSION['name'] ?? 'Staff User';
-$role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
+$paymentMethods = getPaymentMethods();
+$comorbidities = getActiveComorbidities();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -229,42 +280,10 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200" id="memberTableBody">
-                            <!-- Member rows will be dynamically populated and uniquely identified -->
+                            <!-- Member rows will be dynamically populated from database -->
                         </tbody>
                     </table>
                 </div>
-                
-                <!-- Add a script to prevent duplicate entries -->
-                <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        // Function to ensure no duplicate members are displayed
-                        window.ensureUniqueMembers = function() {
-                            const memberRows = document.querySelectorAll('#memberTableBody tr[data-member-id]');
-                            const processedIds = new Set();
-                            
-                            memberRows.forEach(row => {
-                                const memberId = row.getAttribute('data-member-id');
-                                if (processedIds.has(memberId)) {
-                                    // This is a duplicate, remove it
-                                    row.parentNode.removeChild(row);
-                                } else {
-                                    processedIds.add(memberId);
-                                }
-                            });
-                        };
-                        
-                        // Call this after any member data is loaded
-                        const originalFetch = window.fetch;
-                        window.fetch = function() {
-                            return originalFetch.apply(this, arguments)
-                                .then(response => {
-                                    // Wait for response and subsequent DOM updates
-                                    setTimeout(window.ensureUniqueMembers, 500);
-                                    return response;
-                                });
-                        };
-                    });
-                </script>
                 
                 <!-- Empty state -->
                 <div id="emptyState" class="py-8 text-center">
@@ -357,8 +376,12 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                                         <i class="fas fa-envelope"></i>
                                     </div>
                                     <input type="email" id="email" name="EMAIL" 
-                                        class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" required>
+                                        class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
+                                        required
+                                        pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+                                        title="Please enter a valid email address">
                                 </div>
+                                <p class="text-xs text-gray-500 mt-1 ml-1">Format: example@domain.com</p>
                             </div>
                             <!-- Phone Number -->
                             <div>
@@ -368,8 +391,12 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                                         <i class="fas fa-phone"></i>
                                     </div>
                                     <input type="tel" id="phoneNumber" name="PHONE_NUMBER" 
-                                        class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" required>
+                                        class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
+                                        required
+                                        pattern="(09|\+639)\d{9}"
+                                        title="Please enter a valid Philippine phone number (09XXXXXXXXX or +639XXXXXXXXX)">
                                 </div>
+                                <p class="text-xs text-gray-500 mt-1 ml-1">Format: 09XXXXXXXXX or +639XXXXXXXXX</p>
                             </div>
                         </div>
                         
@@ -392,10 +419,9 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                                 <select id="program" name="PROGRAM_ID" 
                                     class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white" required>
                                     <option value="">Select Program</option>
-                                    <option value="1">Strength Training</option>
-                                    <option value="2">Cardio</option>
-                                    <option value="3">Yoga</option>
-                                    <option value="4">CrossFit</option>
+                                    <?php foreach ($programs as $program): ?>
+                                    <option value="<?php echo $program['PROGRAM_ID']; ?>"><?php echo htmlspecialchars($program['PROGRAM_NAME']); ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                                 <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
                                     <i class="fas fa-chevron-down text-xs"></i>
@@ -421,7 +447,11 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                                 <select id="coach" name="COACH_ID" 
                                     class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white" required>
                                     <option value="">Select Coach</option>
-                                    <!-- Coach options will be populated dynamically based on selected program -->
+                                    <?php foreach ($coaches as $coach): ?>
+                                    <option value="<?php echo $coach['COACH_ID']; ?>" data-gender="<?php echo strtolower($coach['GENDER']); ?>">
+                                        <?php echo htmlspecialchars($coach['COACH_FNAME'] . ' ' . $coach['COACH_LNAME']); ?>
+                                    </option>
+                                    <?php endforeach; ?>
                                 </select>
                                 <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
                                     <i class="fas fa-chevron-down text-xs"></i>
@@ -501,11 +531,9 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                                 <select id="paymentMethod" name="PAYMENT_ID" 
                                     class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white" required>
                                     <option value="">Select Payment Method</option>
-                                    <option value="1">Cash</option>
-                                    <option value="2">Credit Card</option>
-                                    <option value="3">Debit Card</option>
-                                    <option value="4">Online Banking</option>
-                                    <option value="5">GCash</option>
+                                    <?php foreach ($paymentMethods as $method): ?>
+                                    <option value="<?php echo $method['PAYMENT_ID']; ?>"><?php echo htmlspecialchars($method['PAY_METHOD']); ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                                 <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
                                     <i class="fas fa-chevron-down text-xs"></i>
@@ -532,6 +560,122 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                             </div>
                         </div>
 
+                        <!-- Subscription Renewal Section - Hidden by default, shown only in edit mode -->
+                        <div id="renewSubscriptionContainer" class="hidden mt-8 mb-3">
+                            <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                                <i class="fas fa-sync-alt text-primary-light mr-2"></i>
+                                <span>Subscription Renewal</span>
+                            </h4>
+                            <div class="w-full h-px bg-gradient-to-r from-primary-light/40 to-transparent mt-1"></div>
+                            
+                            <div class="p-4 rounded-lg border border-gray-200 bg-gray-50 mt-3">
+                                <div class="flex items-start mb-3">
+                                    <div class="flex-shrink-0 mt-0.5">
+                                        <i class="fas fa-calendar-check text-blue-600"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="text-sm font-medium text-gray-800">Current Subscription</h3>
+                                        <p id="currentSubscriptionInfo" class="text-sm text-gray-600 mt-1">No active subscription</p>
+                                        <p id="renewalMessage" class="text-sm font-medium mt-1"></p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center mt-2">
+                                    <input type="checkbox" id="renewSubscription" name="renewSubscription" class="w-4 h-4 text-primary-dark focus:ring-primary-light rounded">
+                                    <label for="renewSubscription" class="ml-2 text-sm font-medium text-gray-700">Renew subscription</label>
+                                </div>
+                            </div>
+                            
+                            <!-- Renewal Fields (shown only when checkbox is checked) -->
+                            <div id="renewalFields" class="mt-4 space-y-4 hidden">
+                                <!-- Subscription Type -->
+                                <div>
+                                    <label for="renewSubscriptionType" class="block text-sm font-medium text-gray-700 mb-1">New Subscription Plan</label>
+                                    <div class="relative rounded-md shadow-sm">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                            <i class="fas fa-tag"></i>
+                                        </div>
+                                        <select id="renewSubscriptionType" name="RENEW_SUB_ID" 
+                                            class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
+                                            <option value="">Select Subscription Plan</option>
+                                            <?php foreach ($subscriptionPlans as $plan): ?>
+                                            <option value="<?php echo $plan['SUB_ID']; ?>" data-duration="<?php echo $plan['DURATION']; ?>" data-price="<?php echo $plan['PRICE']; ?>">
+                                                <?php echo htmlspecialchars($plan['SUB_NAME']); ?> - ₱<?php echo number_format($plan['PRICE'], 2); ?>
+                                            </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                            <i class="fas fa-chevron-down text-xs"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Subscription Dates -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Start Date -->
+                                    <div>
+                                        <label for="renewStartDate" class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                                        <div class="relative rounded-md shadow-sm">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                                <i class="fas fa-calendar-alt"></i>
+                                            </div>
+                                            <input type="date" id="renewStartDate" name="RENEW_START_DATE" 
+                                                class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- End Date (calculated automatically) -->
+                                    <div>
+                                        <label for="renewEndDate" class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                                        <div class="relative rounded-md shadow-sm">
+                                            <div class="absolute top-1/2 transform -translate-y-1/2 left-0 pl-3 flex items-center pointer-events-none text-primary-light" style="margin-top: -10px;">
+                                                <i class="fas fa-calendar-check"></i>
+                                            </div>
+                                            <input type="date" id="renewEndDate" name="RENEW_END_DATE" 
+                                                class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 bg-gray-50" readonly>
+                                            <p class="text-xs text-gray-500 mt-1">Auto-calculated based on subscription plan</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Payment Method -->
+                                <div>
+                                    <label for="renewPaymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                                    <div class="relative rounded-md shadow-sm">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </div>
+                                        <select id="renewPaymentMethod" name="RENEW_PAYMENT_ID" 
+                                            class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
+                                            <option value="">Select Payment Method</option>
+                                            <?php foreach ($paymentMethods as $method): ?>
+                                            <option value="<?php echo $method['PAYMENT_ID']; ?>"><?php echo htmlspecialchars($method['PAY_METHOD']); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                            <i class="fas fa-chevron-down text-xs"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Renewal Summary Box -->
+                                <div id="renewalSummary" class="p-4 rounded-lg border border-gray-200 bg-blue-50 mt-2 hidden">
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0 mt-0.5">
+                                            <i class="fas fa-info-circle text-blue-500"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h3 class="text-sm font-medium text-blue-800">Renewal Summary</h3>
+                                            <div class="mt-2 text-sm text-blue-700">
+                                                <p id="renewalSummaryText">No subscription selected</p>
+                                                <p id="renewalPrice" class="font-semibold mt-1"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Health Information Section -->
                         <div class="mt-8 mb-3">
                             <h4 class="text-base font-semibold text-gray-800 flex items-center">
@@ -548,13 +692,11 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
                                     <i class="fas fa-notes-medical"></i>
                                 </div>
-                                <select id="comorbidities" name="COMORBIDITIES" multiple
+                                <select id="comorbidities" name="COMORBIDITIES[]" multiple
                                     class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200">
-                                    <option value="1">Hypertension</option>
-                                    <option value="2">Diabetes</option>
-                                    <option value="3">Heart Disease</option>
-                                    <option value="4">Asthma</option>
-                                    <option value="5">Arthritis</option>
+                                    <?php foreach ($comorbidities as $comorbidity): ?>
+                                    <option value="<?php echo $comorbidity['COMOR_ID']; ?>"><?php echo htmlspecialchars($comorbidity['COMOR_NAME']); ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                             <p class="text-xs text-gray-500 mt-1.5 ml-1">Hold Ctrl (or Command on Mac) to select multiple options</p>
@@ -727,7 +869,7 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                 
                 <!-- Modal Footer -->
                 <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
-                    <button type="button" id="viewEditButton" class="px-4 py-2.5 border border-primary-dark text-primary-dark rounded-lg hover:bg-primary-dark hover:text-white focus:outline-none transition-colors duration-300 shadow-sm font-medium flex items-center">
+                    <button type="button" id="viewEditButton" onclick="handleEditMember(this.getAttribute('data-id'))" class="px-4 py-2.5 border border-primary-dark text-primary-dark rounded-lg hover:bg-primary-dark hover:text-white focus:outline-none transition-colors duration-300 shadow-sm font-medium flex items-center">
                         <i class="fas fa-edit mr-2"></i> Edit Member
                     </button>
                     <button type="button" id="viewCloseButton" class="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none transition-colors duration-300 shadow-sm font-medium">
@@ -826,6 +968,19 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
             initModalToggle();
             initCoachSelection();
             initViewAndEditButtons();
+            
+            // Make sure Edit Member button in view modal works
+            console.log("Setting up View Edit Button direct handler");
+            const viewEditButton = document.getElementById('viewEditButton');
+            if (viewEditButton) {
+                console.log("View Edit Button found, ensuring onclick works");
+                // Ensure the onclick attribute works properly
+                viewEditButton.onclick = function() {
+                    console.log("View Edit Button clicked with ID:", this.getAttribute('data-id'));
+                    handleEditMember(this.getAttribute('data-id'));
+                    return false; // Prevent default action
+                };
+            }
         });
         
         // Coach selection logic
@@ -835,47 +990,101 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
             const allCoachesBtn = document.getElementById('allCoaches');
             const maleCoachesBtn = document.getElementById('maleCoaches');
             const femaleCoachesBtn = document.getElementById('femaleCoaches');
+            const coachSelectionContainer = document.getElementById('coachSelectionContainer');
             
-            // Define available coaches per program with gender information (in a real app, this would come from a database)
-            const programCoaches = {
-                "1": [ // Strength Training
-                    { id: "1", firstName: "Michael", lastName: "Johnson", gender: "MALE" },
-                    { id: "2", firstName: "Jessica", lastName: "Parker", gender: "FEMALE" }
-                ],
-                "2": [ // Cardio
-                    { id: "3", firstName: "Sarah", lastName: "Williams", gender: "FEMALE" },
-                    { id: "4", firstName: "Robert", lastName: "Brown", gender: "MALE" }
-                ],
-                "3": [ // Yoga
-                    { id: "5", firstName: "Emma", lastName: "Davis", gender: "FEMALE" },
-                    { id: "6", firstName: "David", lastName: "Wilson", gender: "MALE" }
-                ],
-                "4": [ // CrossFit
-                    { id: "7", firstName: "Lisa", lastName: "Martinez", gender: "FEMALE" },
-                    { id: "8", firstName: "James", lastName: "Taylor", gender: "MALE" }
-                ]
-            };
+            // Initially disable coach selection
+            coachSelect.disabled = true;
+            coachSelect.innerHTML = '<option value="">Select a program first</option>';
+            
+            // Initially hide the gender filter buttons
+            allCoachesBtn.parentElement.parentElement.style.display = 'none';
             
             let currentFilter = 'ALL';
+            let allCoachOptions = [];
+            
+            // Add event listener to program select
+            programSelect.addEventListener('change', function() {
+                if (this.value) {
+                    // Fetch coaches for this program
+                    fetchCoachesForProgram(this.value);
+                    // Show gender filter buttons
+                    allCoachesBtn.parentElement.parentElement.style.display = 'flex';
+                } else {
+                    // Disable coach selection if no program selected
+                    coachSelect.disabled = true;
+                    coachSelect.innerHTML = '<option value="">Select a program first</option>';
+                    // Hide gender filter buttons
+                    allCoachesBtn.parentElement.parentElement.style.display = 'none';
+                }
+            });
             
             // Filter buttons event listeners
             allCoachesBtn.addEventListener('click', function() {
                 setActiveFilter(this);
                 currentFilter = 'ALL';
-                updateCoachOptions();
+                filterCoachOptions();
             });
             
             maleCoachesBtn.addEventListener('click', function() {
                 setActiveFilter(this);
-                currentFilter = 'MALE';
-                updateCoachOptions();
+                currentFilter = 'male';
+                filterCoachOptions();
             });
             
             femaleCoachesBtn.addEventListener('click', function() {
                 setActiveFilter(this);
-                currentFilter = 'FEMALE';
-                updateCoachOptions();
+                currentFilter = 'female';
+                filterCoachOptions();
             });
+            
+            // Function to fetch coaches for a specific program
+            function fetchCoachesForProgram(programId) {
+                // Show loading state
+                coachSelect.disabled = true;
+                coachSelect.innerHTML = '<option value="">Loading coaches...</option>';
+                
+                // Fetch coaches for this program from server
+                fetch(`../../api/coaches/get-by-program.php?program_id=${programId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Enable coach selection
+                        coachSelect.disabled = false;
+                        coachSelect.innerHTML = '<option value="">Select Coach</option>';
+                        
+                        if (data.status === 'success' && data.coaches && data.coaches.length > 0) {
+                            // Add coaches to the dropdown
+                            data.coaches.forEach(coach => {
+                                const option = document.createElement('option');
+                                option.value = coach.COACH_ID;
+                                option.textContent = `${coach.COACH_FNAME} ${coach.COACH_LNAME}`;
+                                option.setAttribute('data-gender', coach.GENDER.toLowerCase());
+                                coachSelect.appendChild(option);
+                            });
+                            
+                            // Store all coach options for filtering
+                            allCoachOptions = Array.from(coachSelect.options).slice(1);
+                        } else {
+                            // No coaches found for this program
+                            const option = document.createElement('option');
+                            option.disabled = true;
+                            option.textContent = 'No coaches available for this program';
+                            coachSelect.appendChild(option);
+                            allCoachOptions = [];
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching coaches:', error);
+                        coachSelect.disabled = false;
+                        coachSelect.innerHTML = '<option value="">Error loading coaches</option>';
+                        showToast('Failed to load coaches. Please try again.', false);
+                        allCoachOptions = [];
+                    });
+            }
             
             function setActiveFilter(button) {
                 // Remove active class from all buttons
@@ -892,41 +1101,33 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                 button.classList.add('bg-primary-dark', 'text-white');
             }
             
-            // When program changes, update available coaches
-            programSelect.addEventListener('change', updateCoachOptions);
-            
-            function updateCoachOptions() {
-                // Clear current options
-                coachSelect.innerHTML = '<option value="">Select Coach</option>';
+            function filterCoachOptions() {
+                // If no coaches available, don't try to filter
+                if (allCoachOptions.length === 0) return;
                 
-                if (programSelect.value) {
-                    let coaches = programCoaches[programSelect.value];
-                    
-                    // Apply gender filter if needed
-                    if (currentFilter !== 'ALL') {
-                        coaches = coaches.filter(coach => coach.gender === currentFilter);
-                    }
-                    
-                    // Add coaches for the selected program
-                    coaches.forEach(coach => {
-                        const option = document.createElement('option');
-                        option.value = coach.id;
-                        
-                        // Display gender icon
-                        const genderIcon = coach.gender === 'MALE' ? '♂' : '♀';
-                        option.textContent = `${coach.firstName} ${coach.lastName} ${genderIcon}`;
-                        
-                        option.setAttribute('data-gender', coach.gender);
-                        coachSelect.appendChild(option);
-                    });
-                    
-                    // If no coaches match the filter, show message
-                    if (coaches.length === 0) {
-                        const option = document.createElement('option');
-                        option.disabled = true;
-                        option.textContent = `No ${currentFilter.toLowerCase()} coaches available for this program`;
-                        coachSelect.appendChild(option);
-                    }
+                // Clear current options except the first placeholder
+                while (coachSelect.options.length > 1) {
+                    coachSelect.remove(1);
+                }
+                
+                // Filter coaches based on gender
+                let filteredCoaches = allCoachOptions;
+                if (currentFilter !== 'ALL') {
+                    filteredCoaches = allCoachOptions.filter(option => 
+                        option.getAttribute('data-gender') === currentFilter);
+                }
+                
+                // Add filtered coaches back to select
+                filteredCoaches.forEach(option => {
+                    coachSelect.add(option.cloneNode(true));
+                });
+                
+                // Show a message if no coaches match the filter
+                if (filteredCoaches.length === 0) {
+                    const option = document.createElement('option');
+                    option.disabled = true;
+                    option.textContent = `No ${currentFilter.toLowerCase()} coaches available`;
+                    coachSelect.add(option);
                 }
             }
         }
@@ -995,10 +1196,50 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
             
             // Open modal
             addMemberBtn.addEventListener('click', function() {
+                // Reset form first
+                memberForm.reset();
+                
+                // Set form mode to "Add"
+                const modalTitle = document.getElementById('modalTitle');
+                const modalIcon = document.getElementById('modalIcon');
+                const saveMemberButton = document.getElementById('saveMemberButton');
+                
+                // Reset to Add mode
+                modalTitle.textContent = 'Add New Member';
+                modalIcon.classList.remove('fa-user-edit');
+                modalIcon.classList.add('fa-user-plus');
+                saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                
+                // Hide renewal section that's only for edit mode
+                const renewSubscriptionContainer = document.getElementById('renewSubscriptionContainer');
+                if (renewSubscriptionContainer) {
+                    renewSubscriptionContainer.classList.add('hidden');
+                }
+                
+                // Re-enable all subscription fields
+                document.getElementById('subscriptionType').disabled = false;
+                document.getElementById('subscriptionType').classList.remove('bg-gray-100', 'cursor-not-allowed');
+                document.getElementById('startDate').readOnly = false;
+                document.getElementById('startDate').classList.remove('bg-gray-100', 'cursor-not-allowed');
+                document.getElementById('paymentMethod').disabled = false;
+                document.getElementById('paymentMethod').classList.remove('bg-gray-100', 'cursor-not-allowed');
+                
+                // Remove any subscription edit info message if it exists
+                const subscriptionEditInfo = document.getElementById('subscriptionEditInfo');
+                if (subscriptionEditInfo) {
+                    subscriptionEditInfo.remove();
+                }
+                
+                // Clear member ID
+                document.getElementById('memberId').value = '';
+                
+                // Show the modal
                 memberModal.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
+                
                 // Reset form dirty state
                 isFormDirty = false;
+                
                 // Store the initial state of the form
                 setTimeout(() => {
                     captureFormState();
@@ -1008,10 +1249,50 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
             // Empty state add button
             if (emptyStateAddBtn) {
                 emptyStateAddBtn.addEventListener('click', function() {
+                    // Reset form first
+                    memberForm.reset();
+                    
+                    // Set form mode to "Add"
+                    const modalTitle = document.getElementById('modalTitle');
+                    const modalIcon = document.getElementById('modalIcon');
+                    const saveMemberButton = document.getElementById('saveMemberButton');
+                    
+                    // Reset to Add mode
+                    modalTitle.textContent = 'Add New Member';
+                    modalIcon.classList.remove('fa-user-edit');
+                    modalIcon.classList.add('fa-user-plus');
+                    saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                    
+                    // Hide renewal section that's only for edit mode
+                    const renewSubscriptionContainer = document.getElementById('renewSubscriptionContainer');
+                    if (renewSubscriptionContainer) {
+                        renewSubscriptionContainer.classList.add('hidden');
+                    }
+                    
+                    // Re-enable all subscription fields
+                    document.getElementById('subscriptionType').disabled = false;
+                    document.getElementById('subscriptionType').classList.remove('bg-gray-100', 'cursor-not-allowed');
+                    document.getElementById('startDate').readOnly = false;
+                    document.getElementById('startDate').classList.remove('bg-gray-100', 'cursor-not-allowed');
+                    document.getElementById('paymentMethod').disabled = false;
+                    document.getElementById('paymentMethod').classList.remove('bg-gray-100', 'cursor-not-allowed');
+                    
+                    // Remove any subscription edit info message if it exists
+                    const subscriptionEditInfo = document.getElementById('subscriptionEditInfo');
+                    if (subscriptionEditInfo) {
+                        subscriptionEditInfo.remove();
+                    }
+                    
+                    // Clear member ID
+                    document.getElementById('memberId').value = '';
+                    
+                    // Show the modal
                     memberModal.classList.remove('hidden');
                     document.body.classList.add('overflow-hidden');
+                    
                     // Reset form dirty state
                     isFormDirty = false;
+                    
                     // Store the initial state of the form
                     setTimeout(() => {
                         captureFormState();
@@ -1021,11 +1302,8 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
             
             // Close modal button - force showing the confirmation dialog
             closeModal.addEventListener('click', function() {
-                const formHasChanges = isFormDirty && hasFormChanged();
-                console.log("Form dirty:", isFormDirty, "Has changes:", formHasChanges);
-                
-                // Always show confirmation if form is dirty
-                if (isFormDirty) {
+                // Only show confirm dialog if form has actual changes
+                if (isFormDirty && hasFormChanged()) {
                     confirmDialog.classList.remove('hidden');
                 } else {
                     closeModalDirectly();
@@ -1034,11 +1312,8 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
             
             // Cancel button - force showing the confirmation dialog
             cancelButton.addEventListener('click', function() {
-                const formHasChanges = isFormDirty && hasFormChanged();
-                console.log("Form dirty:", isFormDirty, "Has changes:", formHasChanges);
-                
-                // Always show confirmation if form is dirty
-                if (isFormDirty) {
+                // Only show confirm dialog if form has actual changes
+                if (isFormDirty && hasFormChanged()) {
                     confirmDialog.classList.remove('hidden');
                 } else {
                     closeModalDirectly();
@@ -1082,6 +1357,14 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
             // Save member
             saveMemberButton.addEventListener('click', function() {
                 if (memberForm.checkValidity()) {
+                    // Check if button is already in loading state to prevent double submission
+                    if (this.disabled) {
+                        return;
+                    }
+                    
+                    // Generate a unique request ID
+                    const requestId = Date.now().toString();
+                    
                     // Show loading state
                     saveMemberButton.disabled = true;
                     saveMemberButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
@@ -1089,13 +1372,17 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                     // Collect form data
                     const formData = new FormData(memberForm);
                     const memberId = document.getElementById('memberId').value;
+                    const isActive = document.getElementById('status').checked ? 1 : 0;
+                    
                     const data = {
+                        requestId: requestId,
                         MEMBER_FNAME: formData.get('MEMBER_FNAME'),
                         MEMBER_LNAME: formData.get('MEMBER_LNAME'),
                         EMAIL: formData.get('EMAIL'),
                         PHONE_NUMBER: formData.get('PHONE_NUMBER'),
-                        IS_ACTIVE: document.getElementById('status').checked ? 1 : 0,
+                        IS_ACTIVE: isActive,
                         PROGRAM_ID: document.getElementById('program').value,
+                        COACH_ID: document.getElementById('coach').value,
                         USER_ID: 1, // Current logged in user ID
                         COMORBIDITIES: Array.from(document.getElementById('comorbidities').selectedOptions).map(opt => opt.value)
                     };
@@ -1106,61 +1393,168 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                         '../../api/members/create.php';
 
                     const method = memberId ? 'PUT' : 'POST';
-
-                    // If editing, include subscription data but don't allow changes
-                    if (memberId) {
-                        data.MEMBER_ID = memberId;
+                    
+                    // If deactivating an existing member, we need to confirm
+                    if (memberId && isActive === 0) {
+                        // Check if member has active subscriptions
+                        fetch(`../../api/members/check-active-subscription.php?id=${memberId}`)
+                            .then(response => response.json())
+                            .then(subscriptionData => {
+                                if (subscriptionData.has_active_subscription) {
+                                    // Show warning dialog
+                                    saveMemberButton.disabled = false;
+                                    saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                                    
+                                    const subscriptionWarningDialog = createSubscriptionWarningDialog(() => {
+                                        // User confirmed deactivation, proceed with save
+                                        submitMemberForm(url, method, data);
+                                    }, () => {
+                                        // User cancelled deactivation, reset status toggle and abort save
+                                        document.getElementById('status').checked = true;
+                                        const statusLabel = document.getElementById('statusLabel');
+                                        statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                                        statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                                        statusLabel.classList.add('text-green-600');
+                                        
+                                        saveMemberButton.disabled = false;
+                                        saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                                    });
+                                    
+                                    // Append the dialog to the body
+                                    document.body.appendChild(subscriptionWarningDialog);
+                                    
+                                    // Show the dialog
+                                    subscriptionWarningDialog.classList.remove('hidden');
+                                } else {
+                                    // No active subscriptions, proceed with save
+                                    submitMemberForm(url, method, data);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error checking subscription status:', error);
+                                // Proceed with save but show error
+                                showToast('Error checking subscription status, proceeding with save', false);
+                                submitMemberForm(url, method, data);
+                            });
                     } else {
-                        // Only include subscription data for new members
-                        data.SUB_ID = document.getElementById('subscriptionType').value;
-                        data.START_DATE = document.getElementById('startDate').value;
-                        data.END_DATE = document.getElementById('endDate').value;
-                        data.PAYMENT_ID = document.getElementById('paymentMethod').value;
-                        data.TRANSAC_DATE = document.getElementById('transactionDate').value;
+                        // Not deactivating a member, proceed with save
+                        submitMemberForm(url, method, data);
                     }
-
-                    fetch(url, {
-                        method: method,
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(data)
-                    })
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result.status === 'success') {
-                            showToast(memberId ? 'Member updated successfully!' : 'New member added successfully!', true);
-                            closeModalDirectly();
-                            loadMembers(); // Reload the members table
-                        } else {
-                            throw new Error(result.message || 'Failed to save member');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showToast(error.message || 'Failed to save member. Please try again.', false);
-                    })
-                    .finally(() => {
-                        // Reset button state
-                        saveMemberButton.disabled = false;
-                        saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
-                    });
                 } else {
                     memberForm.reportValidity();
                 }
             });
+            
+            // Helper function to submit the member form
+            function submitMemberForm(url, method, data) {
+                const saveMemberButton = document.getElementById('saveMemberButton');
+                const memberId = document.getElementById('memberId').value;
+                
+                // If editing, include subscription data but don't allow changes
+                if (memberId) {
+                    data.MEMBER_ID = memberId;
+                    
+                    // Check if subscription renewal is requested
+                    const renewSubscription = document.getElementById('renewSubscription');
+                    if (renewSubscription && renewSubscription.checked) {
+                        // Add renewal data
+                        data.RENEW_SUBSCRIPTION = true;
+                        data.RENEW_SUB_ID = document.getElementById('renewSubscriptionType').value;
+                        data.RENEW_START_DATE = document.getElementById('renewStartDate').value;
+                        data.RENEW_END_DATE = document.getElementById('renewEndDate').value;
+                        data.RENEW_PAYMENT_ID = document.getElementById('renewPaymentMethod').value;
+                        
+                        // Validate renewal fields
+                        if (!data.RENEW_SUB_ID || !data.RENEW_START_DATE || !data.RENEW_END_DATE || !data.RENEW_PAYMENT_ID) {
+                            // Reset button state
+                            saveMemberButton.disabled = false;
+                            saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                            showToast('Please fill all renewal fields', false);
+                            return;
+                        }
+                    }
+                } else {
+                    // Only include subscription data for new members
+                    data.SUB_ID = document.getElementById('subscriptionType').value;
+                    data.START_DATE = document.getElementById('startDate').value;
+                    data.END_DATE = document.getElementById('endDate').value;
+                    data.PAYMENT_ID = document.getElementById('paymentMethod').value;
+                    data.TRANSAC_DATE = document.getElementById('transactionDate').value;
+                }
+
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    // Check for non-200 responses and handle them
+                    if (!response.ok) {
+                        return response.json().then(errorData => {
+                            throw new Error(errorData.message || 'Server responded with an error');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    if (result.status === 'success') {
+                        showToast(memberId ? 'Member updated successfully!' : 'New member added successfully!', true);
+                        closeModalDirectly();
+                        // Add a short delay before refreshing the members list
+                        setTimeout(() => {
+                            loadMembers(); // Reload the members table
+                        }, 500); // Increased delay to ensure database consistency
+                    } else {
+                        throw new Error(result.message || 'Failed to save member');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast(error.message || 'Failed to save member. Please try again.', false);
+                })
+                .finally(() => {
+                    // Reset button state
+                    saveMemberButton.disabled = false;
+                    saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Save Member';
+                });
+            }
 
             // Function to close modal directly
             function closeModalDirectly() {
                 memberModal.classList.add('hidden');
                 document.body.classList.remove('overflow-hidden');
+                
+                // Reset form
                 memberForm.reset();
+                
+                // Clear member ID
+                document.getElementById('memberId').value = '';
                 
                 // Reset form dirty state
                 isFormDirty = false;
                 
-                // Reset subscription fields to editable state
-                toggleSubscriptionEditMode(false);
+                // Reset modal to add state
+                const modalTitle = document.getElementById('modalTitle');
+                const modalIcon = document.getElementById('modalIcon');
+                modalTitle.textContent = 'Add New Member';
+                modalIcon.classList.remove('fa-user-edit');
+                modalIcon.classList.add('fa-user-plus');
+                
+                // Hide renewal section
+                const renewSubscriptionContainer = document.getElementById('renewSubscriptionContainer');
+                if (renewSubscriptionContainer) {
+                    renewSubscriptionContainer.classList.add('hidden');
+                }
+                
+                // Re-enable subscription fields
+                document.getElementById('subscriptionType').disabled = false;
+                document.getElementById('subscriptionType').classList.remove('bg-gray-100', 'cursor-not-allowed');
+                document.getElementById('startDate').readOnly = false;
+                document.getElementById('startDate').classList.remove('bg-gray-100', 'cursor-not-allowed');
+                document.getElementById('paymentMethod').disabled = false;
+                document.getElementById('paymentMethod').classList.remove('bg-gray-100', 'cursor-not-allowed');
                 
                 // Enable program and coach fields
                 document.getElementById('program').disabled = false;
@@ -1182,9 +1576,38 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                 // Set today's date again
                 const today = new Date();
                 document.getElementById('startDate').value = today.toISOString().split('T')[0];
+                document.getElementById('transactionDate').value = today.toISOString().split('T')[0];
                 
                 // Hide subscription summary
                 document.getElementById('subscriptionStatus').classList.add('hidden');
+                
+                // Reset any renewal fields if they exist
+                const renewSubscriptionType = document.getElementById('renewSubscriptionType');
+                const renewStartDate = document.getElementById('renewStartDate');
+                const renewEndDate = document.getElementById('renewEndDate');
+                const renewPaymentMethod = document.getElementById('renewPaymentMethod');
+                const renewalFields = document.getElementById('renewalFields');
+                const renewalSummary = document.getElementById('renewalSummary');
+                
+                if (renewSubscriptionType) renewSubscriptionType.value = '';
+                if (renewStartDate) renewStartDate.value = today.toISOString().split('T')[0];
+                if (renewEndDate) renewEndDate.value = '';
+                if (renewPaymentMethod) renewPaymentMethod.value = '';
+                if (renewalFields) renewalFields.classList.add('hidden');
+                if (renewalSummary) renewalSummary.classList.add('hidden');
+                
+                // Reset the coach selection area
+                const coachSelect = document.getElementById('coach');
+                if (coachSelect) {
+                    coachSelect.innerHTML = '<option value="">Select a program first</option>';
+                    coachSelect.disabled = true;
+                }
+                
+                // Reset coach filter buttons
+                const allCoachesBtn = document.getElementById('allCoaches');
+                if (allCoachesBtn) {
+                    allCoachesBtn.parentElement.parentElement.style.display = 'none';
+                }
             }
             
             // Capture the initial state of the form
@@ -1213,9 +1636,50 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                 console.log("Form state captured:", originalFormValues);
             }
             
-            // Check if form has been modified (this function is no longer needed, but kept for compatibility)
+            // Check if form has been modified
             function hasFormChanged() {
-                return true; // Always return true to ensure dialog shows
+                const formElements = memberForm.elements;
+                
+                for (let i = 0; i < formElements.length; i++) {
+                    const element = formElements[i];
+                    const name = element.name || element.id;
+                    
+                    // Skip elements without a name (they're not form fields)
+                    if (!name) continue;
+                    
+                    // Skip hidden member ID field
+                    if (name === 'memberId') continue;
+                    
+                    // Check appropriate value based on element type
+                    if (element.type === 'checkbox') {
+                        if (originalFormValues[name] !== element.checked) {
+                            console.log(`Changed field: ${name}, Original: ${originalFormValues[name]}, Current: ${element.checked}`);
+                            return true;
+                        }
+                    } else if (element.type === 'select-multiple') {
+                        const selected = [];
+                        for (let j = 0; j < element.options.length; j++) {
+                            if (element.options[j].selected) {
+                                selected.push(element.options[j].value);
+                            }
+                        }
+                        
+                        // Compare arrays
+                        if (!arraysEqual(originalFormValues[name], selected)) {
+                            console.log(`Changed field: ${name}, Original: ${originalFormValues[name]}, Current: ${selected}`);
+                            return true;
+                        }
+                    } else {
+                        // For regular inputs, selects, etc.
+                        if (originalFormValues[name] !== element.value) {
+                            console.log(`Changed field: ${name}, Original: ${originalFormValues[name]}, Current: ${element.value}`);
+                            return true;
+                        }
+                    }
+                }
+                
+                // No changes detected
+                return false;
             }
             
             // Helper function to compare arrays
@@ -1252,19 +1716,220 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
             // Toggle status in add/edit form
             const statusToggle = document.getElementById('status');
             const statusLabel = document.getElementById('statusLabel');
+            const memberId = document.getElementById('memberId');
             
             if (statusToggle && statusLabel) {
                 statusToggle.addEventListener('change', function() {
-                    if (this.checked) {
+                    // If this is a new member (no member ID) and toggling to inactive
+                    if (!memberId.value && !this.checked) {
+                        // Reset back to active
+                        this.checked = true;
+                        // Show warning message
+                        showToast('New members must be set as active. Only existing members can be marked inactive.', false);
+                        return;
+                    }
+                    
+                    // If toggling from active to inactive, we need to check for active subscriptions
+                    if (!this.checked && memberId.value) {
+                        // Show loading state
+                        statusLabel.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Checking...';
+                        statusLabel.classList.remove('text-green-600', 'text-red-600');
+                        statusLabel.classList.add('text-gray-500');
+                        
+                        // Call our new API endpoint to check and update status
+                        fetch(`../../api/members/update-status.php?id=${memberId.value}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                status: false, // Deactivating
+                                force: false   // Not forcing, check for active subscriptions
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'warning' && data.requires_confirmation) {
+                                // Show warning dialog for active subscriptions
+                                const subscriptionWarningDialog = createSubscriptionWarningDialog(() => {
+                                    // User confirmed deactivation despite warning
+                                    // Now force the status update
+                                    updateMemberStatus(memberId.value, false, true);
+                                }, () => {
+                                    // User cancelled, revert the toggle
+                                    statusToggle.checked = true;
+                                    statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                                    statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                                    statusLabel.classList.add('text-green-600');
+                                });
+                                
+                                // Append the dialog to the body
+                                document.body.appendChild(subscriptionWarningDialog);
+                                
+                                // Show the dialog
+                                subscriptionWarningDialog.classList.remove('hidden');
+                            } else if (data.status === 'success') {
+                                // Successfully updated
+                                statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                                statusLabel.classList.remove('text-green-600', 'text-gray-500');
+                                statusLabel.classList.add('text-red-600');
+                                showToast('Member has been deactivated', true);
+                            } else {
+                                // Error occurred
+                                showToast('Error updating member status: ' + data.message, false);
+                                // Revert UI
+                                statusToggle.checked = true;
+                                statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                                statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                                statusLabel.classList.add('text-green-600');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            // Revert UI on error
+                            statusToggle.checked = true;
+                            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                            statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                            statusLabel.classList.add('text-green-600');
+                            showToast('Error updating member status', false);
+                        });
+                    } else if (memberId.value) {
+                        // Toggling to active, update directly
+                        updateMemberStatus(memberId.value, true, false);
+                    } else {
+                        // New member, just update the UI
                         statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
                         statusLabel.classList.remove('text-red-600');
                         statusLabel.classList.add('text-green-600');
-                    } else {
-                        statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
-                        statusLabel.classList.remove('text-green-600');
-                        statusLabel.classList.add('text-red-600');
                     }
                 });
+            }
+            
+            // Function to update member status
+            function updateMemberStatus(memberId, isActive, force) {
+                // Show loading state
+                const statusLabel = document.getElementById('statusLabel');
+                statusLabel.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Updating...';
+                statusLabel.classList.remove('text-green-600', 'text-red-600');
+                statusLabel.classList.add('text-gray-500');
+                
+                fetch(`../../api/members/update-status.php?id=${memberId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        status: isActive,
+                        force: force
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Update UI based on the new status
+                        if (isActive) {
+                            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                            statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                            statusLabel.classList.add('text-green-600');
+                            showToast('Member has been activated', true);
+                        } else {
+                            statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                            statusLabel.classList.remove('text-green-600', 'text-gray-500');
+                            statusLabel.classList.add('text-red-600');
+                            
+                            // Show toast with subscription information if any were deactivated
+                            if (data.subscriptions_deactivated > 0) {
+                                showToast(`Member deactivated. ${data.subscriptions_deactivated} subscription${data.subscriptions_deactivated > 1 ? 's' : ''} also deactivated.`, true);
+                            } else {
+                                showToast('Member has been deactivated', true);
+                            }
+                        }
+                    } else {
+                        // Error occurred
+                        showToast('Error updating member status: ' + data.message, false);
+                        // Reset toggle to reflect actual state
+                        document.getElementById('status').checked = isActive;
+                        if (isActive) {
+                            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                            statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                            statusLabel.classList.add('text-green-600');
+                        } else {
+                            statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                            statusLabel.classList.remove('text-green-600', 'text-gray-500');
+                            statusLabel.classList.add('text-red-600');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Reset toggle to reflect actual state
+                    document.getElementById('status').checked = isActive;
+                    if (isActive) {
+                        statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                        statusLabel.classList.remove('text-red-600', 'text-gray-500');
+                        statusLabel.classList.add('text-green-600');
+                    } else {
+                        statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                        statusLabel.classList.remove('text-green-600', 'text-gray-500');
+                        statusLabel.classList.add('text-red-600');
+                    }
+                    showToast('Error updating member status', false);
+                });
+            }
+            
+            // Helper function to create a subscription warning dialog
+            function createSubscriptionWarningDialog(onConfirm, onCancel) {
+                // Create dialog element
+                const dialog = document.createElement('div');
+                dialog.className = 'fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center backdrop-blur-sm';
+                dialog.id = 'subscriptionWarningDialog';
+                
+                // Create dialog content
+                dialog.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 transform scale-95 overflow-hidden transition-all duration-200">
+                        <div class="p-5">
+                            <div class="flex items-center mb-4">
+                                <div class="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mr-4">
+                                    <i class="fas fa-exclamation-triangle text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-800">Active Subscription Warning</h3>
+                                    <p class="text-sm text-gray-600 mt-1">This member has active subscription(s). Deactivating this member will also deactivate all their subscriptions.</p>
+                                </div>
+                            </div>
+                            <div class="mt-4 p-3 bg-blue-50 rounded-md text-sm text-blue-800 border border-blue-100">
+                                <i class="fas fa-info-circle mr-1.5"></i>
+                                <span>Deactivated members cannot access gym facilities and will be removed from active member lists.</span>
+                            </div>
+                            <div class="flex justify-end gap-3 mt-6">
+                                <button id="cancelDeactivation" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">
+                                    Keep Active
+                                </button>
+                                <button id="confirmDeactivation" class="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-colors">
+                                    Deactivate All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add event listeners to buttons
+                setTimeout(() => {
+                    const cancelBtn = dialog.querySelector('#cancelDeactivation');
+                    const confirmBtn = dialog.querySelector('#confirmDeactivation');
+                    
+                    cancelBtn.addEventListener('click', () => {
+                        onCancel();
+                        dialog.remove();
+                    });
+                    
+                    confirmBtn.addEventListener('click', () => {
+                        onConfirm();
+                        dialog.remove();
+                    });
+                }, 0);
+                
+                return dialog;
             }
         });
         
@@ -1294,37 +1959,57 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
             // View member function with subscription data
             function viewMember(id) {
                 // Fetch member data from the database instead of static data
-                fetch(`/api/members/${id}/details`)
-                    .then(response => response.json())
+                fetch(`../../api/members/view.php?id=${id}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
                     .then(member => {
                         if (member) {
                             // Rest of the view member logic remains the same
-                            document.getElementById('viewMemberName').textContent = `${member.firstName} ${member.lastName}`;
-                            document.getElementById('viewFullName').textContent = `${member.firstName} ${member.lastName}`;
-                            document.getElementById('viewEmail').textContent = member.email;
-                            document.getElementById('viewPhone').textContent = member.phone;
+                            document.getElementById('viewMemberName').textContent = `${member.MEMBER_FNAME} ${member.MEMBER_LNAME}`;
+                            document.getElementById('viewFullName').textContent = `${member.MEMBER_FNAME} ${member.MEMBER_LNAME}`;
+                            document.getElementById('viewEmail').textContent = member.EMAIL;
+                            document.getElementById('viewPhone').textContent = member.PHONE_NUMBER;
                             
                             // Display joined date
-                            const joinDate = new Date(member.joinDate);
+                            const joinDate = new Date(member.JOINED_DATE);
                             document.getElementById('viewJoinDate').textContent = formatDate(joinDate);
                             
-                            document.getElementById('viewProgramDetail').textContent = member.programName;
-                            document.getElementById('viewCoach').textContent = member.coach;
-                            
-                            // Populate subscription details
-                            document.getElementById('viewSubscriptionPlan').textContent = member.subscriptionName;
-                            
-                            // Format subscription period
-                            const startDate = new Date(member.subscriptionStart);
-                            const endDate = new Date(member.subscriptionEnd);
-                            document.getElementById('viewSubscriptionPeriod').textContent = 
-                                `${formatDate(startDate)} - ${formatDate(endDate)}`;
-                            
-                            document.getElementById('viewPaymentMethod').textContent = member.paymentMethod;
+                            document.getElementById('viewProgramDetail').textContent = member.PROGRAM_NAME;
+                            document.getElementById('viewCoach').textContent = member.COACH_NAME || 'Not Assigned';
+
+                            // Set subscription details
+                            if (member.SUB_NAME) {
+                                document.getElementById('viewSubscriptionPlan').textContent = member.SUB_NAME;
+                                
+                                // Format subscription period from START_DATE and END_DATE
+                                if (member.START_DATE && member.END_DATE) {
+                                    const startDate = new Date(member.START_DATE);
+                                    const endDate = new Date(member.END_DATE);
+                                    document.getElementById('viewSubscriptionPeriod').textContent = 
+                                        `${formatDate(startDate)} - ${formatDate(endDate)}`;
+                                } else {
+                                    document.getElementById('viewSubscriptionPeriod').textContent = 'No active subscription';
+                                }
+                                
+                                // Set payment method if available
+                                if (member.PAY_METHOD) {
+                                    document.getElementById('viewPaymentMethod').textContent = member.PAY_METHOD;
+                                } else {
+                                    document.getElementById('viewPaymentMethod').textContent = 'Not specified';
+                                }
+                            } else {
+                                document.getElementById('viewSubscriptionPlan').textContent = 'No subscription plan';
+                                document.getElementById('viewSubscriptionPeriod').textContent = 'N/A';
+                                document.getElementById('viewPaymentMethod').textContent = 'N/A';
+                            }
                             
                             // Status
                             const viewStatus = document.getElementById('viewStatus');
-                            if (member.isActive) {
+                            if (member.IS_ACTIVE == 1) {
                                 viewStatus.innerHTML = `
                                     <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
                                         <i class="fas fa-check-circle mr-1"></i> Active
@@ -1342,11 +2027,11 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                             const viewComorbidities = document.getElementById('viewComorbidities');
                             viewComorbidities.innerHTML = '';
                             
-                            if (member.comorbidities.length > 0) {
+                            if (member.comorbidities && member.comorbidities.length > 0) {
                                 member.comorbidities.forEach(comorbidity => {
                                     const span = document.createElement('span');
                                     span.className = 'px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800';
-                                    span.textContent = comorbidity;
+                                    span.textContent = comorbidity.COMOR_NAME;
                                     viewComorbidities.appendChild(span);
                                 });
                             } else {
@@ -1357,20 +2042,22 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                             }
                             
                             // Set member ID for edit button in view modal
-                            document.getElementById('viewEditButton').setAttribute('data-id', id);
+                            const viewEditButton = document.getElementById('viewEditButton');
+                            if (viewEditButton) {
+                                viewEditButton.setAttribute('data-id', id);
+                                
+                                // Add event listener to the Edit Member button
+                                viewEditButton.onclick = function() {
+                                    // Close view modal
+                                    document.getElementById('viewMemberModal').classList.add('hidden');
+                                    // Open edit modal with this member ID
+                                    editMember(id);
+                                };
+                            }
                             
                             // Show the view modal
                             document.getElementById('viewMemberModal').classList.remove('hidden');
                             document.body.classList.add('overflow-hidden');
-                            
-                            // Add event listener to edit button in view modal
-                            document.getElementById('viewEditButton').addEventListener('click', function() {
-                                const memberId = this.getAttribute('data-id');
-                                // Hide view modal
-                                document.getElementById('viewMemberModal').classList.add('hidden');
-                                // Edit member
-                                editMember(memberId);
-                            });
                             
                             // Add event listener to close button in view modal
                             document.getElementById('viewCloseButton').addEventListener('click', function() {
@@ -1388,87 +2075,140 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                     .catch(error => {
                         console.error('Error fetching member details:', error);
                         showToast('Error loading member details', false);
+                        
+                        // Make sure the modal is closed
+                        const viewMemberModal = document.getElementById('viewMemberModal');
+                        if (viewMemberModal && !viewMemberModal.classList.contains('hidden')) {
+                            viewMemberModal.classList.add('hidden');
+                            document.body.classList.remove('overflow-hidden');
+                        }
                     });
             }
             
-            // Edit member function
+            // Edit member function with subscription data
             function editMember(id) {
-                // Fetch member data from the database instead of static data
-                fetch(`/api/members/${id}`)
+                // Reset form first
+                document.getElementById('memberForm').reset();
+                
+                // Set form mode to edit
+                const modalTitle = document.getElementById('modalTitle');
+                const modalIcon = document.getElementById('modalIcon');
+                const saveMemberButton = document.getElementById('saveMemberButton');
+                modalTitle.textContent = 'Edit Member Details';
+                modalIcon.classList.remove('fa-user-plus');
+                modalIcon.classList.add('fa-user-edit');
+                saveMemberButton.innerHTML = '<i class="fas fa-save mr-2"></i> Update Member';
+                
+                // Show hidden subscription renewal option in edit mode
+                const renewSubscriptionContainer = document.getElementById('renewSubscriptionContainer');
+                if (renewSubscriptionContainer) {
+                    renewSubscriptionContainer.classList.remove('hidden');
+                }
+                
+                // Show the modal
+                const memberModal = document.getElementById('memberModal');
+                memberModal.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+                
+                // Get member data
+                fetch(`../../api/members/view.php?id=${id}`)
                     .then(response => response.json())
                     .then(member => {
-                        if (member) {
-                            // Rest of the edit member logic remains the same
-                            document.getElementById('memberId').value = id;
-                            document.getElementById('modalTitle').textContent = 'Edit Member';
-                            document.getElementById('modalIcon').className = 'fas fa-user-edit text-xl';
-                            
-                            // Populate form fields with member data
-                            document.getElementById('firstName').value = member.firstName;
-                            document.getElementById('lastName').value = member.lastName;
-                            document.getElementById('email').value = member.email;
-                            document.getElementById('phoneNumber').value = member.phone;
-                            
-                            // Set program and trigger change event to load coaches
-                            const programSelect = document.getElementById('program');
-                            programSelect.value = member.programId;
-                            
-                            // Dispatch change event to load coaches
-                            const event = new Event('change');
-                            programSelect.dispatchEvent(event);
-                            
-                            // Set coach (with a slight delay to ensure coaches are loaded)
-                            setTimeout(() => {
-                                const coachSelect = document.getElementById('coach');
-                                coachSelect.value = member.coachId;
-                            }, 100);
-                            
-                            // Handle subscription section for edit mode - make read-only
-                            toggleSubscriptionEditMode(true, member);
-                            
-                            // Set status
-                            document.getElementById('status').checked = member.isActive;
-                            const statusLabel = document.getElementById('statusLabel');
-                            if (member.isActive) {
-                                statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
-                                statusLabel.classList.remove('text-red-600');
-                                statusLabel.classList.add('text-green-600');
-                            } else {
-                                statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
-                                statusLabel.classList.remove('text-green-600');
-                                statusLabel.classList.add('text-red-600');
-                            }
-                            
-                            // Set comorbidities
-                            const comorbidities = document.getElementById('comorbidities');
-                            // Reset selection
-                            for (let i = 0; i < comorbidities.options.length; i++) {
-                                comorbidities.options[i].selected = false;
-                            }
-                            // Set selected comorbidities
+                        // Set hidden member ID
+                        document.getElementById('memberId').value = member.MEMBER_ID;
+                        
+                        // Basic information
+                        document.getElementById('firstName').value = member.MEMBER_FNAME;
+                        document.getElementById('lastName').value = member.MEMBER_LNAME;
+                        document.getElementById('email').value = member.EMAIL;
+                        document.getElementById('phoneNumber').value = member.PHONE_NUMBER;
+                        
+                        // Set program and coach dropdowns
+                        document.getElementById('program').value = member.PROGRAM_ID;
+                        
+                        // Fetch coaches for this program then set selected
+                        fetchCoachesForProgram(member.PROGRAM_ID).then(() => {
+                            document.getElementById('coach').value = member.COACH_ID;
+                        });
+                        
+                        // Set status
+                        const statusToggle = document.getElementById('status');
+                        const statusLabel = document.getElementById('statusLabel');
+                        statusToggle.checked = member.IS_ACTIVE == 1;
+                        
+                        if (statusToggle.checked) {
+                            statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                            statusLabel.classList.remove('text-red-600');
+                            statusLabel.classList.add('text-green-600');
+                        } else {
+                            statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                            statusLabel.classList.remove('text-green-600');
+                            statusLabel.classList.add('text-red-600');
+                        }
+                        
+                        // Reset and set comorbidities
+                        const comorbiditySelect = document.getElementById('comorbidities');
+                        // Reset all selections
+                        for (let i = 0; i < comorbiditySelect.options.length; i++) {
+                            comorbiditySelect.options[i].selected = false;
+                        }
+                        // Set the member's comorbidities
+                        if (member.comorbidities && member.comorbidities.length > 0) {
                             member.comorbidities.forEach(comorbidity => {
-                                for (let i = 0; i < comorbidities.options.length; i++) {
-                                    if (comorbidities.options[i].value === comorbidity) {
-                                        comorbidities.options[i].selected = true;
+                                for (let i = 0; i < comorbiditySelect.options.length; i++) {
+                                    if (comorbiditySelect.options[i].value == comorbidity.COMOR_ID) {
+                                        comorbiditySelect.options[i].selected = true;
+                                        break;
                                     }
                                 }
                             });
-                            
-                            // Show the modal
-                            document.getElementById('memberModal').classList.remove('hidden');
-                            document.body.classList.add('overflow-hidden');
-                            
-                            // Store the initial state of the form after populating it
-                            // and reset the form dirty state since we're just loading data
-                            setTimeout(() => {
-                                captureFormState();
-                                isFormDirty = false;
-                            }, 200);
                         }
+                        
+                        // Set subscription info for renewal UI if available
+                        if (member.START_DATE && member.END_DATE && member.SUB_NAME) {
+                            const currentSubscriptionInfo = document.getElementById('currentSubscriptionInfo');
+                            if (currentSubscriptionInfo) {
+                                const startDate = new Date(member.START_DATE);
+                                const endDate = new Date(member.END_DATE);
+                                
+                                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                                currentSubscriptionInfo.textContent = `${member.SUB_NAME} (${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)})`;
+                                
+                                // If subscription is active and near expiration (within 30 days), show renewal prompt
+                                const today = new Date();
+                                const daysUntilExpiration = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                                
+                                const renewalMessage = document.getElementById('renewalMessage');
+                                if (renewalMessage) {
+                                    if (daysUntilExpiration <= 30 && daysUntilExpiration > 0) {
+                                        renewalMessage.textContent = `This subscription will expire in ${daysUntilExpiration} days. Consider renewal.`;
+                                        renewalMessage.classList.remove('text-red-600', 'text-green-600');
+                                        renewalMessage.classList.add('text-amber-600');
+                                    } else if (daysUntilExpiration <= 0) {
+                                        renewalMessage.textContent = `This subscription has expired. Renewal required.`;
+                                        renewalMessage.classList.remove('text-amber-600', 'text-green-600');
+                                        renewalMessage.classList.add('text-red-600');
+                                    } else {
+                                        renewalMessage.textContent = `This subscription is active with ${daysUntilExpiration} days remaining.`;
+                                        renewalMessage.classList.remove('text-amber-600', 'text-red-600');
+                                        renewalMessage.classList.add('text-green-600');
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Make form dirty to activate change tracking
+                        isFormDirty = false;
+                        
+                        // Wait a bit before capturing form state to allow dropdowns to populate
+                        setTimeout(() => {
+                            captureFormState();
+                        }, 300);
                     })
                     .catch(error => {
-                        console.error('Error fetching member data:', error);
-                        showToast('Error loading member data', false);
+                        console.error('Error:', error);
+                        showToast('Failed to load member details. Please try again.', false);
+                        closeModalDirectly();
                     });
             }
         }
@@ -1652,6 +2392,9 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
             emptyState.classList.add('hidden');
             tableContainer.classList.add('hidden');
             
+            // Clear existing table content to prevent duplicates
+            tableBody.innerHTML = '';
+            
             // Construct URL with filters
             let url = '../../api/members/get-all.php';
             const params = [];
@@ -1664,20 +2407,41 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                 params.push(`search=${encodeURIComponent(currentSearchTerm)}`);
             }
             
+            // Add timestamp to prevent caching
+            params.push(`_t=${Date.now()}`);
+            
             if (params.length > 0) {
                 url += '?' + params.join('&');
             }
             
             fetch(url)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.status === 'success') {
                         if (data.members.length > 0) {
-                            // Clear existing table content
+                            // Clear existing table content first to prevent duplicates
+                            const tableBody = document.getElementById('memberTableBody');
                             tableBody.innerHTML = '';
                             
-                            // Add members to table
+                            // Process members (ensure no duplicates)
+                            const uniqueMembers = [];
+                            const memberIds = new Set();
+                            
+                            // Only add members that haven't been added yet
                             data.members.forEach(member => {
+                                if (!memberIds.has(member.MEMBER_ID)) {
+                                    memberIds.add(member.MEMBER_ID);
+                                    uniqueMembers.push(member);
+                                }
+                            });
+                            
+                            // Add members to table
+                            uniqueMembers.forEach(member => {
                                 const row = document.createElement('tr');
                                 const initials = `${member.MEMBER_FNAME[0]}${member.MEMBER_LNAME[0]}`;
                                 
@@ -1706,23 +2470,35 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                                         <div class="text-xs text-gray-500 mt-1">Coach: ${member.COACH_NAME || 'Not Assigned'}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${member.HAS_ACTIVE_SUBSCRIPTION == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                                            ${member.HAS_ACTIVE_SUBSCRIPTION == 1 ? 'Active' : (member.IS_ACTIVE == 1 ? 'No Subscription' : 'Inactive')}
+                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${member.IS_ACTIVE == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                            ${member.IS_ACTIVE == 1 ? 'Active' : 'Inactive'}
                                         </span>
-                                        <div class="text-xs text-gray-500 mt-1">${member.SUB_NAME || 'No active subscription'}</div>
+                                        <div class="text-xs text-gray-500 mt-1">${member.SUB_NAME || 'No subscription'}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         <div class="flex space-x-2 justify-center">
-                                            <button onclick="handleViewMember(${member.MEMBER_ID})" class="text-primary-dark hover:text-primary-light view-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200">
+                                            <button type="button" class="text-primary-dark hover:text-primary-light view-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${member.MEMBER_ID}">
                                                 <i class="fas fa-eye text-lg"></i>
                                             </button>
-                                            <button onclick="handleEditMember(${member.MEMBER_ID})" class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200">
+                                            <button type="button" class="text-primary-dark hover:text-primary-light edit-button h-9 w-9 inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all duration-200" data-id="${member.MEMBER_ID}">
                                                 <i class="fas fa-edit text-lg"></i>
                                             </button>
                                         </div>
                                     </td>
                                 `;
                                 tableBody.appendChild(row);
+                                
+                                // Add click event listeners to the buttons in this row
+                                const viewButton = row.querySelector('.view-button');
+                                const editButton = row.querySelector('.edit-button');
+                                
+                                viewButton.addEventListener('click', function() {
+                                    handleViewMember(this.getAttribute('data-id'));
+                                });
+                                
+                                editButton.addEventListener('click', function() {
+                                    handleEditMember(this.getAttribute('data-id'));
+                                });
                             });
                             
                             // Show table, hide empty state
@@ -1755,15 +2531,20 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
 
         // Add these global functions for handling button clicks
         function handleViewMember(memberId) {
-            // Close edit modal if it's open
-            const memberModal = document.getElementById('memberModal');
-            if (!memberModal.classList.contains('hidden')) {
-                memberModal.classList.add('hidden');
+            // First close the view modal if it's open
+            const viewModal = document.getElementById('viewMemberModal');
+            if (!viewModal.classList.contains('hidden')) {
+                viewModal.classList.add('hidden');
                 document.body.classList.remove('overflow-hidden');
             }
             
             fetch(`../../api/members/view.php?id=${memberId}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(member => {
                     if (member) {
                         document.getElementById('viewMemberName').textContent = `${member.MEMBER_FNAME} ${member.MEMBER_LNAME}`;
@@ -1773,6 +2554,32 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                         document.getElementById('viewJoinDate').textContent = formatDate(new Date(member.JOINED_DATE));
                         document.getElementById('viewProgramDetail').textContent = member.PROGRAM_NAME;
                         document.getElementById('viewCoach').textContent = member.COACH_NAME || 'Not Assigned';
+                        
+                        // Set subscription details
+                        if (member.SUB_NAME) {
+                            document.getElementById('viewSubscriptionPlan').textContent = member.SUB_NAME;
+                            
+                            // Format subscription period from START_DATE and END_DATE
+                            if (member.START_DATE && member.END_DATE) {
+                                const startDate = new Date(member.START_DATE);
+                                const endDate = new Date(member.END_DATE);
+                                document.getElementById('viewSubscriptionPeriod').textContent = 
+                                    `${formatDate(startDate)} - ${formatDate(endDate)}`;
+                            } else {
+                                document.getElementById('viewSubscriptionPeriod').textContent = 'No active subscription';
+                            }
+                            
+                            // Set payment method if available
+                            if (member.PAY_METHOD) {
+                                document.getElementById('viewPaymentMethod').textContent = member.PAY_METHOD;
+                            } else {
+                                document.getElementById('viewPaymentMethod').textContent = 'Not specified';
+                            }
+                        } else {
+                            document.getElementById('viewSubscriptionPlan').textContent = 'No subscription plan';
+                            document.getElementById('viewSubscriptionPeriod').textContent = 'N/A';
+                            document.getElementById('viewPaymentMethod').textContent = 'N/A';
+                        }
                         
                         // Set status
                         const viewStatus = document.getElementById('viewStatus');
@@ -1790,63 +2597,79 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                             `;
                         }
                         
+                        // Fetch and display member comorbidities
+                        fetchMemberComorbidities(memberId);
+                        
                         // Set Edit Member button to pass the correct member ID
                         const viewEditButton = document.getElementById('viewEditButton');
-                        viewEditButton.setAttribute('data-id', memberId);
-                        
-                        // Add event listener to the Edit Member button
-                        viewEditButton.onclick = function() {
-                            // Close view modal
-                            document.getElementById('viewMemberModal').classList.add('hidden');
-                            // Open edit modal with this member ID
-                            handleEditMember(memberId);
-                        };
-                        
-                        // Set subscription details
-                        if (member.SUB_NAME) {
-                            document.getElementById('viewSubscriptionPlan').textContent = member.SUB_NAME;
-                            
-                            // Format subscription period from START_DATE and END_DATE
-                            if (member.START_DATE && member.END_DATE) {
-                                const startDate = new Date(member.START_DATE);
-                                const endDate = new Date(member.END_DATE);
-                                document.getElementById('viewSubscriptionPeriod').textContent = 
-                                    `${formatDate(startDate)} - ${formatDate(endDate)}`;
-                            } else {
-                                document.getElementById('viewSubscriptionPeriod').textContent = 'No active subscription';
-                            }
-                        } else {
-                            document.getElementById('viewSubscriptionPlan').textContent = 'No subscription plan';
-                            document.getElementById('viewSubscriptionPeriod').textContent = 'N/A';
+                        if (viewEditButton) {
+                            viewEditButton.setAttribute('data-id', memberId);
                         }
-                        
-                        // Add event listeners for closing the modal
-                        const viewCloseButton = document.getElementById('viewCloseButton');
-                        const closeViewModal = document.getElementById('closeViewModal');
-                        const viewMemberModal = document.getElementById('viewMemberModal');
-                        
-                        // Function to close view modal
-                        const closeViewModalHandler = () => {
-                            viewMemberModal.classList.add('hidden');
-                            document.body.classList.remove('overflow-hidden');
-                        };
-                        
-                        // Remove existing event listeners if any
-                        viewCloseButton.removeEventListener('click', closeViewModalHandler);
-                        closeViewModal.removeEventListener('click', closeViewModalHandler);
-                        
-                        // Add event listeners
-                        viewCloseButton.addEventListener('click', closeViewModalHandler);
-                        closeViewModal.addEventListener('click', closeViewModalHandler);
                         
                         // Show the view modal
                         viewMemberModal.classList.remove('hidden');
                         document.body.classList.add('overflow-hidden');
+                        
+                        // Add event listener to close button in view modal
+                        document.getElementById('viewCloseButton').addEventListener('click', function() {
+                            document.getElementById('viewMemberModal').classList.add('hidden');
+                            document.body.classList.remove('overflow-hidden');
+                        });
+                        
+                        // Add event listener to X button in view modal
+                        document.getElementById('closeViewModal').addEventListener('click', function() {
+                            document.getElementById('viewMemberModal').classList.add('hidden');
+                            document.body.classList.remove('overflow-hidden');
+                        });
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     showToast('Error loading member details', false);
+                    
+                    // Make sure the modal is closed
+                    const viewMemberModal = document.getElementById('viewMemberModal');
+                    if (viewMemberModal && !viewMemberModal.classList.contains('hidden')) {
+                        viewMemberModal.classList.add('hidden');
+                        document.body.classList.remove('overflow-hidden');
+                    }
+                });
+        }
+
+        // Function to fetch member comorbidities
+        function fetchMemberComorbidities(memberId) {
+            fetch(`../../api/members/get-comorbidities.php?member_id=${memberId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const viewComorbidities = document.getElementById('viewComorbidities');
+                    viewComorbidities.innerHTML = '';
+                    
+                    if (data.status === 'success' && data.comorbidities && data.comorbidities.length > 0) {
+                        // Display each comorbidity
+                        data.comorbidities.forEach(comorbidity => {
+                            const span = document.createElement('span');
+                            span.className = 'px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800';
+                            span.textContent = comorbidity.COMOR_NAME;
+                            viewComorbidities.appendChild(span);
+                        });
+                    } else {
+                        // No comorbidities
+                        const span = document.createElement('span');
+                        span.className = 'px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800';
+                        span.textContent = 'None';
+                        viewComorbidities.appendChild(span);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching comorbidities:', error);
+                    const viewComorbidities = document.getElementById('viewComorbidities');
+                    viewComorbidities.innerHTML = '<span class="text-xs text-red-500">Error loading comorbidities</span>';
+                    showToast('Error loading comorbidities', false);
                 });
         }
 
@@ -1860,7 +2683,12 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
             }
             
             fetch(`../../api/members/view.php?id=${memberId}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(member => {
                     if (member) {
                         // Set basic info
@@ -1922,9 +2750,9 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                                 option.selected = false;
                             });
                             // Set selected comorbidities
-                            member.comorbidities.forEach(comorbidityId => {
+                            member.comorbidities.forEach(comorbidity => {
                                 Array.from(comorbidities.options).forEach(option => {
-                                    if (option.value == comorbidityId) {
+                                    if (option.value == comorbidity.COMOR_ID) {
                                         option.selected = true;
                                     }
                                 });
@@ -1951,11 +2779,7 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                                 `${member.SUB_NAME} from ${formatDate(new Date(member.START_DATE))} to ${formatDate(new Date(member.END_DATE))}`;
                         }
 
-                        // Disable program, coach and subscription fields when editing
-                        document.getElementById('program').disabled = true;
-                        document.getElementById('program').classList.add('bg-gray-100', 'cursor-not-allowed');
-                        document.getElementById('coach').disabled = true;
-                        document.getElementById('coach').classList.add('bg-gray-100', 'cursor-not-allowed');
+                        // Disable subscription fields when editing (but keep program and coach enabled)
                         document.getElementById('subscriptionType').disabled = true;
                         document.getElementById('subscriptionType').classList.add('bg-gray-100', 'cursor-not-allowed');
                         document.getElementById('startDate').readOnly = true;
@@ -1964,24 +2788,6 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                         document.getElementById('endDate').classList.add('bg-gray-100', 'cursor-not-allowed');
                         document.getElementById('paymentMethod').disabled = true;
                         document.getElementById('paymentMethod').classList.add('bg-gray-100', 'cursor-not-allowed');
-
-                        // Add info message about non-editable fields
-                        const programContainer = document.getElementById('program').closest('div').parentNode;
-                        if (!document.getElementById('programEditInfo')) {
-                            const infoNote = document.createElement('div');
-                            infoNote.id = 'programEditInfo';
-                            infoNote.className = 'mt-3 p-3 bg-blue-50 rounded-md border border-blue-100 text-sm text-blue-800';
-                            infoNote.innerHTML = `
-                                <div class="flex items-start">
-                                    <i class="fas fa-info-circle mt-0.5 mr-2"></i>
-                                    <div>
-                                        <p class="font-medium">Program & Coach Information</p>
-                                        <p class="text-xs mt-1">Program and coach selections cannot be modified. To change these, please create a new member record.</p>
-                                    </div>
-                                </div>
-                            `;
-                            programContainer.appendChild(infoNote);
-                        }
 
                         // Add info message about non-editable subscription
                         const subscriptionContainer = document.getElementById('subscriptionType').closest('div').parentNode;
@@ -2011,8 +2817,120 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'staff'));
                 .catch(error => {
                     console.error('Error:', error);
                     showToast('Error loading member details', false);
+                    
+                    // Close the modal if there's an error
+                    const memberModal = document.getElementById('memberModal');
+                    if (!memberModal.classList.contains('hidden')) {
+                        memberModal.classList.add('hidden');
+                        document.body.classList.remove('overflow-hidden');
+                    }
                 });
         }
+
+        // Subscription renewal logic
+        function initSubscriptionRenewal() {
+            const renewalCheckbox = document.getElementById('renewSubscription');
+            const renewalFields = document.getElementById('renewalFields');
+            const renewSubscriptionType = document.getElementById('renewSubscriptionType');
+            const renewStartDate = document.getElementById('renewStartDate');
+            const renewEndDate = document.getElementById('renewEndDate');
+            const renewalSummary = document.getElementById('renewalSummary');
+            const renewalSummaryText = document.getElementById('renewalSummaryText');
+            const renewalPrice = document.getElementById('renewalPrice');
+            
+            if (renewalCheckbox && renewalFields) {
+                // Set today as default start date for renewal
+                const today = new Date();
+                renewStartDate.value = today.toISOString().split('T')[0];
+                
+                // Toggle renewal fields visibility
+                renewalCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        renewalFields.classList.remove('hidden');
+                    } else {
+                        renewalFields.classList.add('hidden');
+                        // Clear renewal form
+                        renewSubscriptionType.value = '';
+                        renewalSummary.classList.add('hidden');
+                    }
+                });
+                
+                // Calculate end date when subscription type or start date changes
+                renewSubscriptionType.addEventListener('change', calculateRenewalEndDate);
+                renewStartDate.addEventListener('change', calculateRenewalEndDate);
+                
+                function calculateRenewalEndDate() {
+                    const selectedOption = renewSubscriptionType.options[renewSubscriptionType.selectedIndex];
+                    
+                    if (renewSubscriptionType.value && renewStartDate.value) {
+                        const duration = parseInt(selectedOption.dataset.duration);
+                        const price = parseFloat(selectedOption.dataset.price);
+                        const start = new Date(renewStartDate.value);
+                        
+                        // Calculate end date by adding duration in days
+                        const end = new Date(start);
+                        end.setDate(end.getDate() + duration);
+                        renewEndDate.value = end.toISOString().split('T')[0];
+                        
+                        // Show renewal summary
+                        renewalSummary.classList.remove('hidden');
+                        renewalSummaryText.textContent = `${selectedOption.text} from ${formatDate(start)} to ${formatDate(end)}`;
+                        renewalPrice.textContent = `Total Amount: ₱${price.toLocaleString('en-PH')}`;
+                    } else {
+                        renewEndDate.value = '';
+                        renewalSummary.classList.add('hidden');
+                    }
+                }
+                
+                function formatDate(date) {
+                    return date.toLocaleDateString('en-PH', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+            }
+        }
+
+        // Initialize all components
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMembers();
+            
+            // Initialize all the components with their event listeners
+            initModalToggle();
+            initCoachFilters();
+            initSubscriptionLogic();
+            initViewAndEditButtons();
+            initSearchAndFilters();
+            initSubscriptionRenewal(); // Add this line
+            
+            // Set today's date as default for new member form
+            const today = new Date();
+            const todayFormatted = today.toISOString().split('T')[0];
+            document.getElementById('startDate').value = todayFormatted;
+            document.getElementById('transactionDate').value = todayFormatted;
+            
+            setTimeout(() => {
+                document.getElementById('coach').disabled = true;
+                document.getElementById('coach').innerHTML = '<option value="">Select a program first</option>';
+                document.getElementById('allCoaches').parentElement.parentElement.style.display = 'none';
+            }, 100);
+        });
+
+        // No need for this duplicate event listener as we already set up the click handler in handleViewMember
+        /* document.body.addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'viewEditButton') {
+                // Get the member ID from the button's data attribute
+                const memberId = e.target.getAttribute('data-id');
+                
+                // Close the view modal
+                viewModal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+                
+                // Open the edit modal
+                editMember(memberId);
+            }
+        }); */
     </script>
 </body>
 </html>

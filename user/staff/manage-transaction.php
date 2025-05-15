@@ -1,4 +1,16 @@
 <?php
+// Start session to access user data
+session_start();
+require_once '../../functions/transaction-functions.php';
+require_once '../../functions/role-helpers.php';
+
+// Check page access for admin and staff roles
+checkPageAccess(['administrator', 'staff']);
+
+// Get user data from session
+$fullName = $_SESSION['name'] ?? 'Admin User';
+$role = ucfirst(strtolower($_SESSION['role'] ?? 'Administrator'));
+
 require_once '../../config/db_connection.php';
 require_once '../../functions/transaction-functions.php';
 
@@ -81,22 +93,7 @@ $activeSubscriptions = getActiveSubscriptions();
                         <div id="dropdown-management" class="hidden overflow-hidden transition-all duration-300 ease-in-out">
                             <ul class="pt-1 pb-1">
                                 <li>
-                                    <a href="manage-users.php" class="sidebar-dropdown-item">User</a>
-                                </li>
-                                <li>
                                     <a href="manage-members.php" class="sidebar-dropdown-item">Member</a>
-                                </li>
-                                <li>
-                                    <a href="manage-programs-coaches.php" class="sidebar-dropdown-item">Program & Coach</a>
-                                </li>
-                                <li>
-                                    <a href="manage-comorbidities.php" class="sidebar-dropdown-item">Comorbidities</a>
-                                </li>
-                                <li>
-                                    <a href="manage-subscription.php" class="sidebar-dropdown-item">Subscription</a>
-                                </li>
-                                <li>
-                                    <a href="manage-payment.php" class="sidebar-dropdown-item">Payment</a>
                                 </li>
                             </ul>
                         </div>
@@ -144,8 +141,8 @@ $activeSubscriptions = getActiveSubscriptions();
                         <!-- User Profile -->
                         <a href="edit-profile.php" class="flex items-center space-x-3 pr-2 cursor-pointer">
                             <div class="text-right hidden sm:block">
-                                <p class="text-sm font-medium text-gray-700">John Doe</p>
-                                <p class="text-xs text-gray-500">Administrator</p>
+                                <p class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($fullName); ?></p>
+                                <p class="text-xs text-gray-500"><?php echo htmlspecialchars($role); ?></p>
                             </div>
                             <div class="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-white">
                                 <i class="fas fa-user text-lg"></i>
@@ -172,7 +169,7 @@ $activeSubscriptions = getActiveSubscriptions();
                 
                 <div class="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow duration-300">
                     <h3 class="text-sm font-medium text-gray-500 uppercase mb-2">Total Revenue</h3>
-                    <p class="text-3xl font-bold text-gray-800" id="totalRevenue">$<?php echo number_format($transactionSummary['revenue'], 2); ?></p>
+                    <p class="text-3xl font-bold text-gray-800" id="totalRevenue">₱<?php echo number_format($transactionSummary['revenue'], 2); ?></p>
                     <div class="flex items-center mt-2">
                         <span class="text-<?php echo $transactionSummary['growth']['revenue'] >= 0 ? 'green' : 'red'; ?>-600 text-sm mr-1">
                             <?php echo ($transactionSummary['growth']['revenue'] >= 0 ? '+' : '') . $transactionSummary['growth']['revenue']; ?>%
@@ -239,8 +236,8 @@ $activeSubscriptions = getActiveSubscriptions();
                             </div>
                             <select id="subFilter" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200 appearance-none bg-white">
                                 <option value="all">All Subscriptions</option>
-                                <?php foreach ($subscriptionPlans as $plan): ?>
-                                <option value="<?php echo $plan['SUB_ID']; ?>"><?php echo htmlspecialchars($plan['SUB_NAME']); ?></option>
+                                <?php foreach ($subscriptionPlans as $sub): ?>
+                                <option value="<?php echo $sub['SUB_ID']; ?>"><?php echo htmlspecialchars($sub['SUB_NAME']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
@@ -405,14 +402,16 @@ $activeSubscriptions = getActiveSubscriptions();
                                                 <?php if ($sub['IS_ACTIVE']): ?>
                                                     <button class="text-red-600 hover:text-red-800 transition-colors" 
                                                             title="Deactivate subscription" 
-                                                            data-sub-id="<?php echo $sub['MEMBER_ID']; ?>" 
+                                                            data-sub-id="<?php echo $sub['SUB_ID']; ?>" 
+                                                            data-member-id="<?php echo $sub['MEMBER_ID']; ?>" 
                                                             data-action="deactivate">
                                                         <i class="fas fa-toggle-off"></i>
                                                     </button>
                                                 <?php else: ?>
                                                     <button class="text-green-600 hover:text-green-800 transition-colors" 
                                                             title="Renew subscription" 
-                                                            data-sub-id="<?php echo $sub['MEMBER_ID']; ?>" 
+                                                            data-sub-id="<?php echo $sub['SUB_ID']; ?>" 
+                                                            data-member-id="<?php echo $sub['MEMBER_ID']; ?>" 
                                                             data-action="renew">
                                                         <i class="fas fa-sync-alt"></i>
                                                     </button>
@@ -530,11 +529,9 @@ $activeSubscriptions = getActiveSubscriptions();
                                 <option value="">Select Subscription</option>
                                 <?php foreach ($subscriptionPlans as $plan): ?>
                                     <option value="<?php echo $plan['SUB_ID']; ?>" 
-                                            data-duration="<?php echo htmlspecialchars($plan['DURATION']); ?>" 
-                                            data-price="<?php echo htmlspecialchars($plan['PRICE']); ?>">
-                                        <?php echo htmlspecialchars($plan['SUB_NAME']); ?> 
-                                        (<?php echo htmlspecialchars($plan['DURATION']); ?> Days - 
-                                        ₱<?php echo number_format($plan['PRICE'], 2); ?>)
+                                            data-duration="<?php echo $plan['DURATION']; ?> Days" 
+                                            data-price="<?php echo number_format($plan['PRICE'], 2); ?>">
+                                        <?php echo $plan['SUB_NAME']; ?> (₱<?php echo number_format($plan['PRICE'], 2); ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -594,7 +591,7 @@ $activeSubscriptions = getActiveSubscriptions();
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
                                     <i class="fas fa-calendar-check"></i>
                                 </div>
-                                <input type="date" id="endDateInput" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200">
+                                <input type="date" id="endDateInput" class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" readonly>
                             </div>
                         </div>
                     </div>
@@ -931,6 +928,126 @@ $activeSubscriptions = getActiveSubscriptions();
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
     <script>
+        // Define these functions in global scope so they're always available
+        window.resetTransactionModalUI = function() {
+            try {
+                console.log("Reset UI called");
+                const modal = document.getElementById('addTransactionModal');
+                if (!modal) return;
+                
+                // Properly close the modal
+                if (typeof closeModal === 'function') {
+                    closeModal(modal);
+                } else {
+                    modal.classList.add('hidden');
+                }
+                
+                // Reset form
+                const form = document.getElementById('addTransactionForm');
+                if (form) form.reset();
+                
+                // Reset member search
+                const memberSearchContainer = document.getElementById('memberSearch');
+                if (memberSearchContainer) {
+                    memberSearchContainer.value = '';
+                    const memberSearchParent = memberSearchContainer.parentElement;
+                    if (memberSearchParent && memberSearchParent.parentElement) {
+                        memberSearchParent.parentElement.classList.remove('hidden');
+                    }
+                }
+                
+                // Hide member info
+                const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+                if (selectedMemberInfo) {
+                    selectedMemberInfo.classList.add('hidden');
+                }
+                
+                console.log("Transaction modal UI reset successfully");
+            } catch (e) {
+                console.error("Error in resetTransactionModalUI:", e);
+            }
+        };
+        
+        window.hideToast = function() {
+            try {
+                const toast = document.getElementById('toast');
+                if (!toast) return;
+                
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 300);
+            } catch (e) {
+                console.error("Error in hideToast:", e);
+            }
+        };
+        
+        window.showToast = function(message, isSuccess = true) {
+            try {
+                const toast = document.getElementById('toast');
+                const toastMessage = document.getElementById('toastMessage');
+                const toastIcon = document.getElementById('toastIcon');
+                
+                if (!toast || !toastMessage || !toastIcon) {
+                    console.error("Toast elements not found");
+                    alert(message);
+                    return;
+                }
+                
+                toastMessage.textContent = message;
+                
+                if (isSuccess) {
+                    toast.classList.remove('bg-red-600');
+                    toast.classList.add('bg-green-600');
+                    toastIcon.classList.remove('fa-times-circle');
+                    toastIcon.classList.add('fa-check-circle');
+                } else {
+                    toast.classList.remove('bg-green-600');
+                    toast.classList.add('bg-red-600');
+                    toastIcon.classList.remove('fa-check-circle');
+                    toastIcon.classList.add('fa-times-circle');
+                }
+                
+                toast.style.display = 'flex';
+                setTimeout(() => {
+                    toast.classList.remove('translate-x-full', 'opacity-0');
+                }, 10);
+                
+                // Auto hide after 5 seconds
+                setTimeout(window.hideToast, 5000);
+            } catch (e) {
+                console.error("Error in showToast:", e);
+                alert(message);
+            }
+        };
+        
+        window.updateSummaryCards = function() {
+            try {
+                // Get current values
+                const totalTransactions = document.getElementById('totalTransactions');
+                const totalRevenue = document.getElementById('totalRevenue');
+                const recentTransactions = document.getElementById('recentTransactions');
+                
+                if (!totalTransactions || !totalRevenue || !recentTransactions) {
+                    console.error("Summary card elements not found");
+                    return;
+                }
+                
+                // Increment values
+                totalTransactions.textContent = (parseInt(totalTransactions.textContent || '0') + 1).toString();
+                
+                // Update revenue
+                const currentRevenue = parseFloat(totalRevenue.textContent.replace(/[^0-9.]/g, '') || '0');
+                const subscriptionPrice = parseFloat(document.getElementById('subPrice')?.textContent.replace(/[^0-9.]/g, '') || '0');
+                totalRevenue.textContent = '$' + (currentRevenue + subscriptionPrice).toFixed(2);
+                
+                // Increment recent transactions
+                recentTransactions.textContent = (parseInt(recentTransactions.textContent || '0') + 1).toString();
+            } catch (e) {
+                console.error("Error in updateSummaryCards:", e);
+            }
+        };
+        
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize dropdown toggle functionality
             const dropdownButtons = document.querySelectorAll('[data-collapse-toggle]');
@@ -1277,70 +1394,139 @@ $activeSubscriptions = getActiveSubscriptions();
             initActionButtons();
 
             function initActionButtons() {
-                // Deactivate subscription - Needs confirmation
+                // Deactivate subscription buttons
                 document.querySelectorAll('[data-action="deactivate"]').forEach(button => {
                     button.addEventListener('click', function() {
                         const subId = this.getAttribute('data-sub-id');
+                        const memberId = this.getAttribute('data-member-id');
+                        
+                        console.log("Deactivate button clicked with:", { subId, memberId });
+                        
+                        // Validate that we have both IDs
+                        if (!subId || !memberId) {
+                            console.error("Missing required data attributes:", { subId, memberId });
+                            showToast('Missing subscription or member information', false);
+                            return;
+                        }
+                        
                         // Show confirmation dialog for deactivation
                         showConfirmationDialog(
-                            'Confirm Deactivation',
+                            'Deactivate Subscription',
                             'Are you sure you want to deactivate this subscription?',
-                            () => {
-                                // Show loading state
-                                const originalHTML = this.innerHTML;
-                                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                                this.disabled = true;
-
-                                // Simulate network request
-                                setTimeout(() => {
-                                    // Update UI
-                                    const row = this.closest('tr');
-                                    const statusCell = row.querySelector('td:nth-child(6) span');
-                                    statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
-                                    statusCell.textContent = 'Inactive';
-
-                                    // Create a new renew button with proper event handling
-                                    const newRenewButton = document.createElement('button');
-                                    newRenewButton.className = 'text-green-600 hover:text-green-800 transition-colors';
-                                    newRenewButton.title = 'Renew subscription';
-                                    newRenewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                                    newRenewButton.setAttribute('data-sub-id', subId);
-                                    newRenewButton.setAttribute('data-action', 'renew');
-                                    
-                                    // Replace the old button with the new one
-                                    this.parentNode.replaceChild(newRenewButton, this);
-                                    
-                                    // Explicitly add click event to the new button
-                                    newRenewButton.addEventListener('click', function() {
-                                        const row = this.closest('tr');
-                                        const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
-                                        const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
-                                        openRenewModal(memberName, subscriptionName);
-                                    });
-
-                                    // Show notification
-                                    showToast('Subscription deactivated successfully!', true);
-                                }, 800);
+                            function() {
+                                // Get the row containing this button
+                                const row = button.closest('tr');
+                                if (row) {
+                                    // Send deactivation request to server
+                                    deactivateSubscription(memberId, subId, row);
+                                } else {
+                                    console.error("Could not find parent row");
+                                    showToast('Error: Could not find subscription details', false);
+                                }
                             }
                         );
                     });
                 });
-
-                // Set up direct renewal modal opening for existing renew buttons
+                
+                // Renew subscription buttons
                 document.querySelectorAll('[data-action="renew"]').forEach(button => {
                     button.addEventListener('click', function() {
+                        const subId = this.getAttribute('data-sub-id');
+                        const memberId = this.getAttribute('data-member-id');
                         const row = this.closest('tr');
                         const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
                         const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
                         
                         // Open renewal form modal
-                        openRenewModal(memberName, subscriptionName);
+                        openRenewModal(memberId, subId, memberName, subscriptionName);
                     });
                 });
             }
 
+            function deactivateSubscription(memberId, subId, row) {
+                // Show "processing" state on the button
+                const deactivateButton = row.querySelector('[data-action="deactivate"]');
+                const originalButtonHTML = deactivateButton.innerHTML;
+                deactivateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                deactivateButton.disabled = true;
+                
+                console.log('Deactivating subscription:', { memberId, subId });
+                
+                // Send AJAX request to deactivate subscription
+                fetch('../../functions/deactivate-subscription.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        memberId: memberId,
+                        subId: subId
+                    })
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Deactivation response:', data);
+                    
+                    if (data.success) {
+                        // Update the UI
+                        const statusCell = row.querySelector('td:nth-child(6) span');
+                        statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+                        statusCell.textContent = 'Inactive';
+                        
+                        // Hide the deactivate button
+                        deactivateButton.style.display = 'none';
+                        
+                        // Add renew button if it doesn't exist
+                        const actionsCell = row.querySelector('td:nth-child(7)');
+                        if (!actionsCell.querySelector('[data-action="renew"]')) {
+                            const renewButton = document.createElement('button');
+                            renewButton.setAttribute('data-sub-id', subId);
+                            renewButton.setAttribute('data-member-id', memberId);
+                            renewButton.setAttribute('data-action', 'renew');
+                            renewButton.className = 'text-green-600 hover:text-green-800 transition-colors';
+                            renewButton.title = 'Renew subscription';
+                            renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                            
+                            // Add event listener for the renew button
+                            renewButton.addEventListener('click', function() {
+                                const memberId = this.getAttribute('data-member-id');
+                                const subId = this.getAttribute('data-sub-id');
+                                const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+                                const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+                                
+                                // Open renewal form modal with this data
+                                openRenewModal(memberId, subId, memberName, subscriptionName);
+                            });
+                            
+                            actionsCell.appendChild(renewButton);
+                        }
+                        
+                        // Show success message
+                        showToast(data.message || 'Subscription deactivated successfully', true);
+                    } else {
+                        // Show error message
+                        showToast(data.message || 'Failed to deactivate subscription', false);
+                        
+                        // Restore the button
+                        deactivateButton.innerHTML = originalButtonHTML;
+                        deactivateButton.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('An error occurred while deactivating the subscription', false);
+                    
+                    // Restore the button
+                    deactivateButton.innerHTML = originalButtonHTML;
+                    deactivateButton.disabled = false;
+                });
+            }
+
             // Function to open renew modal with pre-filled data
-            function openRenewModal(memberName, subscriptionName) {
+            function openRenewModal(memberId, subId, memberName, subscriptionName) {
                 const modal = document.getElementById('addTransactionModal');
                 if (modal) {
                     // Show the modal first
@@ -1375,7 +1561,7 @@ $activeSubscriptions = getActiveSubscriptions();
                     memberInitials.textContent = initials;
                     memberNameElement.textContent = memberName;
                     memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
-                    selectedMemberId.value = '1001'; // This would be replaced with actual ID
+                    selectedMemberId.value = memberId;
                     
                     // Completely hide the change button for renewals
                     if (changeMemberBtn) {
@@ -1475,24 +1661,44 @@ $activeSubscriptions = getActiveSubscriptions();
                         
                         // Simulate API call with timeout
                         setTimeout(() => {
-                            // Close modal
-                            closeModal(document.getElementById('addTransactionModal'));
-                            
-                            // Reset form
-                            addTransactionForm.reset();
-                            
-                            // Reset the UI for future new transactions
-                            resetTransactionModalUI();
-                            
-                            // Update summary cards (simulating data refresh)
-                            updateSummaryCards();
-                            
-                            // Show success notification using the toast
-                            showToast(`${subscriptionName} successfully added for ${memberName}!`, true);
-                            
-                            // Reset button
-                            submitBtn.innerHTML = originalBtnText;
-                            submitBtn.disabled = false;
+                            try {
+                                // Close modal
+                                if (typeof closeModal === 'function') {
+                                    closeModal(document.getElementById('addTransactionModal'));
+                                } else {
+                                    document.getElementById('addTransactionModal').classList.add('hidden');
+                                }
+                                
+                                // Reset form
+                                addTransactionForm.reset();
+                                
+                                // Try to use the global function
+                                if (typeof window.updateSummaryCards === 'function') {
+                                    window.updateSummaryCards();
+                                }
+                                
+                                // Show success notification
+                                if (typeof window.showToast === 'function') {
+                                    window.showToast(`${subscriptionName} successfully added for ${memberName}!`, true);
+                                } else {
+                                    alert(`${subscriptionName} successfully added for ${memberName}!`);
+                                }
+                                
+                                // Reset button
+                                submitBtn.innerHTML = originalBtnText;
+                                submitBtn.disabled = false;
+                                
+                                // Refresh the page after a delay for a clean reset
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 2000);
+                            } catch (error) {
+                                console.error("Error in transaction processing:", error);
+                                alert("Transaction successful but there was an error updating the UI. The page will refresh.");
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 2000);
+                            }
                         }, 1000);
                     }
                 });
@@ -1662,7 +1868,7 @@ $activeSubscriptions = getActiveSubscriptions();
                 }
                 
                 // Reset the submit button
-                const submitButton = modal.querySelector('button[type="submit"]');
+                const submitButton = document.getElementById('submitTransactionBtn');
                 if (submitButton) {
                     submitButton.innerHTML = '<i class="fas fa-save mr-2"></i> Add Transaction';
                 }
@@ -1678,9 +1884,9 @@ $activeSubscriptions = getActiveSubscriptions();
                     const emptyState = document.getElementById('subscriptionEmptyState');
                     
                     // Save original button text and disable button during processing
-                    const originalBtnText = this.innerHTML;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
-                    this.disabled = true;
+                    const originalBtnText = applyFiltersBtn.innerHTML;
+                    applyFiltersBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+                    applyFiltersBtn.disabled = true;
                     
                     // Hide table body and empty state, show loading
                     tableBody.closest('table').classList.add('hidden');
@@ -1704,8 +1910,8 @@ $activeSubscriptions = getActiveSubscriptions();
                         
                         if (start > end) {
                             // Reset button state
-                            this.innerHTML = originalBtnText;
-                            this.disabled = false;
+                            applyFiltersBtn.innerHTML = originalBtnText;
+                            applyFiltersBtn.disabled = false;
                             
                             // Hide loading
                             loadingState.classList.add('hidden');
@@ -1726,7 +1932,6 @@ $activeSubscriptions = getActiveSubscriptions();
                         body: JSON.stringify(filterData)
                     })
                     .then(response => {
-                        // Check if response is ok (status 200-299)
                         if (!response.ok) {
                             throw new Error(`Server responded with status: ${response.status}`);
                         }
@@ -1734,15 +1939,15 @@ $activeSubscriptions = getActiveSubscriptions();
                     })
                     .then(data => {
                         // Reset button state
-                        this.innerHTML = originalBtnText;
-                        this.disabled = false;
+                        applyFiltersBtn.innerHTML = originalBtnText;
+                        applyFiltersBtn.disabled = false;
                         
                         // Hide loading state
                         loadingState.classList.add('hidden');
                         
-                        // Check if the response contains an error status
+                        // Check if there's an error in the response
                         if (data.status === 'error') {
-                            throw new Error(data.message || 'Unknown error occurred');
+                            throw new Error(data.error || 'Unknown error occurred');
                         }
                         
                         if (data.length === 0) {
@@ -1844,27 +2049,37 @@ $activeSubscriptions = getActiveSubscriptions();
                     })
                     .catch(error => {
                         // Reset button state
-                        this.innerHTML = originalBtnText;
-                        this.disabled = false;
+                        applyFiltersBtn.innerHTML = originalBtnText;
+                        applyFiltersBtn.disabled = false;
                         
                         // Hide loading state
                         loadingState.classList.add('hidden');
                         
-                        console.error('Error applying filters:', error);
-                        
-                        // Show helpful error message
-                        let errorMessage = 'Error applying filters.';
-                        if (error.message) {
-                            errorMessage += ' ' + error.message;
-                        }
-                        showToast(errorMessage, false);
-                        
                         // Show table again in case of error
                         tableBody.closest('table').classList.remove('hidden');
+                        
+                        // Use centralized error handling
+                        handleFetchError(error, 'Error applying filters.');
                     });
                 });
             }
 
+            // Add reset filters functionality
+            const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+            if (resetFiltersBtn) {
+                resetFiltersBtn.addEventListener('click', function() {
+                    resetFilters();
+                });
+            }
+            
+            // Also add reset functionality to the empty state button
+            const emptyStateResetBtn = document.getElementById('emptyStateResetBtn');
+            if (emptyStateResetBtn) {
+                emptyStateResetBtn.addEventListener('click', function() {
+                    resetFilters();
+                });
+            }
+            
             // Function to reset filters
             function resetFilters() {
                 // Reset all filter fields
@@ -1878,16 +2093,16 @@ $activeSubscriptions = getActiveSubscriptions();
                 document.getElementById('subFilter').selectedIndex = 0;
                 document.getElementById('programFilter').selectedIndex = 0;
                 
+                // Save original button text and disable reset button during processing
+                const resetBtn = document.getElementById('resetFiltersBtn');
+                const originalBtnText = resetBtn.innerHTML;
+                resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+                resetBtn.disabled = true;
+                
                 // Show loading state
                 const tableBody = document.getElementById('subscriptionStatusBody');
                 const loadingState = document.getElementById('subscriptionLoadingState');
                 const emptyState = document.getElementById('subscriptionEmptyState');
-                const resetBtn = document.getElementById('resetFiltersBtn');
-                
-                // Save original button text and disable button during processing
-                const originalBtnText = resetBtn.innerHTML;
-                resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
-                resetBtn.disabled = true;
                 
                 // Hide table body and empty state, show loading
                 tableBody.closest('table').classList.add('hidden');
@@ -1910,7 +2125,6 @@ $activeSubscriptions = getActiveSubscriptions();
                     })
                 })
                 .then(response => {
-                    // Check if response is ok (status 200-299)
                     if (!response.ok) {
                         throw new Error(`Server responded with status: ${response.status}`);
                     }
@@ -1924,9 +2138,9 @@ $activeSubscriptions = getActiveSubscriptions();
                     // Hide loading state
                     loadingState.classList.add('hidden');
                     
-                    // Check if the response contains an error status
+                    // Check if there's an error in the response
                     if (data.status === 'error') {
-                        throw new Error(data.message || 'Unknown error occurred');
+                        throw new Error(data.error || 'Unknown error occurred');
                     }
                     
                     if (data.length === 0) {
@@ -2015,16 +2229,16 @@ $activeSubscriptions = getActiveSubscriptions();
                         // Show the table
                         tableBody.closest('table').classList.remove('hidden');
                         
+                        // Update summary numbers (expiring subscriptions)
+                        document.getElementById('expiringSubscriptions').textContent = 
+                            data.filter(sub => sub.daysLeft >= 0 && sub.daysLeft <= 7 && sub.isActive).length;
+                        
                         // Reinitialize action buttons
                         initActionButtons();
                     }
                     
-                    // Update summary numbers
-                    document.getElementById('expiringSubscriptions').textContent = 
-                        data.filter(sub => sub.daysLeft >= 0 && sub.daysLeft <= 7 && sub.isActive).length;
-                        
                     // Show success notification
-                    showToast('Filters reset successfully', true);
+                    showToast('Filters reset!', true);
                 })
                 .catch(error => {
                     // Reset button state
@@ -2045,25 +2259,6 @@ $activeSubscriptions = getActiveSubscriptions();
                     
                     // Show table again in case of error
                     tableBody.closest('table').classList.remove('hidden');
-                });
-            }
-
-            // Keep the existing member search inside the modal untouched
-            // ...existing code...
-
-            // Add reset filters functionality
-            const resetFiltersBtn = document.getElementById('resetFiltersBtn');
-            if (resetFiltersBtn) {
-                resetFiltersBtn.addEventListener('click', function() {
-                    resetFilters();
-                });
-            }
-            
-            // Also add reset functionality to the empty state button
-            const emptyStateResetBtn = document.getElementById('emptyStateResetBtn');
-            if (emptyStateResetBtn) {
-                emptyStateResetBtn.addEventListener('click', function() {
-                    resetFilters();
                 });
             }
 
@@ -2098,6 +2293,8 @@ $activeSubscriptions = getActiveSubscriptions();
                 });
             }
 
+            // ...existing code...
+            
             // Function to fetch expiring subscriptions count
             function fetchExpiringCount() {
                 fetch('../../functions/get-expiring-count.php')
@@ -2113,45 +2310,593 @@ $activeSubscriptions = getActiveSubscriptions();
             
             // Initialize action buttons
             initActionButtons();
+            
+            // ...existing code...
+        });
+
+        // Functions for the toast notification (matching member UI)
+        function hideToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 300);
+        }
+
+        // Show success toast
+        function showToast(message, isSuccess = true) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+            
+            toastMessage.textContent = message;
+            
+            if (isSuccess) {
+                toast.classList.remove('bg-red-600');
+                toast.classList.add('bg-green-600');
+                toastIcon.classList.remove('fa-times-circle');
+                toastIcon.classList.add('fa-check-circle');
+            } else {
+                toast.classList.remove('bg-green-600');
+                toast.classList.add('bg-red-600');
+                toastIcon.classList.remove('fa-check-circle');
+                toastIcon.classList.add('fa-times-circle');
+            }
+            
+            toast.style.display = 'flex';
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full', 'opacity-0');
+            }, 10);
+            
+            // Auto hide after 5 seconds
+            setTimeout(hideToast, 5000);
+        }
+
+        // Show confirmation dialog
+        function showConfirmationDialog(title, message, onConfirm) {
+            const confirmationDialog = document.getElementById('confirmationDialog');
+            const confirmationTitle = document.getElementById('confirmationTitle');
+            const confirmationMessage = document.getElementById('confirmationMessage');
+            const confirmAction = document.getElementById('confirmAction');
+            const cancelConfirmation = document.getElementById('cancelConfirmation');
+
+            confirmationTitle.textContent = title;
+            confirmationMessage.textContent = message;
+
+            // Update button styles to match member UI
+            if (title === 'Discard Changes') {
+                confirmAction.textContent = 'Discard Changes';
+                confirmAction.classList.remove('bg-primary-dark');
+                confirmAction.classList.add('bg-red-600', 'hover:bg-red-700');
+                
+                cancelConfirmation.textContent = 'Continue Editing';
+            } else {
+                confirmAction.textContent = 'Confirm';
+                confirmAction.classList.remove('bg-red-600', 'hover:bg-red-700');
+                confirmAction.classList.add('bg-primary-dark');
+                
+                cancelConfirmation.textContent = 'Cancel';
+            }
+
+            // Show dialog
+            confirmationDialog.classList.remove('hidden');
+            setTimeout(() => {
+                const dialogContent = confirmationDialog.querySelector('.transform');
+                if (dialogContent) {
+                    dialogContent.classList.remove('scale-95');
+                    dialogContent.classList.add('scale-100');
+                }
+            }, 10);
+
+            // Confirm action
+            confirmAction.onclick = function() {
+                hideConfirmationDialog();
+                if (onConfirm) onConfirm();
+            };
+
+            // Cancel action
+            cancelConfirmation.onclick = hideConfirmationDialog;
+        }
+
+        // Hide confirmation dialog
+        function hideConfirmationDialog() {
+            const confirmationDialog = document.getElementById('confirmationDialog');
+            const dialogContent = confirmationDialog.querySelector('.transform');
+            if (dialogContent) {
+                dialogContent.classList.remove('scale-100');
+                dialogContent.classList.add('scale-95');
+            }
+            setTimeout(() => {
+                confirmationDialog.classList.add('hidden');
+            }, 200);
+        }
+        
+        // Enhanced form validation with visual error indicators - modified to show only inline errors
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get references to form fields - reuse the existing variables, don't redeclare
+            const memberSearchInput = document.getElementById('memberSearch').closest('#addTransactionForm #memberSearch');
+            // Don't redeclare these variables, they're already defined above
+            // const subscriptionSelect = document.getElementById('subscriptionSelect');
+            const paymentSelect = document.getElementById('paymentSelect');
+            const submitTransactionBtn = document.getElementById('submitTransactionBtn');
+            
+            if (submitTransactionBtn) {
+                // Replace the existing click event with enhanced validation
+                submitTransactionBtn.addEventListener('click', function() {
+                    try {
+                        // Get form fields
+                        const memberId = document.getElementById('selectedMemberId').value;
+                        const subscriptionId = subscriptionSelect.value;
+                        const paymentMethod = paymentSelect.value;
+                        // Use the existing variables without redeclaration
+                        const startDate = startDateInput.value;
+                        const endDate = endDateInput.value;
+                        
+                        // Reset previous error states
+                        document.querySelectorAll('#addTransactionForm .error-border').forEach(el => {
+                            el.classList.remove('error-border');
+                        });
+                        document.querySelectorAll('#addTransactionForm .error-message').forEach(el => {
+                            el.remove();
+                        });
+                        
+                        // Validate form and show inline errors
+                        let hasErrors = false;
+                        
+                        // Member validation - check just once, avoid duplicate errors
+                        if (!memberId) {
+                            hasErrors = true;
+                            // Find the member search field and add error only once
+                            const memberSearchContainer = document.querySelector('#addTransactionForm #memberSearch').closest('div');
+                            if (memberSearchContainer && !memberSearchContainer.querySelector('.error-message')) {
+                                highlightError(memberSearchContainer, 'Please select a member');
+                            }
+                        }
+                        
+                        // Subscription validation
+                        if (!subscriptionId) {
+                            hasErrors = true;
+                            highlightError(subscriptionSelect.parentElement, 'Please select a subscription plan');
+                        }
+                        
+                        // Payment method validation
+                        if (!paymentMethod) {
+                            hasErrors = true;
+                            highlightError(paymentSelect.parentElement, 'Please select a payment method');
+                        }
+                        
+                        // Date validation
+                        if (!startDate) {
+                            hasErrors = true;
+                            highlightError(startDateInput.parentElement, 'Please set a start date');
+                        }
+                        
+                        if (!endDate) {
+                            hasErrors = true;
+                            highlightError(endDateInput.parentElement, 'Please set an end date');
+                        }
+                        
+                        // If validation fails, exit
+                        if (hasErrors) {
+                            return;
+                        }
+                        
+                        // Show loading state on the button
+                        const originalBtnText = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+                        this.disabled = true;
+                        
+                        // First check if the member already has an active subscription on the start date
+                        fetch('../../functions/check-active-subscription.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                memberId: memberId,
+                                startDate: startDate,
+                                endDate: endDate
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.hasActiveSubscription) {
+                                // Show error for overlapping subscription
+                                highlightError(startDateInput.parentElement, 'Member already has an active subscription during this period');
+                                throw new Error('Member already has an active subscription that overlaps with these dates');
+                            }
+                            
+                            // If no active subscription for this date, proceed with creating the transaction
+                            const transactionData = {
+                                memberId: memberId,
+                                subscriptionId: subscriptionId,
+                                paymentId: paymentMethod,
+                                startDate: startDate,
+                                endDate: endDate
+                            };
+                            
+                            // Send transaction data to server
+                            return fetch('../../functions/create-transaction.php', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(transactionData)
+                            });
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Close modal using global function if available
+                                if (typeof closeModal === 'function') {
+                                    closeModal(document.getElementById('addTransactionModal'));
+                                } else {
+                                    document.getElementById('addTransactionModal').classList.add('hidden');
+                                }
+                                
+                                // Reset form
+                                document.getElementById('addTransactionForm').reset();
+                                
+                                // Try to use global functions for UI reset
+                                if (typeof window.resetTransactionModalUI === 'function') {
+                                    window.resetTransactionModalUI();
+                                }
+                                
+                                if (typeof window.updateSummaryCards === 'function') {
+                                    window.updateSummaryCards();
+                                }
+                                
+                                // Show success message using global toast if available
+                                if (typeof window.showToast === 'function') {
+                                    window.showToast(data.message || `${data.transaction.subscriptionName} successfully added for ${data.transaction.memberName}!`, true);
+                                } else {
+                                    // Fallback to local function
+                                    showToast(data.message || `${data.transaction.subscriptionName} successfully added for ${data.transaction.memberName}!`, true);
+                                }
+                                
+                                // Refresh page after short delay for clean reset
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 2000);
+                            } else {
+                                // Show error notification
+                                if (typeof window.showToast === 'function') {
+                                    window.showToast(data.message || 'Transaction failed. Please try again.', false);
+                                } else {
+                                    showToast(data.message || 'Transaction failed. Please try again.', false);
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            if (typeof window.showToast === 'function') {
+                                window.showToast(error.message || 'An error occurred while processing the transaction. Please try again.', false);
+                            } else {
+                                showToast(error.message || 'An error occurred while processing the transaction. Please try again.', false);
+                            }
+                        })
+                        .finally(() => {
+                            // Reset button state
+                            this.innerHTML = originalBtnText;
+                            this.disabled = false;
+                        });
+                    } catch (error) {
+                        console.error("Critical error in transaction submission:", error);
+                        // Use alert as last resort
+                        alert("An unexpected error occurred: " + error.message);
+                        this.innerHTML = '<i class="fas fa-save mr-2"></i> Add Transaction';
+                        this.disabled = false;
+                    }
+                });
+            }
+            
+            // Function to highlight error fields with a red border and message
+            function highlightError(fieldContainer, message) {
+                // Add red border to the input
+                const input = fieldContainer.querySelector('input, select');
+                if (input) {
+                    input.classList.add('border-red-500', 'error-border');
+                    input.classList.remove('border-gray-300');
+                }
+                
+                // Add error message below the field
+                const errorMessage = document.createElement('p');
+                errorMessage.className = 'text-xs text-red-600 mt-1 error-message';
+                errorMessage.textContent = message;
+                fieldContainer.appendChild(errorMessage);
+            }
+            
+            // Add event listeners to clear error state when input changes
+            const modalFormInputs = document.querySelectorAll('#addTransactionForm input, #addTransactionForm select');
+            modalFormInputs.forEach(input => {
+                if (input) {
+                    input.addEventListener('change', function() {
+                        // Remove red border
+                        this.classList.remove('border-red-500', 'error-border');
+                        this.classList.add('border-gray-300');
+                        
+                        // Remove error message if it exists
+                        const errorMessage = this.parentElement.querySelector('.error-message');
+                        if (errorMessage) errorMessage.remove();
+                    });
+                }
+            });
         });
     </script>
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // ...existing code...
+document.addEventListener('DOMContentLoaded', function() {
+    // ...rest of the code...
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ...rest of the code...
+});
+</script>
 
-        // Enhance member search functionality in the modal
-        const modalMemberSearch = document.querySelector('#addTransactionModal #memberSearch');
-        const modalMemberResults = document.querySelector('#addTransactionModal #memberSearchResults');
-        const selectedMemberInfo = document.getElementById('selectedMemberInfo');
-        let modalSearchTimeout;
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
 
-        if (modalMemberSearch && modalMemberResults) {
-            modalMemberSearch.addEventListener('input', function() {
-                clearTimeout(modalSearchTimeout);
+    // Enhance member search functionality in the modal
+    const modalMemberSearch = document.querySelector('#addTransactionModal #memberSearch');
+    const modalMemberResults = document.querySelector('#addTransactionModal #memberSearchResults');
+    const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+    let modalSearchTimeout;
+
+    if (modalMemberSearch && modalMemberResults) {
+        modalMemberSearch.addEventListener('input', function() {
+            clearTimeout(modalSearchTimeout);
+            const searchTerm = this.value.trim();
+
+            // Clear results if search term is empty
+            if (searchTerm.length < 2) {
+                modalMemberResults.classList.add('hidden');
+                return;
+            }
+
+            // Add loading indicator
+            modalMemberResults.innerHTML = `
+                <div class="px-4 py-2 text-sm text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i> Searching...
+                </div>
+            `;
+            modalMemberResults.classList.remove('hidden');
+
+            // Debounce the search
+            modalSearchTimeout = setTimeout(() => {
+                // Make the AJAX request
+                fetch(`../../functions/search-members.php?term=${encodeURIComponent(searchTerm)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(members => {
+                        if (members.length === 0) {
+                            modalMemberResults.innerHTML = `
+                                <div class="px-4 py-2 text-sm text-gray-500">
+                                    No members found
+                                </div>
+                            `;
+                            return;
+                        }
+
+                        // Build search results HTML
+                        modalMemberResults.innerHTML = members.map(member => `
+                            <div class="modal-member-result px-4 py-2 hover:bg-gray-100 cursor-pointer" 
+                                 data-member-id="${member.id}"
+                                 data-member-name="${member.name}"
+                                 data-member-email="${member.email}"
+                                 data-member-initials="${member.initials}">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3">
+                                        ${member.initials}
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">${member.name}</div>
+                                        <div class="text-xs text-gray-500">${member.program || 'No Program'}</div>
+                                        <div class="text-xs text-gray-500">${member.subscription || 'No Subscription'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+
+                        // Add click handlers to results
+                        document.querySelectorAll('.modal-member-result').forEach(result => {
+                            result.addEventListener('click', function() {
+                                const memberId = this.dataset.memberId;
+                                const memberName = this.dataset.memberName;
+                                const memberEmail = this.dataset.memberEmail;
+                                const memberInitials = this.dataset.memberInitials;
+
+                                // Update selected member info
+                                document.getElementById('selectedMemberId').value = memberId;
+                                document.getElementById('memberInitials').textContent = memberInitials;
+                                document.getElementById('memberName').textContent = memberName;
+                                document.getElementById('memberEmail').textContent = memberEmail;
+
+                                // Show selected member info and hide search results
+                                selectedMemberInfo.classList.remove('hidden');
+                                modalMemberResults.classList.add('hidden');
+                                modalMemberSearch.value = '';
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error);
+                        modalMemberResults.innerHTML = `
+                            <div class="px-4 py-2 text-sm text-red-500">
+                                Error loading results: ${error.message}
+                            </div>
+                        `;
+                    });
+            }, 300); // 300ms debounce
+        });
+
+        // Close results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!modalMemberSearch.contains(e.target) && !modalMemberResults.contains(e.target)) {
+                modalMemberResults.classList.add('hidden');
+            }
+        });
+    }
+
+    // Handle the change member button (keep existing functionality)
+    document.getElementById('changeMemberBtn')?.addEventListener('click', function() {
+        selectedMemberInfo.classList.add('hidden');
+        document.getElementById('selectedMemberId').value = '';
+        modalMemberSearch.value = '';
+        modalMemberSearch.focus();
+    });
+
+    // ...existing code...
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+
+    // Enhanced member search functionality in the modal with 1-character search trigger
+    const modalMemberSearch = document.querySelector('#addTransactionModal #memberSearch');
+    const modalMemberResults = document.querySelector('#addTransactionModal #memberSearchResults');
+    const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+    let modalSearchTimeout;
+
+    if (modalMemberSearch && modalMemberResults) {
+        modalMemberSearch.addEventListener('input', function() {
+            clearTimeout(modalSearchTimeout);
+            const searchTerm = this.value.trim();
+
+            // Clear results if search term is empty
+            if (searchTerm.length < 1) {
+                modalMemberResults.classList.add('hidden');
+                return;
+            }
+
+            // Add loading indicator
+            modalMemberResults.innerHTML = `
+                <div class="px-4 py-2 text-sm text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i> Searching...
+                </div>
+            `;
+            modalMemberResults.classList.remove('hidden');
+
+            // Debounce the search
+            modalSearchTimeout = setTimeout(() => {
+                // Make the AJAX request
+                fetch(`../../functions/search-members.php?term=${encodeURIComponent(searchTerm)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(members => {
+                        if (members.length === 0) {
+                            modalMemberResults.innerHTML = `
+                                <div class="px-4 py-2 text-sm text-gray-500">
+                                    No members found
+                                </div>
+                            `;
+                            return;
+                        }
+
+                        // Build search results HTML
+                        modalMemberResults.innerHTML = members.map(member => `
+                            <div class="modal-member-result px-4 py-2 hover:bg-gray-100 cursor-pointer" 
+                                 data-member-id="${member.id}"
+                                 data-member-name="${member.name}"
+                                 data-member-email="${member.email}"
+                                 data-member-initials="${member.initials}">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3">
+                                        ${member.initials}
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">${member.name}</div>
+                                        <div class="text-xs text-gray-500">${member.program || 'No Program'}</div>
+                                        <div class="text-xs text-gray-500">${member.subscription || 'No Subscription'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+
+                        // Add click handlers to results
+                        document.querySelectorAll('.modal-member-result').forEach(result => {
+                            result.addEventListener('click', function() {
+                                const memberId = this.dataset.memberId;
+                                const memberName = this.dataset.memberName;
+                                const memberEmail = this.dataset.memberEmail;
+                                const memberInitials = this.dataset.memberInitials;
+
+                                // Update selected member info
+                                document.getElementById('selectedMemberId').value = memberId;
+                                document.getElementById('memberInitials').textContent = memberInitials;
+                                document.getElementById('memberName').textContent = memberName;
+                                document.getElementById('memberEmail').textContent = memberEmail;
+
+                                // Show selected member info and hide search results
+                                selectedMemberInfo.classList.remove('hidden');
+                                modalMemberResults.classList.add('hidden');
+                                modalMemberSearch.value = '';
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error);
+                        modalMemberResults.innerHTML = `
+                            <div class="px-4 py-2 text-sm text-red-500">
+                                Error loading results: ${error.message}
+                            </div>
+                        `;
+                    });
+            }, 300); // 300ms debounce
+        });
+
+        // ...existing code for closing results when clicking outside...
+    }
+
+    // Also update the filter member search to trigger after 1 character
+    function initFilterMemberSearch() {
+        const memberSearchInput = document.getElementById('memberSearch');
+        const memberSearchResults = document.getElementById('filterMemberResults');
+        const selectedMemberId = document.getElementById('selectedFilterMemberId');
+        let searchTimeout;
+
+        if (memberSearchInput) {
+            memberSearchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
                 const searchTerm = this.value.trim();
 
                 // Clear results if search term is empty
-                if (searchTerm.length < 2) {
-                    modalMemberResults.classList.add('hidden');
+                if (searchTerm.length < 1) {
+                    memberSearchResults.classList.add('hidden');
                     return;
                 }
 
                 // Add loading indicator
-                modalMemberResults.innerHTML = `
+                memberSearchResults.innerHTML = `
                     <div class="px-4 py-2 text-sm text-gray-500">
                         <i class="fas fa-spinner fa-spin mr-2"></i> Searching...
                     </div>
                 `;
-                modalMemberResults.classList.remove('hidden');
+                memberSearchResults.classList.remove('hidden');
 
                 // Debounce the search
-                modalSearchTimeout = setTimeout(() => {
+                searchTimeout = setTimeout(() => {
                     // Make the AJAX request
                     fetch(`../../functions/search-members.php?term=${encodeURIComponent(searchTerm)}`)
-                        .then(response => response.json())
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
                         .then(members => {
                             if (members.length === 0) {
-                                modalMemberResults.innerHTML = `
+                                memberSearchResults.innerHTML = `
                                     <div class="px-4 py-2 text-sm text-gray-500">
                                         No members found
                                     </div>
@@ -2159,49 +2904,12 @@ $activeSubscriptions = getActiveSubscriptions();
                                 return;
                             }
 
-                            // Build search results HTML
-                            modalMemberResults.innerHTML = members.map(member => `
-                                <div class="member-result px-4 py-2 hover:bg-gray-100 cursor-pointer" 
-                                    data-member-id="${member.id}"
-                                    data-member-name="${member.name}"
-                                    data-member-email="${member.email}"
-                                    data-member-initials="${member.initials}">
-                                    <div class="flex items-center">
-                                        <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3">
-                                            ${member.initials}
-                                        </div>
-                                        <div>
-                                            <div class="text-sm font-medium text-gray-900">${member.name}</div>
-                                            <div class="text-xs text-gray-500">${member.email}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('');
-
-                            // Add click handlers to results
-                            document.querySelectorAll('.member-result').forEach(result => {
-                                result.addEventListener('click', function() {
-                                    const memberId = this.dataset.memberId;
-                                    const memberName = this.dataset.memberName;
-                                    const memberEmail = this.dataset.memberEmail;
-                                    const memberInitials = this.dataset.memberInitials;
-
-                                    // Update selected member info
-                                    document.getElementById('selectedMemberId').value = memberId;
-                                    document.getElementById('memberInitials').textContent = memberInitials;
-                                    document.getElementById('memberName').textContent = memberName;
-                                    document.getElementById('memberEmail').textContent = memberEmail;
-
-                                    // Show selected member info
-                                    selectedMemberInfo.classList.remove('hidden');
-                                    modalMemberResults.classList.add('hidden');
-                                    modalMemberSearch.value = '';
-                                });
-                            });
+                            // Build search results HTML - keep existing code
+                            // ...existing code...
                         })
                         .catch(error => {
                             console.error('Search error:', error);
-                            modalMemberResults.innerHTML = `
+                            memberSearchResults.innerHTML = `
                                 <div class="px-4 py-2 text-sm text-red-500">
                                     Error loading results: ${error.message}
                                 </div>
@@ -2211,111 +2919,1121 @@ $activeSubscriptions = getActiveSubscriptions();
             });
         }
 
-        // Restore deactivation states after subscription table is loaded
-        const refreshSubsBtn = document.getElementById('refreshSubsBtn');
-        if (refreshSubsBtn) {
-            const originalClick = refreshSubsBtn.onclick;
-            refreshSubsBtn.onclick = function(e) {
-                if (originalClick) originalClick.call(this, e);
-                
-                // Wait a bit for the table to update
-                setTimeout(() => {
-                    restoreDeactivationStates();
-                }, 1000);
-            };
+        // ...existing code for closing results when clicking outside...
+    }
+
+    // ...existing code...
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+
+    // Helper function to determine subscription status based on days left
+    function getSubscriptionStatus(isActive, daysLeft) {
+        let statusClass, statusText;
+        
+        if (!isActive) {
+            statusClass = 'bg-red-100 text-red-800';
+            statusText = 'Inactive';
+        } else if (daysLeft < 0) {
+            statusClass = 'bg-red-100 text-red-800';
+            statusText = 'Expired';
+        } else if (daysLeft <= 7) {
+            statusClass = 'bg-yellow-100 text-yellow-800';
+            statusText = daysLeft === 0 ? 'Expires Today' : 
+                         daysLeft === 1 ? 'Expires Tomorrow' : 
+                         `Expires in ${daysLeft} days`;
+        } else {
+            statusClass = 'bg-green-100 text-green-800';
+            statusText = 'Active';
+        }
+        
+        return { statusClass, statusText };
+    }
+    
+    // Function to add a new transaction to the subscription status table
+    function addTransactionToTable(transaction) {
+        const tableBody = document.getElementById('subscriptionStatusBody');
+        const emptyState = document.getElementById('subscriptionEmptyState');
+        
+        // Hide empty state if it's visible
+        if (!emptyState.classList.contains('hidden')) {
+            emptyState.classList.add('hidden');
+            tableBody.closest('table').classList.remove('hidden');
+        }
+        
+        // Calculate status class based on days left
+        const { statusClass, statusText } = getSubscriptionStatus(transaction.isActive, transaction.daysLeft);
+        
+        // Create a new row
+        const row = document.createElement('tr');
+        
+        // Set row HTML
+        row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                    <div class="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3">
+                        ${transaction.memberInitials}
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">${transaction.memberName}</div>
+                        <div class="text-xs text-gray-500">ID: ${transaction.memberId}</div>
+                    </div>
+                </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">${transaction.subscriptionName}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">${transaction.startDate}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">${transaction.endDate}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">${transaction.paidDate}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                    ${statusText}
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                <div class="flex justify-center space-x-2">
+                    <button data-sub-id="${transaction.subscriptionId}" data-member-id="${transaction.memberId}" data-action="view" class="text-blue-600 hover:text-blue-800 transition-colors" title="View details">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button data-sub-id="${transaction.subscriptionId}" data-member-id="${transaction.memberId}" data-action="deactivate" class="text-red-600 hover:text-red-800 transition-colors" title="Deactivate subscription">
+                        <i class="fas fa-ban"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        // Add the row to the beginning of the table
+        if (tableBody.firstChild) {
+            tableBody.insertBefore(row, tableBody.firstChild);
+        } else {
+            tableBody.appendChild(row);
+        }
+        
+        // Initialize action buttons for the new row
+        initActionButtonsForRow(row);
+    }
+
+// ...existing code...
+});
+</script>
+<script>
+// ...existing code...
+
+function initActionButtonsForRow(row) {
+    // Find deactivate button in this row
+    const deactivateButton = row.querySelector('[data-action="deactivate"]');
+    if (deactivateButton) {
+        deactivateButton.addEventListener('click', function() {
+            const subId = this.getAttribute('data-sub-id');
+            const memberId = this.getAttribute('data-member-id');
             
-            // Also restore states on initial page load
+            // Validate that we have both IDs
+            if (!subId || !memberId) {
+                console.error("Missing required data attributes for deactivation:", { subId, memberId });
+                showToast('Error: Missing required data for deactivation', false);
+                return;
+            }
+            
+            // Show confirmation dialog for deactivation
+            showConfirmationDialog(
+                'Confirm Deactivation',
+                'Are you sure you want to deactivate this subscription?',
+                () => {
+                    // Show loading state
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    this.disabled = true;
+
+                    // Make actual API call to deactivate subscription
+                    fetch('../../functions/deactivate-subscription.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            memberId: memberId,
+                            subId: subId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update UI
+                            const statusCell = row.querySelector('td:nth-child(6) span');
+                            statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+                            statusCell.textContent = 'Inactive';
+                            
+                            // Hide the deactivate button
+                            this.style.display = 'none';
+
+                            // Add renew button if it doesn't exist
+                            const actionsCell = row.querySelector('td:nth-child(7) .flex');
+                            if (!actionsCell.querySelector('[data-action="renew"]')) {
+                                const renewButton = document.createElement('button');
+                                renewButton.setAttribute('data-sub-id', subId);
+                                renewButton.setAttribute('data-member-id', memberId);
+                                renewButton.setAttribute('data-action', 'renew');
+                                renewButton.className = 'text-green-600 hover:text-green-800 transition-colors ml-2';
+                                renewButton.title = 'Renew subscription';
+                                renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                                
+                                // Add event listener for the renew button
+                                renewButton.addEventListener('click', function() {
+                                    const memberId = this.getAttribute('data-member-id');
+                                    const subId = this.getAttribute('data-sub-id');
+                                    const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+                                    const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+                                    
+                                    // Open renewal form modal with this data
+                                    openRenewModal(memberId, subId, memberName, subscriptionName);
+                                });
+                                
+                                actionsCell.appendChild(renewButton);
+                            }
+
+                            // Show notification
+                            showToast('Subscription deactivated successfully!', true);
+                            
+                            // Update any counters or badges
+                            updateExpiringCount();
+                        } else {
+                            // Show error
+                            showToast(data.message || 'Failed to deactivate subscription', false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('An error occurred while deactivating subscription', false);
+                    })
+                    .finally(() => {
+                        // Reset button
+                        this.innerHTML = originalHTML;
+                        this.disabled = false;
+                    });
+                }
+            );
+        });
+    }
+    
+    // Find view button in this row
+    const viewButton = row.querySelector('[data-action="view"]');
+    if (viewButton) {
+        // ...existing code...
+    }
+    
+    // Find renew button in this row if it exists
+    const renewButton = row.querySelector('[data-action="renew"]');
+    if (renewButton) {
+        renewButton.addEventListener('click', function() {
+            const memberId = this.getAttribute('data-member-id');
+            const subId = this.getAttribute('data-sub-id');
+            const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+            const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+            
+            // Open renewal form modal with this data
+            openRenewModal(memberId, subId, memberName, subscriptionName);
+        });
+    }
+}
+
+// Modified function to handle renewal with database IDs
+function openRenewModal(memberId, subId, memberName, subscriptionName) {
+    console.log(`Opening renewal modal for member ID: ${memberId}, subscription ID: ${subId}`);
+    
+    if (!memberId) {
+        showToast('Error: Member ID is missing', false);
+        return;
+    }
+    
+    const modal = document.getElementById('addTransactionModal');
+    if (modal) {
+        // Show the modal first
+        openModal(modal);
+        
+        // Get member search section and completely remove it for renewal modal
+        const memberSearchContainer = document.getElementById('memberSearch').parentElement.parentElement;
+        memberSearchContainer.classList.add('hidden');
+        
+        // Show member info without the search UI or change option
+        const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+        selectedMemberInfo.classList.remove('hidden');
+        
+        // Replace the heading to indicate member is fixed for renewal
+        const memberInfoSection = document.querySelector('.mb-1');
+        if (memberInfoSection) {
+            const memberHeading = memberInfoSection.querySelector('span');
+            if (memberHeading) {
+                memberHeading.textContent = "Member (Fixed for Renewal)";
+            }
+        }
+        
+        // Set member information in the static display
+        const memberInitials = document.getElementById('memberInitials');
+        const memberNameElement = document.getElementById('memberName');
+        const memberEmail = document.getElementById('memberEmail');
+        const selectedMemberId = document.getElementById('selectedMemberId');
+        const changeMemberBtn = document.getElementById('changeMemberBtn');
+        
+        // Set member details
+        const initials = memberName.split(' ').map(n => n[0]).join('');
+        memberInitials.textContent = initials;
+        memberNameElement.textContent = memberName;
+        
+        // IMPORTANT: Set the actual member ID from the parameter, not hardcoded
+        selectedMemberId.value = memberId;
+        
+        // Fetch actual member email from database
+        fetch(`../../functions/get-member-details.php?id=${memberId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    memberEmail.textContent = data.member.email;
+                } else {
+                    memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+                    console.warn(`Could not fetch email for member ID ${memberId}: ${data.message}`);
+                }
+            })
+            .catch((error) => {
+                console.error('Error fetching member details:', error);
+                memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+            });
+        
+        // Add data attribute to form to indicate this is a renewal
+        document.getElementById('addTransactionForm').setAttribute('data-is-renewal', 'true');
+        document.getElementById('addTransactionForm').setAttribute('data-previous-sub-id', subId);
+        
+        // Completely hide the change button for renewals
+        if (changeMemberBtn) {
+            changeMemberBtn.classList.add('hidden');
+        }
+        
+        // Pre-fill subscription select
+        const subscriptionSelect = document.getElementById('subscriptionSelect');
+        for (let i = 0; i < subscriptionSelect.options.length; i++) {
+            if (subscriptionSelect.options[i].text.includes(subscriptionName)) {
+                subscriptionSelect.selectedIndex = i;
+                // Update subscription details
+                updateSubscriptionDetails();
+                break;
+            }
+        }
+        
+        // Set start date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('startDateInput').valueAsDate = tomorrow;
+        
+        // Calculate and set end date based on subscription
+        updateEndDate();
+        
+        // Change modal title to indicate renewal
+        const modalTitle = modal.querySelector('.text-lg.font-medium.text-white');
+        if (modalTitle) {
+            modalTitle.textContent = "Renew Subscription";
+        }
+        const modalSubtitle = modal.querySelector('.text-xs.text-white/90');
+        if (modalSubtitle) {
+            modalSubtitle.textContent = "Renew subscription for " + memberName;
+        }
+        
+        // Change submit button text
+        const submitButton = document.getElementById('submitTransactionBtn');
+        if (submitButton) {
+            submitButton.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Renew Subscription';
+        }
+    }
+}
+
+// ...existing code...
+
+// Function to add a new transaction to the subscription status table
+function addTransactionToTable(transaction) {
+    const tableBody = document.getElementById('subscriptionStatusBody');
+    const emptyState = document.getElementById('subscriptionEmptyState');
+    
+    // Hide empty state if it's visible
+    if (!emptyState.classList.contains('hidden')) {
+        emptyState.classList.add('hidden');
+        tableBody.closest('table').classList.remove('hidden');
+    }
+    
+    // Calculate status class based on days left
+    const { statusClass, statusText } = getSubscriptionStatus(transaction.isActive, transaction.daysLeft);
+    
+    // Create a new row
+    const row = document.createElement('tr');
+    
+    // Set row HTML - adding data-member-id attribute to buttons
+    row.innerHTML = `
+        <td class="px-6 py-4 whitespace-nowrap">
+            <div class="flex items-center">
+                <div class="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white text-xs mr-3">
+                    ${transaction.memberInitials}
+                </div>
+                <div>
+                    <div class="text-sm font-medium text-gray-900">${transaction.memberName}</div>
+                    <div class="text-xs text-gray-500">ID: ${transaction.memberId}</div>
+                </div>
+            </div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${transaction.subscriptionName}</div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${transaction.startDate}</div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${transaction.endDate}</div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${transaction.paidDate}</div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                ${statusText}
+            </span>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+            <div class="flex justify-center space-x-2">
+                <button data-sub-id="${transaction.subscriptionId}" data-member-id="${transaction.memberId}" data-action="view" class="text-blue-600 hover:text-blue-800 transition-colors" title="View details">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button data-sub-id="${transaction.subscriptionId}" data-member-id="${transaction.memberId}" data-action="deactivate" class="text-red-600 hover:text-red-800 transition-colors" title="Deactivate subscription">
+                    <i class="fas fa-ban"></i>
+                </button>
+            </div>
+        </td>
+    `;
+    
+    // Add the row to the beginning of the table
+    if (tableBody.firstChild) {
+        tableBody.insertBefore(row, tableBody.firstChild);
+    } else {
+        tableBody.appendChild(row);
+    }
+    
+    // Initialize action buttons for the new row
+    initActionButtonsForRow(row);
+}
+
+// ...existing code...
+
+// Ensure the table rows in the template have the data-member-id attribute
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+    
+    // Add data-member-id to existing subscription table rows
+    const subscriptionRows = document.querySelectorAll('#subscriptionStatusBody tr');
+    subscriptionRows.forEach(row => {
+        const memberIdText = row.querySelector('td:nth-child(1) .text-xs.text-gray-500');
+        if (memberIdText) {
+            const memberId = memberIdText.textContent.replace('ID: ', '').trim();
+            const actionButtons = row.querySelectorAll('button[data-action]');
+            actionButtons.forEach(button => {
+                button.setAttribute('data-member-id', memberId);
+            });
+        }
+    });
+    
+    // ...existing code...
+});
+</script>
+<script>
+// ...existing code...
+
+// Modified function to handle renewal with database IDs
+function openRenewModal(memberId, subId, memberName, subscriptionName) {
+    console.log(`Opening renewal modal for member ID: ${memberId}, subscription ID: ${subId}`);
+    
+    if (!memberId) {
+        showToast('Error: Member ID is missing', false);
+        return;
+    }
+    
+    const modal = document.getElementById('addTransactionModal');
+    if (modal) {
+        // Show the modal first
+        openModal(modal);
+        
+        // Get member search section and completely remove it for renewal modal
+        const memberSearchContainer = document.getElementById('memberSearch').parentElement.parentElement;
+        memberSearchContainer.classList.add('hidden');
+        
+        // Show member info without the search UI or change option
+        const selectedMemberInfo = document.getElementById('selectedMemberInfo');
+        selectedMemberInfo.classList.remove('hidden');
+        
+        // Replace the heading to indicate member is fixed for renewal
+        const memberInfoSection = document.querySelector('.mb-1');
+        if (memberInfoSection) {
+            const memberHeading = memberInfoSection.querySelector('span');
+            if (memberHeading) {
+                memberHeading.textContent = "Member (Fixed for Renewal)";
+            }
+        }
+        
+        // Set member information in the static display
+        const memberInitials = document.getElementById('memberInitials');
+        const memberNameElement = document.getElementById('memberName');
+        const memberEmail = document.getElementById('memberEmail');
+        const selectedMemberId = document.getElementById('selectedMemberId');
+        const changeMemberBtn = document.getElementById('changeMemberBtn');
+        
+        // Set member details
+        const initials = memberName.split(' ').map(n => n[0]).join('');
+        memberInitials.textContent = initials;
+        memberNameElement.textContent = memberName;
+        
+        // IMPORTANT: Set the actual member ID from the parameter, not hardcoded
+        selectedMemberId.value = memberId;
+        
+        // Fetch actual member email from database
+        fetch(`../../functions/get-member-details.php?id=${memberId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    memberEmail.textContent = data.member.email;
+                } else {
+                    memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+                    console.warn(`Could not fetch email for member ID ${memberId}: ${data.message}`);
+                }
+            })
+            .catch((error) => {
+                console.error('Error fetching member details:', error);
+                memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
+            });
+        
+        // Add data attribute to form to indicate this is a renewal
+        document.getElementById('addTransactionForm').setAttribute('data-is-renewal', 'true');
+        document.getElementById('addTransactionForm').setAttribute('data-previous-sub-id', subId);
+        
+        // Completely hide the change button for renewals
+        if (changeMemberBtn) {
+            changeMemberBtn.classList.add('hidden');
+        }
+        
+        // Pre-fill subscription select
+        const subscriptionSelect = document.getElementById('subscriptionSelect');
+        for (let i = 0; i < subscriptionSelect.options.length; i++) {
+            if (subscriptionSelect.options[i].text.includes(subscriptionName)) {
+                subscriptionSelect.selectedIndex = i;
+                // Update subscription details
+                updateSubscriptionDetails();
+                break;
+            }
+        }
+        
+        // Set start date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('startDateInput').valueAsDate = tomorrow;
+        
+        // Calculate and set end date based on subscription
+        updateEndDate();
+        
+        // Change modal title to indicate renewal
+        const modalTitle = modal.querySelector('.text-lg.font-medium.text-white');
+        if (modalTitle) {
+            modalTitle.textContent = "Renew Subscription";
+        }
+        const modalSubtitle = modal.querySelector('.text-xs.text-white/90');
+        if (modalSubtitle) {
+            modalSubtitle.textContent = "Renew subscription for " + memberName;
+        }
+        
+        // Change submit button text
+        const submitButton = document.getElementById('submitTransactionBtn');
+        if (submitButton) {
+            submitButton.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Renew Subscription';
+        }
+    }
+}
+
+function initActionButtonsForRow(row) {
+    // Find deactivate button in this row
+    const deactivateButton = row.querySelector('[data-action="deactivate"]');
+    if (deactivateButton) {
+        deactivateButton.addEventListener('click', function() {
+            const subId = this.getAttribute('data-sub-id');
+            const memberId = this.getAttribute('data-member-id');
+            
+            // Validate that we have both IDs
+            if (!subId || !memberId) {
+                console.error("Missing required data attributes for deactivation:", { subId, memberId });
+                showToast('Error: Missing required data for deactivation', false);
+                return;
+            }
+            
+            // Show confirmation dialog for deactivation
+            showConfirmationDialog(
+                'Confirm Deactivation',
+                'Are you sure you want to deactivate this subscription?',
+                () => {
+                    // Show loading state
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    this.disabled = true;
+
+                    // Make actual API call to deactivate subscription
+                    fetch('../../functions/deactivate-subscription.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            memberId: memberId,
+                            subId: subId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update UI
+                            const statusCell = row.querySelector('td:nth-child(6) span');
+                            statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+                            statusCell.textContent = 'Inactive';
+                            
+                            // Hide the deactivate button
+                            this.style.display = 'none';
+
+                            // Add renew button if it doesn't exist
+                            const actionsCell = row.querySelector('td:nth-child(7) .flex');
+                            if (!actionsCell.querySelector('[data-action="renew"]')) {
+                                const renewButton = document.createElement('button');
+                                renewButton.setAttribute('data-sub-id', subId);
+                                renewButton.setAttribute('data-member-id', memberId);
+                                renewButton.setAttribute('data-action', 'renew');
+                                renewButton.className = 'text-green-600 hover:text-green-800 transition-colors ml-2';
+                                renewButton.title = 'Renew subscription';
+                                renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                                
+                                // Add event listener for the renew button
+                                renewButton.addEventListener('click', function() {
+                                    const memberId = this.getAttribute('data-member-id');
+                                    const subId = this.getAttribute('data-sub-id');
+                                    const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+                                    const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+                                    
+                                    // Open renewal form modal with this data
+                                    openRenewModal(memberId, subId, memberName, subscriptionName);
+                                });
+                                
+                                actionsCell.appendChild(renewButton);
+                            }
+
+                            // Show notification
+                            showToast('Subscription deactivated successfully!', true);
+                            
+                            // Update any counters or badges
+                            updateExpiringCount();
+                            
+                            // Save deactivation state in localStorage to persist across page refreshes
+                            saveDeactivationState(memberId, subId);
+                        } else {
+                            // Show error
+                            showToast(data.message || 'Failed to deactivate subscription', false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('An error occurred while deactivating subscription', false);
+                    })
+                    .finally(() => {
+                        // Reset button
+                        this.innerHTML = originalHTML;
+                        this.disabled = false;
+                    });
+                }
+            );
+        });
+    }
+    
+    // Find view button in this row
+    const viewButton = row.querySelector('[data-action="view"]');
+    if (viewButton) {
+        viewButton.addEventListener('click', function() {
+            // ...existing code...
+        });
+    }
+    
+    // Find renew button in this row if it exists
+    const renewButton = row.querySelector('[data-action="renew"]');
+    if (renewButton) {
+        renewButton.addEventListener('click', function() {
+            const memberId = this.getAttribute('data-member-id');
+            const subId = this.getAttribute('data-sub-id');
+            const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+            const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+            
+            // Open renewal form modal with this data
+            openRenewModal(memberId, subId, memberName, subscriptionName);
+        });
+    }
+}
+
+// Add function to save deactivation state in localStorage
+function saveDeactivationState(memberId, subId) {
+    // Get existing deactivated subscriptions from localStorage
+    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
+    
+    // Add this subscription to the deactivated list
+    if (!deactivatedSubs[memberId]) {
+        deactivatedSubs[memberId] = [];
+    }
+    
+    if (!deactivatedSubs[memberId].includes(subId)) {
+        deactivatedSubs[memberId].push(subId);
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem('deactivatedSubscriptions', JSON.stringify(deactivatedSubs));
+    console.log(`Saved deactivation state for member ${memberId}, subscription ${subId}`);
+}
+
+// Add function to check if a subscription is deactivated
+function isSubscriptionDeactivated(memberId, subId) {
+    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
+    return deactivatedSubs[memberId] && deactivatedSubs[memberId].includes(subId);
+}
+
+// Add function to restore UI state after page refresh
+function restoreDeactivationStates() {
+    console.log("Restoring deactivation states...");
+    const subscriptionRows = document.querySelectorAll('#subscriptionStatusBody tr');
+    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
+    
+    subscriptionRows.forEach(row => {
+        const memberIdText = row.querySelector('td:nth-child(1) .text-xs.text-gray-500');
+        if (!memberIdText) return;
+        
+        const memberId = memberIdText.textContent.replace('ID: ', '').trim();
+        const deactivateButton = row.querySelector('[data-action="deactivate"]');
+        
+        if (deactivateButton) {
+            const subId = deactivateButton.getAttribute('data-sub-id');
+            
+            // Check if this subscription should be marked as deactivated
+            if (deactivatedSubs[memberId] && deactivatedSubs[memberId].includes(subId)) {
+                console.log(`Restoring deactivated state for member ${memberId}, subscription ${subId}`);
+                
+                // Update UI to show deactivated state
+                const statusCell = row.querySelector('td:nth-child(6) span');
+                if (statusCell) {
+                    statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+                    statusCell.textContent = 'Inactive';
+                    
+                    // Hide deactivate button
+                    deactivateButton.style.display = 'none';
+                    
+                    // Add renew button if it doesn't exist
+                    const actionsCell = row.querySelector('td:nth-child(7) .flex');
+                    if (actionsCell && !actionsCell.querySelector('[data-action="renew"]')) {
+                        const renewButton = document.createElement('button');
+                        renewButton.setAttribute('data-sub-id', subId);
+                        renewButton.setAttribute('data-member-id', memberId);
+                        renewButton.setAttribute('data-action', 'renew');
+                        renewButton.className = 'text-green-600 hover:text-green-800 transition-colors ml-2';
+                        renewButton.title = 'Renew subscription';
+                        renewButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                        
+                        // Add click event listener for the renew button
+                        renewButton.addEventListener('click', function() {
+                            const memberId = this.getAttribute('data-member-id');
+                            const subId = this.getAttribute('data-sub-id');
+                            const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+                            const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+                            
+                            // Open renewal form modal with this data
+                            openRenewModal(memberId, subId, memberName, subscriptionName);
+                        });
+                        
+                        actionsCell.appendChild(renewButton);
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Add a document ready hook to restore UI state when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+    
+    // Restore deactivation states after subscription table is loaded
+    const refreshSubsBtn = document.getElementById('refreshSubsBtn');
+    if (refreshSubsBtn) {
+        const originalClick = refreshSubsBtn.onclick;
+        refreshSubsBtn.onclick = function(e) {
+            if (originalClick) originalClick.call(this, e);
+            
+            // Wait a bit for the table to update
             setTimeout(() => {
                 restoreDeactivationStates();
             }, 1000);
+        };
+        
+        // Also restore states on initial page load
+        setTimeout(() => {
+            restoreDeactivationStates();
+        }, 1000);
+    }
+});
+
+// ...existing code...
+</script>
+<script>
+// ...existing code...
+
+function initActionButtonsForRow(row) {
+    // Find deactivate button in this row
+    const deactivateButton = row.querySelector('[data-action="deactivate"]');
+    if (deactivateButton) {
+        deactivateButton.addEventListener('click', function() {
+            const subId = this.getAttribute('data-sub-id');
+            const memberId = this.getAttribute('data-member-id');
+            const memberName = this.getAttribute('data-member-name') || 
+                               row.querySelector('td:nth-child(1) .text-sm.font-medium')?.textContent || 
+                               'this member';
+            const subscriptionName = this.getAttribute('data-subscription-name') || 
+                                    row.querySelector('td:nth-child(2) .text-sm')?.textContent || 
+                                    'the subscription';
+            
+            // Validate that we have both IDs
+            if (!subId || !memberId) {
+                showToast('Missing subscription or member information', false);
+                return;
+            }
+            
+            // Show confirmation dialog for deactivation
+            showConfirmationDialog(
+                'Deactivate Subscription',
+                `Are you sure you want to deactivate ${subscriptionName} for ${memberName}?`,
+                function() {
+                    // Send deactivation request to server
+                    deactivateSubscription(memberId, subId, row);
+                }
+            );
+        });
+    }
+    
+    // Find view button in this row
+    const viewButton = row.querySelector('[data-action="view"]');
+    if (viewButton) {
+        // ...existing code...
+    }
+    
+    // Find renew button in this row if it exists
+    const renewButton = row.querySelector('[data-action="renew"]');
+    if (renewButton) {
+        // ...existing code...
+    }
+}
+
+// Function to handle the deactivation request
+function deactivateSubscription(memberId, subId, row) {
+    // Show "processing" state on the button
+    const deactivateButton = row.querySelector('[data-action="deactivate"]');
+    const originalButtonHTML = deactivateButton.innerHTML;
+    deactivateButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    deactivateButton.disabled = true;
+    
+    // Send AJAX request to deactivate subscription
+    fetch('../../functions/deactivate-subscription.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            memberId: memberId,
+            subId: subId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the UI
+            updateRowAfterDeactivation(row);
+            
+            // Store deactivation state in localStorage for persistence across page reloads
+            saveDeactivationState(memberId, subId);
+            
+            // Show success message
+            showToast(data.message || 'Subscription deactivated successfully', true);
+        } else {
+            // Show error message
+            showToast(data.message || 'Failed to deactivate subscription', false);
+            
+            // Restore the button
+            deactivateButton.innerHTML = originalButtonHTML;
+            deactivateButton.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('An error occurred while deactivating the subscription', false);
+        
+        // Restore the button
+        deactivateButton.innerHTML = originalButtonHTML;
+        deactivateButton.disabled = false;
+    });
+}
+
+// Function to update the row UI after deactivation
+function updateRowAfterDeactivation(row) {
+    // Find the status badge element
+    const statusBadge = row.querySelector('.status-badge');
+    if (statusBadge) {
+        // Update the status badge to "Inactive"
+        statusBadge.textContent = 'Inactive';
+        statusBadge.classList.remove('bg-green-100', 'text-green-800', 'bg-yellow-100', 'text-yellow-800');
+        statusBadge.classList.add('bg-red-100', 'text-red-800');
+    }
+    
+    // Update days left text if exists
+    const daysLeftEl = row.querySelector('.days-left');
+    if (daysLeftEl) {
+        daysLeftEl.textContent = 'Subscription inactive';
+    }
+    
+    // Replace deactivate button with "Deactivated" text or hide it
+    const deactivateButton = row.querySelector('[data-action="deactivate"]');
+    if (deactivateButton) {
+        const actionsCell = deactivateButton.closest('td');
+        const deactivatedSpan = document.createElement('span');
+        deactivatedSpan.className = 'text-gray-500 text-xs';
+        deactivatedSpan.innerHTML = '<i class="fas fa-ban mr-1"></i> Deactivated';
+        
+        // Replace the button with the span
+        deactivateButton.replaceWith(deactivatedSpan);
+    }
+    
+    // If there's a renew button, make it more prominent
+    const renewButton = row.querySelector('[data-action="renew"]');
+    if (renewButton) {
+        renewButton.classList.remove('bg-gray-100', 'hover:bg-gray-200');
+        renewButton.classList.add('bg-blue-500', 'hover:bg-blue-600', 'text-white');
+    }
+    
+    // Add a subtle background to indicate inactive status
+    row.classList.add('bg-gray-50');
+}
+
+// Add function to save deactivation state in localStorage
+function saveDeactivationState(memberId, subId) {
+    // Get existing deactivated subscriptions from localStorage
+    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
+    
+    // Add this subscription to the deactivated list
+    if (!deactivatedSubs[memberId]) {
+        deactivatedSubs[memberId] = [];
+    }
+    
+    if (!deactivatedSubs[memberId].includes(subId)) {
+        deactivatedSubs[memberId].push(subId);
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem('deactivatedSubscriptions', JSON.stringify(deactivatedSubs));
+    console.log(`Saved deactivation state for member ${memberId}, subscription ${subId}`);
+}
+
+// Add function to check if a subscription is deactivated
+function isSubscriptionDeactivated(memberId, subId) {
+    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
+    return deactivatedSubs[memberId] && deactivatedSubs[memberId].includes(subId);
+}
+
+// Add function to restore UI state after page refresh
+function restoreDeactivationStates() {
+    console.log("Restoring deactivation states...");
+    const subscriptionRows = document.querySelectorAll('#subscriptionStatusBody tr');
+    const deactivatedSubs = JSON.parse(localStorage.getItem('deactivatedSubscriptions') || '{}');
+    
+    subscriptionRows.forEach(row => {
+        const memberIdText = row.querySelector('td:nth-child(1) .text-xs.text-gray-500');
+        if (!memberIdText) return;
+        
+        const memberId = memberIdText.textContent.replace('ID: ', '').trim();
+        const deactivateButton = row.querySelector('[data-action="deactivate"]');
+        
+        if (deactivateButton) {
+            const subId = deactivateButton.getAttribute('data-sub-id');
+            
+            // Check if this subscription should be marked as deactivated
+            if (deactivatedSubs[memberId] && deactivatedSubs[memberId].includes(subId)) {
+                updateRowAfterDeactivation(row);
+            }
         }
     });
-    </script>
-    <script>
-    // Function to update the row UI after deactivation
-    function updateRowAfterDeactivation(row) {
-        // Update the status badge to "Inactive"
-        const statusCell = row.querySelector('td:nth-child(6) span');
-        if (statusCell) {
-            statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
-            statusCell.textContent = 'Inactive';
-        }
+}
+
+// Add a document ready hook to restore UI state when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+    
+    // Restore deactivation states after subscription table is loaded
+    const refreshSubsBtn = document.getElementById('refreshSubsBtn');
+    if (refreshSubsBtn) {
+        const originalClick = refreshSubsBtn.onclick;
+        refreshSubsBtn.onclick = function(e) {
+            if (originalClick) originalClick.call(this, e);
+            
+            // Wait a bit for the table to update
+            setTimeout(() => {
+                restoreDeactivationStates();
+            }, 1000);
+        };
         
-        // Update days left text if exists
-        const daysLeftEl = row.querySelector('.days-left');
-        if (daysLeftEl) {
-            daysLeftEl.textContent = 'Subscription inactive';
-        }
-        
-        // IMPORTANT: Completely remove the deactivate button directly from DOM
-        const actionsContainer = row.querySelector('td:nth-child(7) .flex');
-        if (actionsContainer) {
-            const deactivateButton = actionsContainer.querySelector('[data-action="deactivate"]');
-            if (deactivateButton) {
-                deactivateButton.parentNode.removeChild(deactivateButton);
-            }
-        }
-        
-        // Add a subtle background to indicate inactive status
-        row.classList.add('bg-gray-50');
+        // Also restore states on initial page load
+        setTimeout(() => {
+            restoreDeactivationStates();
+        }, 1000);
     }
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Create a Set to track processed member IDs
-            const processedMembers = new Set();
-            
-            function openRenewModal(memberName, subscriptionName, memberId) {
-                // Skip if this member is already being processed (prevents duplicate processing)
-                if (processedMembers.has(memberId)) {
-                    console.log(`Member ${memberId} already being processed, skipping duplicate`);
-                    return;
-                }
+});
+</script>
+
+<!-- Add a new script tag specifically for handling deactivation -->
+<script>
+    // Fix for subscription deactivation
+    document.addEventListener('DOMContentLoaded', function() {
+        // Attach event listeners to all deactivate buttons
+        const deactivateButtons = document.querySelectorAll('[data-action="deactivate"]');
+        console.log('Found deactivate buttons:', deactivateButtons.length);
+        
+        deactivateButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Get data attributes
+                const subId = this.getAttribute('data-sub-id');
+                const memberId = this.getAttribute('data-member-id');
+                console.log('Deactivate button clicked for subId:', subId, 'memberId:', memberId);
                 
-                // Add to processed set
-                processedMembers.add(memberId);
-                
-                if (modal) {
-                    
-                    // Show member info without the search UI or change option
-                    const selectedMemberInfo = document.getElementById('selectedMemberInfo');
-                    selectedMemberInfo.classList.remove('hidden');
-                    
-                    // Replace the heading to indicate member is fixed for renewal
-                    const memberInfoSection = document.querySelector('.mb-1');
-                    if (memberInfoSection) {
-                        const memberHeading = memberInfoSection.querySelector('span');
-                        if (memberHeading) {
-                            memberHeading.textContent = "Member (Fixed for Renewal)";
-                        }
+                // Show confirmation dialog
+                showConfirmationDialog(
+                    'Deactivate Subscription',
+                    'Are you sure you want to deactivate this subscription?',
+                    () => {
+                        // User confirmed, proceed with deactivation
+                        const button = this;
+                        const row = button.closest('tr');
+                        
+                        // Show loading state
+                        const originalHTML = button.innerHTML;
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                        button.disabled = true;
+                        
+                        // Make the API call to deactivate-subscription.php
+                        fetch('../../functions/deactivate-subscription.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                memberId: memberId,
+                                subId: subId
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Deactivation response:', data);
+                            
+                            if (data.success) {
+                                // Update the UI to show inactive status
+                                const statusCell = row.querySelector('td:nth-child(6) span');
+                                statusCell.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+                                statusCell.textContent = 'Inactive';
+                                
+                                // Replace deactivate button with renew button
+                                const actionCell = row.querySelector('td:nth-child(7)');
+                                actionCell.innerHTML = `
+                                    <button class="text-green-600 hover:text-green-800 transition-colors" 
+                                            title="Renew subscription" 
+                                            data-sub-id="${subId}" 
+                                            data-member-id="${memberId}" 
+                                            data-action="renew">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                `;
+                                
+                                // Update any other UI elements
+                                showToast('Subscription deactivated successfully!', true);
+                                
+                                // Re-attach event listeners to new renew buttons
+                                const renewButton = actionCell.querySelector('[data-action="renew"]');
+                                if (renewButton) {
+                                    renewButton.addEventListener('click', function() {
+                                        const memberId = this.getAttribute('data-member-id');
+                                        const subId = this.getAttribute('data-sub-id');
+                                        const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+                                        const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+                                        
+                                        // Open renewal form modal
+                                        openRenewModal(memberId, subId, memberName, subscriptionName);
+                                    });
+                                }
+                            } else {
+                                // Show error
+                                showToast(data.message || 'Failed to deactivate subscription', false);
+                                
+                                // Restore button
+                                button.innerHTML = originalHTML;
+                                button.disabled = false;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error deactivating subscription:', error);
+                            showToast('An error occurred while deactivating the subscription', false);
+                            
+                            // Restore button
+                            button.innerHTML = originalHTML;
+                            button.disabled = false;
+                        });
                     }
-                    
-                    // Set member information in the static display
-                    const memberInitials = document.getElementById('memberInitials');
-                    const memberNameElement = document.getElementById('memberName');
-                    const memberEmail = document.getElementById('memberEmail');
-                    const selectedMemberId = document.getElementById('selectedMemberId');
-                    const changeMemberBtn = document.getElementById('changeMemberBtn');
-                    
-                    // Set member details
-                    const initials = memberName.split(' ').map(n => n[0]).join('');
-                    memberInitials.textContent = initials;
-                    memberNameElement.textContent = memberName;
-                    memberEmail.textContent = memberName.toLowerCase().replace(' ', '.') + '@example.com';
-                }
-            }
-            
-            // Function to clear processed members when modal is closed
-            function clearProcessedMembers() {
-                processedMembers.clear();
-            }
-            
-            // Attach clear handler to modal close events
-            document.querySelectorAll('.modal-close-btn').forEach(btn => {
-                btn.addEventListener('click', clearProcessedMembers);
+                );
             });
-            
-            initActionButtons();
+        });
+        
+        // Also fix any renew buttons that might already be present
+        const renewButtons = document.querySelectorAll('[data-action="renew"]');
+        console.log('Found renew buttons:', renewButtons.length);
+        
+        renewButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const subId = this.getAttribute('data-sub-id');
+                const memberId = this.getAttribute('data-member-id');
+                const row = this.closest('tr');
+                const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
+                const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
+                
+                // Open renewal form modal
+                openRenewModal(memberId, subId, memberName, subscriptionName);
+            });
+        });
+    });
+</script>
+
+
     </script>
+    <!-- Toast notification for showing success/error messages -->
+    <div id="toast" class="fixed top-4 right-4 flex items-center p-4 space-x-4 w-full max-w-xs text-white transform transition-transform duration-300 translate-x-full opacity-0 z-50" style="display: none;">
+        <div class="inline-flex flex-shrink-0 justify-center items-center w-8 h-8 rounded-lg">
+            <i id="toastIcon" class="fas fa-check-circle text-xl"></i>
+        </div>
+        <div id="toastMessage" class="text-sm font-normal">Success message here.</div>
+        <div class="flex items-center ml-auto space-x-2">
+            <button type="button" class="bg-white/20 text-white hover:bg-white/30 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-white/10 inline-flex h-8 w-8 justify-center items-center" onclick="hideToast()">
+                <span class="sr-only">Close</span>
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
 </body>
 </html>

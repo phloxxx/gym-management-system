@@ -72,8 +72,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($userRole === $submittedRole && $passwordVerified) {
                     $_SESSION['user_id'] = $found_user['USER_ID'];
                     $_SESSION['username'] = $found_user['USERNAME'];
-                    $_SESSION['role'] = strtolower($found_user['USER_TYPE']);
+                    $_SESSION['firstname'] = $found_user['USER_FNAME'];
+                    $_SESSION['lastname'] = $found_user['USER_LNAME'];
                     $_SESSION['name'] = $found_user['USER_FNAME'] . ' ' . $found_user['USER_LNAME'];
+                    $_SESSION['role'] = strtolower($found_user['USER_TYPE']);
                     
                     $redirect = ($userRole === 'ADMINISTRATOR') 
                         ? 'user/admin/admin-dashboard.php'

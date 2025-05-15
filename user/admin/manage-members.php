@@ -1,12 +1,10 @@
 <?php
 // Start session to access user data
 session_start();
+require_once '../../functions/role-helpers.php';
 
-// Check if user is logged in and is an admin
-if (!isset($_SESSION['user_id']) || strtolower($_SESSION['role']) !== 'administrator') {
-    header("Location: ../../login.php");
-    exit();
-}
+// Check page access for admin and staff roles
+checkPageAccess(['administrator', 'staff']);
 
 // Get user data from session
 $fullName = $_SESSION['name'] ?? 'Admin User';

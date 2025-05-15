@@ -1,6 +1,9 @@
 <?php
 // Start session to access user data
 session_start();
+require_once '../../config/db_connection.php';
+require_once '../../functions/role-helpers.php';
+require_once '../../functions/get_user_data.php';
 
 // Check if user is logged in and is an admin
 if (!isset($_SESSION['user_id']) || strtolower($_SESSION['role']) !== 'administrator') {
@@ -8,9 +11,20 @@ if (!isset($_SESSION['user_id']) || strtolower($_SESSION['role']) !== 'administr
     exit();
 }
 
-// Get user data from session
-$fullName = $_SESSION['name'] ?? 'Admin User';
-$role = ucfirst(strtolower($_SESSION['role'] ?? 'Administrator'));
+// Get fresh user data from database to ensure accuracy
+$userData = getUserData();
+if (!$userData) {
+    // If we can't get user data, redirect to login
+    header("Location: ../../login.php");
+    exit();
+}
+
+// Get user data from updated session
+$fullName = $_SESSION['name'];
+$role = ucfirst(strtolower($_SESSION['role']));
+$firstName = $_SESSION['firstname'];
+$lastName = $_SESSION['lastname'];
+$username = $_SESSION['username'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -142,13 +156,13 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'Administrator'));
                             <!-- First Name -->
                             <div>
                                 <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                                <input type="text" id="firstName" name="USER_FNAME" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" value="John" required>
+                                <input type="text" id="firstName" name="USER_FNAME" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" value="<?php echo htmlspecialchars($firstName); ?>" required>
                             </div>
                             
                             <!-- Last Name -->
                             <div>
                                 <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                                <input type="text" id="lastName" name="USER_LNAME" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" value="Doe" required>
+                                <input type="text" id="lastName" name="USER_LNAME" class="form-input w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none" value="<?php echo htmlspecialchars($lastName); ?>" required>
                             </div>
                         </div>
                         
@@ -157,7 +171,7 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'Administrator'));
                             <div>
                                 <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
                                 <div class="relative">
-                                    <input type="text" id="userType" name="USER_TYPE" class="form-input w-full px-4 py-2 border border-gray-200 rounded-md bg-gray-100 text-gray-500 focus:outline-none cursor-not-allowed" value="admin-1" readonly>
+                                    <input type="text" id="username" name="USERNAME" class="form-input w-full px-4 py-2 border border-gray-200 rounded-md bg-gray-100 text-gray-500 focus:outline-none cursor-not-allowed" value="<?php echo htmlspecialchars($username); ?>" readonly>
                                     <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
                                     </div>
                                 </div>
@@ -355,17 +369,38 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'Administrator'));
                     }
                 }
                 
-                // In a real application, you would send this to the server
-                // For now, just show success toast
-                showToast('Profile updated successfully!', 'success');
+                // Collect form data for AJAX submission
+                const formData = new FormData(profileForm);
                 
-                // Reset form data so cancel doesn't trigger confirmation
-                updateInitialFormData();
+                // Add current form data to FormData
+                formData.append('action', 'update_profile');
+                formData.append('user_role', 'administrator');
                 
-                // Automatically redirect after toast closes
-                setTimeout(() => {
-                    window.history.back();
-                }, 2000);
+                // Send AJAX request
+                fetch('../../functions/update_profile.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Profile updated successfully!', 'success');
+                        
+                        // Reset form data so cancel doesn't trigger confirmation
+                        updateInitialFormData();
+                        
+                        // Redirect after toast closes
+                        setTimeout(() => {
+                            window.location.href = "admin-dashboard.php";
+                        }, 2000);
+                    } else {
+                        showToast(data.message || 'Error updating profile', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating profile:', error);
+                    showToast('Failed to update profile. Please try again.', 'error');
+                });
             });
             
             // Check if form has changes

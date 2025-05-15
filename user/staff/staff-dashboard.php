@@ -83,11 +83,21 @@ $recentTransactions = getRecentTransactions();
                     </li>
                     
                     <!-- Member Management -->
+                     <!-- Management Dropdown -->
                     <li class="mt-2">
-                        <a href="manage-members.php" class="sidebar-menu-item">
-                            <i class="fas fa-users"></i>
-                            <span>Member Management</span>
-                        </a>
+                        <button type="button" class="sidebar-menu-item w-full justify-between" aria-controls="dropdown-management" data-collapse-toggle="dropdown-management">
+                            <div class="flex items-center">
+                                <i class="fas fa-th-large"></i>
+                                <span>Management</span>
+                            </div>
+                            <i class="fas fa-chevron-down text-xs transition-transform duration-200" id="management-chevron"></i>
+                        </button>
+                        <div id="dropdown-management" class="hidden overflow-hidden transition-all duration-300 ease-in-out">
+                            <ul class="pt-1 pb-1">
+                                <li>
+                                    <a href="manage-members.php" class="sidebar-dropdown-item">Member</a>
+                                </li>
+                        </div>
                     </li>
                     
                     <!-- Transaction -->
