@@ -1,3 +1,17 @@
+<?php
+// Start session to access user data
+session_start();
+
+// Check if user is logged in and is an admin
+if (!isset($_SESSION['user_id']) || strtolower($_SESSION['role']) !== 'administrator') {
+    header("Location: ../../login.php");
+    exit();
+}
+
+// Get user data from session
+$fullName = $_SESSION['name'] ?? 'Admin User';
+$role = ucfirst(strtolower($_SESSION['role'] ?? 'Administrator'));
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -102,8 +116,8 @@
                     <!-- User Info -->
                     <div class="flex items-center space-x-3">
                         <div class="text-right hidden sm:block">
-                            <p class="text-sm font-medium text-gray-700">John Doe</p>
-                            <p class="text-xs text-gray-500">Administrator</p>
+                            <p class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($fullName); ?></p>
+                            <p class="text-xs text-gray-500"><?php echo htmlspecialchars($role); ?></p>
                         </div>
                         <div class="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-white">
                             <i class="fas fa-user text-lg"></i>

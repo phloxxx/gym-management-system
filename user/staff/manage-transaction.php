@@ -64,7 +64,7 @@ $activeSubscriptions = getActiveSubscriptions();
                 <ul class="space-y-1 font-medium">
                     <!-- Dashboard -->
                     <li>
-                        <a href="admin-dashboard.php" class="sidebar-menu-item">
+                        <a href="staff-dashboard.php" class="sidebar-menu-item">
                             <i class="fas fa-home"></i>
                             <span>Dashboard</span>
                         </a>

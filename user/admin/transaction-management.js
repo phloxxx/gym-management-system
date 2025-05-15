@@ -742,3 +742,131 @@ function updateSubscriptionSummary(plan, isDateValid = true) {
         }
     }
 }
+
+// Add a form change tracker to detect if any changes have been made
+let transactionFormChanged = false;
+
+// Function to initialize the transaction modal
+function initTransactionModal() {
+    // ...existing code...
+
+    // Reset the form change tracker when the modal is opened
+    transactionFormChanged = false;
+
+    // Add change listeners to all form inputs
+    const formInputs = transactionModal.querySelectorAll('input, select');
+    formInputs.forEach(input => {
+        input.addEventListener('change', () => {
+            transactionFormChanged = true;
+        });
+        input.addEventListener('input', () => {
+            transactionFormChanged = true;
+        });
+    });
+
+    // ...existing code...
+}
+
+// Function to handle closing the transaction modal with confirmation if needed
+function handleCloseTransactionModal() {
+    if (transactionFormChanged) {
+        // Show confirmation dialog only if changes have been made
+        showConfirmationDialog(
+            'Discard Changes',
+            'Are you sure you want to discard your changes?',
+            resetTransactionModalUI
+        );
+    } else {
+        // No changes, just close the modal
+        resetTransactionModalUI();
+    }
+}
+
+// Update the reset function to ensure the modal is properly hidden
+function resetTransactionModalUI() {
+    // Get the modal element
+    const transactionModal = document.getElementById('transactionModal');
+    
+    if (!transactionModal) {
+        console.error('Transaction modal not found!');
+        return;
+    }
+    
+    // Ensure the modal is hidden
+    transactionModal.classList.add('hidden');
+    
+    // Reset form if it exists
+    const transactionForm = document.getElementById('transactionForm');
+    if (transactionForm) {
+        transactionForm.reset();
+    }
+    
+    // Reset the form change tracker
+    transactionFormChanged = false;
+    
+    // ...existing code...
+}
+
+// Function to handle form submission - should reset the change tracker
+function handleTransactionFormSubmit(e) {
+    e.preventDefault();
+    
+    // ...existing code...
+    
+    // Reset form change tracker after successful submission
+    transactionFormChanged = false;
+    
+    // ...existing code...
+}
+
+// Ensure all close buttons use the handleCloseTransactionModal function
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing code...
+    
+    // Update close button click handlers
+    const closeButtons = document.querySelectorAll('.close-transaction-modal');
+    closeButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCloseTransactionModal();
+        });
+    });
+    
+    // Also update the ESC key handler if present
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const transactionModal = document.getElementById('transactionModal');
+            if (transactionModal && !transactionModal.classList.contains('hidden')) {
+                handleCloseTransactionModal();
+            }
+        }
+    });
+    
+    // Initialize transaction form
+    const transactionForm = document.getElementById('transactionForm');
+    if (transactionForm) {
+        transactionForm.addEventListener('submit', handleTransactionFormSubmit);
+        
+        // Reset form changed flag when form is reset
+        transactionForm.addEventListener('reset', function() {
+            transactionFormChanged = false;
+        });
+    }
+    
+    // ...existing code...
+});
+
+// Add a debug function to help troubleshoot modal issues
+function debugModalState() {
+    const transactionModal = document.getElementById('transactionModal');
+    if (transactionModal) {
+        console.log('Modal visibility:', !transactionModal.classList.contains('hidden'));
+        console.log('Form changed:', transactionFormChanged);
+    } else {
+        console.log('Transaction modal element not found!');
+    }
+}
+
+// Add this function to the window object so it can be called from browser console
+window.debugModalState = debugModalState;
