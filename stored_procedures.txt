@@ -1,0 +1,553 @@
+-- Drop existing stored procedures to avoid conflicts when recreating them
+DROP PROCEDURE IF EXISTS sp_check_active_subscription;
+DROP PROCEDURE IF EXISTS sp_check_subscription_overlap;
+DROP PROCEDURE IF EXISTS sp_deactivate_subscription;
+DROP PROCEDURE IF EXISTS sp_create_transaction;
+DROP PROCEDURE IF EXISTS sp_search_members;
+DROP PROCEDURE IF EXISTS sp_get_member_subscription_status;
+DROP PROCEDURE IF EXISTS sp_get_active_subscriptions;
+DROP PROCEDURE IF EXISTS sp_get_member_transaction_history;
+
+-- Stored procedure to check for active subscriptions by member ID
+DELIMITER //
+CREATE PROCEDURE sp_check_active_subscription(IN p_member_id INT)
+BEGIN
+    SELECT ms.SUB_ID, ms.START_DATE, ms.END_DATE, ms.IS_ACTIVE, s.SUB_NAME 
+    FROM member_subscription ms
+    JOIN subscription s ON ms.SUB_ID = s.SUB_ID
+    WHERE ms.MEMBER_ID = p_member_id 
+    AND ms.IS_ACTIVE = 1;
+END //
+DELIMITER ;
+
+-- Stored procedure to check for overlapping subscriptions
+DELIMITER //
+CREATE PROCEDURE sp_check_subscription_overlap(
+    IN p_member_id INT,
+    IN p_start_date DATE,
+    IN p_end_date DATE,
+    IN p_renewal_id INT
+)
+BEGIN
+    IF p_renewal_id IS NULL THEN
+        SELECT ms.SUB_ID, ms.START_DATE, ms.END_DATE, ms.IS_ACTIVE, s.SUB_NAME 
+        FROM member_subscription ms
+        JOIN subscription s ON ms.SUB_ID = s.SUB_ID
+        WHERE ms.MEMBER_ID = p_member_id 
+        AND ms.IS_ACTIVE = 1 
+        AND (
+            (p_start_date BETWEEN ms.START_DATE AND ms.END_DATE) OR
+            (p_end_date BETWEEN ms.START_DATE AND ms.END_DATE) OR
+            (ms.START_DATE BETWEEN p_start_date AND p_end_date) OR
+            (ms.END_DATE BETWEEN p_start_date AND p_end_date)
+        )
+        LIMIT 1;
+    ELSE
+        SELECT ms.SUB_ID, ms.START_DATE, ms.END_DATE, ms.IS_ACTIVE, s.SUB_NAME 
+        FROM member_subscription ms
+        JOIN subscription s ON ms.SUB_ID = s.SUB_ID
+        WHERE ms.MEMBER_ID = p_member_id 
+        AND ms.IS_ACTIVE = 1 
+        AND ms.SUB_ID != p_renewal_id
+        AND (
+            (p_start_date BETWEEN ms.START_DATE AND ms.END_DATE) OR
+            (p_end_date BETWEEN ms.START_DATE AND ms.END_DATE) OR
+            (ms.START_DATE BETWEEN p_start_date AND p_end_date) OR
+            (ms.END_DATE BETWEEN p_start_date AND p_end_date)
+        )
+        LIMIT 1;
+    END IF;
+END //
+DELIMITER ;
+
+-- Stored procedure to deactivate a subscription
+DELIMITER //
+CREATE PROCEDURE sp_deactivate_subscription(
+    IN p_member_id INT,
+    IN p_sub_id INT,
+    OUT p_success BOOLEAN
+)
+BEGIN
+    DECLARE v_affected_rows INT;
+    DECLARE v_transaction_id INT;
+    DECLARE v_start_date DATE;
+    DECLARE v_end_date DATE;
+    DECLARE v_has_description_column BOOLEAN;
+    
+    -- Initialize output parameter
+    SET p_success = FALSE;
+    
+    -- Start transaction
+    START TRANSACTION;
+    
+    -- Check if any active subscription exists for this member and subscription ID
+    SELECT START_DATE, END_DATE 
+    INTO v_start_date, v_end_date
+    FROM member_subscription 
+    WHERE MEMBER_ID = p_member_id 
+    AND SUB_ID = p_sub_id 
+    AND IS_ACTIVE = 1
+    ORDER BY END_DATE DESC 
+    LIMIT 1;
+    
+    IF v_start_date IS NULL THEN
+        -- No active subscription found
+        ROLLBACK;
+        SET p_success = FALSE;
+    ELSE
+        -- Update the subscription status
+        UPDATE member_subscription 
+        SET IS_ACTIVE = 0 
+        WHERE MEMBER_ID = p_member_id 
+        AND SUB_ID = p_sub_id 
+        AND START_DATE = v_start_date 
+        AND END_DATE = v_end_date 
+        AND IS_ACTIVE = 1;
+        
+        SET v_affected_rows = ROW_COUNT();
+        
+        IF v_affected_rows > 0 THEN
+            -- Get latest transaction ID for this member and subscription
+            SELECT MAX(TRANSACTION_ID) INTO v_transaction_id
+            FROM transaction 
+            WHERE MEMBER_ID = p_member_id 
+            AND SUB_ID = p_sub_id;
+            
+            -- Check if transaction_log table has a DESCRIPTION column
+            SELECT COUNT(*) > 0 INTO v_has_description_column
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'transaction_log'
+            AND COLUMN_NAME = 'DESCRIPTION';
+            
+            -- Log the deactivation in transaction_log table
+            IF v_has_description_column THEN
+                INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, DESCRIPTION, MODIFIEDDATE)
+                VALUES (v_transaction_id, 'DEACTIVATED', 
+                       CONCAT('Deactivated subscription for Member ID: ', p_member_id), 
+                       CURRENT_DATE());
+            ELSE
+                INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, MODIFIEDDATE)
+                VALUES (v_transaction_id, 'DEACTIVATED', CURRENT_DATE());
+            END IF;
+            
+            SET p_success = TRUE;
+        ELSE
+            SET p_success = FALSE;
+        END IF;
+    END IF;
+    
+    -- Commit transaction
+    COMMIT;
+END //
+DELIMITER ;
+
+-- Stored procedure to create a transaction
+DELIMITER //
+CREATE PROCEDURE sp_create_transaction(
+    IN p_member_id INT,
+    IN p_subscription_id INT,
+    IN p_payment_id INT,
+    IN p_start_date DATE,
+    IN p_end_date DATE,
+    IN p_is_renewal BOOLEAN,
+    IN p_previous_sub_id INT,
+    OUT p_transaction_id INT,
+    OUT p_success BOOLEAN
+)
+BEGIN
+    DECLARE v_duration INT;
+    DECLARE v_calculated_end_date DATE;
+    DECLARE v_has_description_column BOOLEAN;
+    DECLARE v_operation VARCHAR(20);
+    DECLARE v_deactivated_rows INT;
+    
+    -- Initialize output parameters
+    SET p_success = FALSE;
+    SET p_transaction_id = NULL;
+    
+    -- Check if member exists
+    IF NOT EXISTS (SELECT 1 FROM member WHERE MEMBER_ID = p_member_id) THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Member ID does not exist';
+    END IF;
+    
+    -- Start transaction
+    START TRANSACTION;
+    
+    -- Insert transaction record
+    INSERT INTO transaction (MEMBER_ID, SUB_ID, PAYMENT_ID, TRANSAC_DATE) 
+    VALUES (p_member_id, p_subscription_id, p_payment_id, CURRENT_DATE());
+    
+    -- Get new transaction ID
+    SET p_transaction_id = LAST_INSERT_ID();
+    
+    -- Get subscription duration to verify end date
+    SELECT DURATION INTO v_duration 
+    FROM subscription 
+    WHERE SUB_ID = p_subscription_id;
+    
+    -- Calculate end date based on start date and subscription duration
+    SET v_calculated_end_date = DATE_ADD(p_start_date, INTERVAL v_duration DAY);
+    
+    -- If renewal, deactivate previous subscription
+    IF p_is_renewal THEN
+        IF p_previous_sub_id IS NOT NULL THEN
+            -- Deactivate specific previous subscription
+            UPDATE member_subscription 
+            SET IS_ACTIVE = 0 
+            WHERE MEMBER_ID = p_member_id 
+            AND SUB_ID = p_previous_sub_id 
+            AND IS_ACTIVE = 1;
+            
+            SET v_deactivated_rows = ROW_COUNT();
+        ELSE
+            -- Deactivate all active subscriptions for this member
+            UPDATE member_subscription 
+            SET IS_ACTIVE = 0 
+            WHERE MEMBER_ID = p_member_id 
+            AND IS_ACTIVE = 1;
+            
+            SET v_deactivated_rows = ROW_COUNT();
+        END IF;
+        
+        -- Insert new subscription record
+        INSERT INTO member_subscription (MEMBER_ID, SUB_ID, START_DATE, END_DATE, IS_ACTIVE)
+        VALUES (p_member_id, p_subscription_id, p_start_date, v_calculated_end_date, 1);
+        
+        SET v_operation = 'RENEWAL';
+    ELSE
+        -- For non-renewals, first check if this exact subscription already exists
+        IF EXISTS (
+            SELECT 1 FROM member_subscription 
+            WHERE MEMBER_ID = p_member_id 
+            AND SUB_ID = p_subscription_id 
+            AND START_DATE = p_start_date 
+            AND END_DATE = v_calculated_end_date
+        ) THEN
+            -- Update existing subscription to be active
+            UPDATE member_subscription 
+            SET IS_ACTIVE = 1 
+            WHERE MEMBER_ID = p_member_id 
+            AND SUB_ID = p_subscription_id 
+            AND START_DATE = p_start_date 
+            AND END_DATE = v_calculated_end_date;
+        ELSE
+            -- Insert new subscription
+            INSERT INTO member_subscription (MEMBER_ID, SUB_ID, START_DATE, END_DATE, IS_ACTIVE)
+            VALUES (p_member_id, p_subscription_id, p_start_date, v_calculated_end_date, 1);
+        END IF;
+        
+        SET v_operation = 'INSERT';
+    END IF;
+    
+    -- Update member to be active
+    UPDATE member SET IS_ACTIVE = 1 WHERE MEMBER_ID = p_member_id;
+    
+    -- Check if transaction_log table has a DESCRIPTION column
+    SELECT COUNT(*) > 0 INTO v_has_description_column
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'transaction_log'
+    AND COLUMN_NAME = 'DESCRIPTION';
+    
+    -- Log the transaction
+    IF v_has_description_column THEN
+        INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, DESCRIPTION, MODIFIEDDATE)
+        VALUES (p_transaction_id, v_operation, CONCAT(v_operation, ' operation for Member ID: ', p_member_id), CURRENT_DATE());
+    ELSE
+        INSERT INTO transaction_log (TRANSACTION_ID, OPERATION, MODIFIEDDATE)
+        VALUES (p_transaction_id, v_operation, CURRENT_DATE());
+    END IF;
+    
+    -- Set success flag
+    SET p_success = TRUE;
+    
+    -- Commit transaction
+    COMMIT;
+    
+END //
+DELIMITER ;
+
+-- Stored procedure to search members
+DELIMITER //
+CREATE PROCEDURE sp_search_members(IN p_search_term VARCHAR(100))
+BEGIN
+    DECLARE search_pattern VARCHAR(102);
+    SET search_pattern = CONCAT('%', p_search_term, '%');
+    
+    SELECT 
+        m.MEMBER_ID, 
+        m.MEMBER_FNAME, 
+        m.MEMBER_LNAME, 
+        m.EMAIL, 
+        p.PROGRAM_NAME,
+        ms.END_DATE,
+        s.SUB_NAME,
+        ms.IS_ACTIVE
+    FROM member m
+    LEFT JOIN program p ON m.PROGRAM_ID = p.PROGRAM_ID
+    LEFT JOIN member_subscription ms ON m.MEMBER_ID = ms.MEMBER_ID 
+                                    AND ms.IS_ACTIVE = 1
+    LEFT JOIN subscription s ON ms.SUB_ID = s.SUB_ID
+    WHERE (
+        m.MEMBER_FNAME LIKE search_pattern 
+        OR m.MEMBER_LNAME LIKE search_pattern 
+        OR m.EMAIL LIKE search_pattern
+        OR CONCAT(m.MEMBER_FNAME, ' ', m.MEMBER_LNAME) LIKE search_pattern
+    )
+    AND m.IS_ACTIVE = 1
+    GROUP BY m.MEMBER_ID
+    ORDER BY m.MEMBER_FNAME, m.MEMBER_LNAME
+    LIMIT 10;
+END //
+DELIMITER ;
+
+-- Stored procedure to get a member's subscription status
+DELIMITER //
+CREATE PROCEDURE sp_get_member_subscription_status(IN p_member_id INT)
+BEGIN
+    SELECT 
+        ms.SUB_ID,
+        ms.START_DATE,
+        ms.END_DATE,
+        ms.IS_ACTIVE,
+        s.SUB_NAME,
+        s.PRICE,
+        s.DURATION,
+        DATEDIFF(ms.END_DATE, CURRENT_DATE()) as DAYS_REMAINING,
+        CASE
+            WHEN ms.IS_ACTIVE = 1 AND ms.END_DATE >= CURRENT_DATE() THEN 'Active'
+            WHEN ms.IS_ACTIVE = 1 AND ms.END_DATE < CURRENT_DATE() THEN 'Expired'
+            ELSE 'Inactive'
+        END as STATUS
+    FROM member_subscription ms
+    JOIN subscription s ON ms.SUB_ID = s.SUB_ID
+    WHERE ms.MEMBER_ID = p_member_id
+    ORDER BY ms.IS_ACTIVE DESC, ms.END_DATE DESC;
+END //
+DELIMITER ;
+
+-- Stored procedure to get all active subscriptions
+DELIMITER //
+CREATE PROCEDURE sp_get_active_subscriptions()
+BEGIN
+    WITH LatestTransactions AS (
+        SELECT 
+            t.MEMBER_ID,
+            t.SUB_ID,
+            t.TRANSACTION_ID,
+            t.TRANSAC_DATE,
+            ROW_NUMBER() OVER (PARTITION BY t.MEMBER_ID, t.SUB_ID ORDER BY t.TRANSAC_DATE DESC) as rn
+        FROM transaction t
+    ),
+    SubscriptionDates AS (
+        -- This gets unique start/end date combinations for each member+subscription
+        SELECT 
+            ms.MEMBER_ID,
+            ms.SUB_ID,
+            ms.START_DATE,
+            ms.END_DATE,
+            ms.IS_ACTIVE
+        FROM member_subscription ms
+        GROUP BY ms.MEMBER_ID, ms.SUB_ID, ms.START_DATE, ms.END_DATE, ms.IS_ACTIVE
+    )
+    SELECT 
+        m.MEMBER_ID, 
+        m.MEMBER_FNAME, 
+        m.MEMBER_LNAME, 
+        s.SUB_ID, 
+        s.SUB_NAME, 
+        sd.START_DATE, 
+        sd.END_DATE, 
+        sd.IS_ACTIVE,
+        lt.TRANSAC_DATE as PAID_DATE
+    FROM member m
+    JOIN SubscriptionDates sd ON m.MEMBER_ID = sd.MEMBER_ID
+    JOIN subscription s ON sd.SUB_ID = s.SUB_ID
+    LEFT JOIN LatestTransactions lt ON sd.MEMBER_ID = lt.MEMBER_ID 
+                                  AND sd.SUB_ID = lt.SUB_ID 
+                                  AND lt.rn = 1
+    ORDER BY m.MEMBER_ID, s.SUB_ID, 
+             sd.IS_ACTIVE DESC,         -- Active subscriptions first
+             sd.END_DATE DESC,          -- Latest end date next
+             sd.START_DATE DESC,        -- Then latest start date
+             lt.TRANSAC_DATE DESC;
+END //
+DELIMITER ;
+
+-- Stored procedure to get member transaction history
+DELIMITER //
+CREATE PROCEDURE sp_get_member_transaction_history(IN p_member_id INT)
+BEGIN
+    SELECT 
+        t.TRANSACTION_ID, 
+        t.TRANSAC_DATE, 
+        s.SUB_NAME, 
+        s.PRICE, 
+        p.PAY_METHOD,
+        ms.START_DATE, 
+        ms.END_DATE,
+        ms.IS_ACTIVE
+    FROM transaction t
+    JOIN subscription s ON t.SUB_ID = s.SUB_ID
+    JOIN payment p ON t.PAYMENT_ID = p.PAYMENT_ID
+    LEFT JOIN member_subscription ms ON t.MEMBER_ID = ms.MEMBER_ID 
+                                    AND t.SUB_ID = ms.SUB_ID
+    WHERE t.MEMBER_ID = p_member_id
+    ORDER BY t.TRANSAC_DATE DESC;
+END //
+DELIMITER ;
+
+-- Stored procedure to edit member information
+DELIMITER //
+CREATE PROCEDURE sp_edit_member(
+    IN p_member_id INT,
+    IN p_member_fname VARCHAR(255),
+    IN p_member_lname VARCHAR(255),
+    IN p_email VARCHAR(255),
+    IN p_phone_number VARCHAR(20),
+    IN p_program_id INT,
+    IN p_is_active BOOLEAN,
+    OUT p_success BOOLEAN
+)
+BEGIN
+    DECLARE v_email_exists INT;
+    
+    -- Initialize output parameter
+    SET p_success = FALSE;
+    
+    -- Check if another member already has this email address (excluding current member)
+    SELECT COUNT(*) INTO v_email_exists
+    FROM member 
+    WHERE EMAIL = p_email 
+    AND MEMBER_ID != p_member_id;
+    
+    IF v_email_exists > 0 THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Email address already exists for another member';
+    END IF;
+    
+    -- Start transaction
+    START TRANSACTION;
+    
+    -- Update member information
+    UPDATE member 
+    SET MEMBER_FNAME = p_member_fname,
+        MEMBER_LNAME = p_member_lname,
+        EMAIL = p_email,
+        PHONE_NUMBER = p_phone_number,
+        PROGRAM_ID = p_program_id,
+        IS_ACTIVE = p_is_active
+    WHERE MEMBER_ID = p_member_id;
+    
+    -- If member is deactivated, also deactivate all their subscriptions
+    IF p_is_active = 0 THEN
+        UPDATE member_subscription 
+        SET IS_ACTIVE = 0 
+        WHERE MEMBER_ID = p_member_id 
+        AND IS_ACTIVE = 1;
+    END IF;
+    
+    -- Set success flag
+    SET p_success = TRUE;
+    
+    -- Commit transaction
+    COMMIT;
+END //
+DELIMITER ;
+
+-- Stored procedure to update member comorbidities
+DELIMITER //
+CREATE PROCEDURE sp_update_member_comorbidities(
+    IN p_member_id INT,
+    IN p_comorbidities_json JSON,
+    OUT p_success BOOLEAN
+)
+BEGIN
+    DECLARE v_comor_id INT;
+    DECLARE v_done BOOLEAN DEFAULT FALSE;
+    DECLARE v_index INT DEFAULT 0;
+    DECLARE v_total_items INT;
+    
+    -- Initialize output parameter
+    SET p_success = FALSE;
+    
+    -- Start transaction
+    START TRANSACTION;
+    
+    -- Delete existing comorbidities
+    DELETE FROM member_comorbidities 
+    WHERE MEMBER_ID = p_member_id;
+    
+    -- Get total number of items in the JSON array
+    SET v_total_items = JSON_LENGTH(p_comorbidities_json);
+    
+    -- Loop through JSON array and insert comorbidities
+    WHILE v_index < v_total_items DO
+        -- Extract comorbidity ID from array
+        SET v_comor_id = JSON_EXTRACT(p_comorbidities_json, CONCAT('$[', v_index, ']'));
+        
+        -- Insert the comorbidity
+        INSERT INTO member_comorbidities (MEMBER_ID, COMOR_ID)
+        VALUES (p_member_id, v_comor_id);
+        
+        -- Increment the counter
+        SET v_index = v_index + 1;
+    END WHILE;
+    
+    -- Set success flag
+    SET p_success = TRUE;
+    
+    -- Commit transaction
+    COMMIT;
+END //
+DELIMITER ;
+
+-- Stored procedure to get member details by ID
+DELIMITER //
+CREATE PROCEDURE sp_get_member_details(IN p_member_id INT)
+BEGIN
+    -- Get basic member information including program and coach
+    SELECT 
+        m.MEMBER_ID,
+        m.MEMBER_FNAME, 
+        m.MEMBER_LNAME,
+        m.EMAIL,
+        m.PHONE_NUMBER,
+        m.IS_ACTIVE,
+        m.JOINED_DATE,
+        m.PROGRAM_ID,
+        p.PROGRAM_NAME,
+        (SELECT CONCAT(c.COACH_FNAME, ' ', c.COACH_LNAME)
+         FROM program_coach pc
+         JOIN coach c ON pc.COACH_ID = c.COACH_ID
+         WHERE pc.PROGRAM_ID = m.PROGRAM_ID
+         LIMIT 1) AS COACH_NAME
+    FROM member m
+    LEFT JOIN program p ON m.PROGRAM_ID = p.PROGRAM_ID
+    WHERE m.MEMBER_ID = p_member_id;
+    
+    -- Get member comorbidities
+    SELECT 
+        c.COMOR_ID,
+        c.COMOR_NAME
+    FROM member_comorbidities mc
+    JOIN comorbidities c ON mc.COMOR_ID = c.COMOR_ID
+    WHERE mc.MEMBER_ID = p_member_id;
+    
+    -- Get active subscription information
+    SELECT 
+        ms.SUB_ID,
+        s.SUB_NAME,
+        ms.START_DATE,
+        ms.END_DATE,
+        ms.IS_ACTIVE,
+        DATEDIFF(ms.END_DATE, CURRENT_DATE()) AS DAYS_REMAINING
+    FROM member_subscription ms
+    JOIN subscription s ON ms.SUB_ID = s.SUB_ID
+    WHERE ms.MEMBER_ID = p_member_id AND ms.IS_ACTIVE = 1
+    ORDER BY ms.END_DATE DESC
+    LIMIT 1;
+END //
+DELIMITER ;
