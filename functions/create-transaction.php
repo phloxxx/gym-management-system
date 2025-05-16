@@ -87,6 +87,42 @@ try {
         throw new Exception("Member ID $memberId does not exist");
     }
     
+    // NEW CODE: Check if member already has an active subscription during this period
+    // This prevents adding a transaction if an active subscription exists for the same period
+    if (!$isRenewal) { // Don't check for renewals as we're explicitly replacing the subscription
+        $checkOverlapSql = "SELECT ms.SUB_ID, ms.START_DATE, ms.END_DATE, s.SUB_NAME 
+                           FROM member_subscription ms 
+                           JOIN subscription s ON ms.SUB_ID = s.SUB_ID 
+                           WHERE ms.MEMBER_ID = ? 
+                           AND ms.IS_ACTIVE = 1 
+                           AND (
+                               (? BETWEEN ms.START_DATE AND ms.END_DATE) OR  -- New start date within existing range
+                               (? BETWEEN ms.START_DATE AND ms.END_DATE) OR  -- New end date within existing range
+                               (ms.START_DATE BETWEEN ? AND ?) OR          -- Existing start date within new range
+                               (ms.END_DATE BETWEEN ? AND ?)              -- Existing end date within new range
+                           )";
+        
+        $checkOverlapStmt = $conn->prepare($checkOverlapSql);
+        $checkOverlapStmt->bind_param("issssss", 
+            $memberId, 
+            $startDate, $endDate, 
+            $startDate, $endDate, 
+            $startDate, $endDate
+        );
+        $checkOverlapStmt->execute();
+        $overlapResult = $checkOverlapStmt->get_result();
+        
+        if ($overlapResult->num_rows > 0) {
+            $existingSub = $overlapResult->fetch_assoc();
+            error_log("Rejected: Member has active subscription that overlaps with requested dates");
+            throw new Exception(
+                "This member already has an active subscription ({$existingSub['SUB_NAME']}) " .
+                "from {$existingSub['START_DATE']} to {$existingSub['END_DATE']}. " .
+                "Please deactivate the existing subscription before adding a new one, or use the renewal option."
+            );
+        }
+    }
+    
     // Check for duplicate transaction
     if ($isRenewal) {
         $checkDuplicateTransaction = $conn->prepare(

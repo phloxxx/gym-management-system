@@ -30,14 +30,14 @@ try {
     
     // Build the SQL query to check for overlapping subscriptions
     // Exclude the subscription being renewed if renewalId is provided
-    $sql = "SELECT ms.START_DATE, ms.END_DATE, ms.IS_ACTIVE, s.SUB_NAME, ms.SUB_ID
+    $sql = "SELECT ms.SUB_ID, ms.START_DATE, ms.END_DATE, ms.IS_ACTIVE, s.SUB_NAME 
             FROM member_subscription ms
             JOIN subscription s ON ms.SUB_ID = s.SUB_ID
-            WHERE ms.MEMBER_ID = ? AND (
-                (? BETWEEN ms.START_DATE AND ms.END_DATE) OR  -- New start date is within existing subscription
-                (? BETWEEN ms.START_DATE AND ms.END_DATE) OR  -- New end date is within existing subscription
-                (ms.START_DATE BETWEEN ? AND ?) OR           -- Existing start date is within new subscription
-                (ms.END_DATE BETWEEN ? AND ?)               -- Existing end date is within new subscription
+            WHERE ms.MEMBER_ID = ? AND ms.IS_ACTIVE = 1 AND (
+                (? BETWEEN ms.START_DATE AND ms.END_DATE) OR  -- New start date within existing range
+                (? BETWEEN ms.START_DATE AND ms.END_DATE) OR  -- New end date within existing range
+                (ms.START_DATE BETWEEN ? AND ?) OR           -- Existing start date within new range
+                (ms.END_DATE BETWEEN ? AND ?)               -- Existing end date within new range
             )";
     
     // If this is a renewal, exclude the subscription being renewed from the check
@@ -45,7 +45,7 @@ try {
         $sql .= " AND ms.SUB_ID != ?";
     }
     
-    $sql .= " ORDER BY ms.IS_ACTIVE DESC, ms.END_DATE DESC LIMIT 1";
+    $sql .= " LIMIT 1";
     
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
@@ -84,11 +84,8 @@ try {
         'success' => true,
         'hasOverlappingSubscription' => $hasOverlappingSubscription,
         'overlappingSubscription' => $overlappingSubscriptionDetails,
-        'renewalId' => $renewalId,
         'message' => $hasOverlappingSubscription ? 
-            "This date range overlaps with a " . 
-            ($overlappingSubscriptionDetails['IS_ACTIVE'] ? "current" : "past") . 
-            " subscription ({$overlappingSubscriptionDetails['SUB_NAME']}) from {$overlappingSubscriptionDetails['START_DATE']} to {$overlappingSubscriptionDetails['END_DATE']}." : 
+            "This date range overlaps with an existing active subscription ({$overlappingSubscriptionDetails['SUB_NAME']}) from {$overlappingSubscriptionDetails['START_DATE']} to {$overlappingSubscriptionDetails['END_DATE']}." : 
             "No overlapping subscriptions found"
     ]);
     

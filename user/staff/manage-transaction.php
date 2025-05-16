@@ -4088,3 +4088,131 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ...existing code...
 </script>
+
+<script>
+// ...existing code...
+
+// Function to check for overlapping subscription before submission
+async function checkOverlappingSubscription(memberId, startDate, endDate, renewalMode = false, renewalId = null) {
+    try {
+        const requestData = {
+            memberId: memberId,
+            startDate: startDate,
+            endDate: endDate
+        };
+        
+        // If this is a renewal, include the subscription ID being renewed
+        if (renewalMode && renewalId) {
+            requestData.renewalId = renewalId;
+        }
+        
+        const response = await fetch('../../functions/check-active-subscription.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error checking subscription overlap:', error);
+        return { 
+            success: false, 
+            hasOverlappingSubscription: false, 
+            message: `Error checking subscription: ${error.message}` 
+        };
+    }
+}
+
+// Update form submission handlers to include overlap check
+document.getElementById('transaction-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Get form data
+    const memberId = document.getElementById('modal-member-id').value;
+    const subscriptionId = document.getElementById('modal-subscription').value;
+    const paymentId = document.getElementById('modal-payment').value;
+    const startDate = document.getElementById('modal-start-date').value;
+    
+    // Calculate end date based on subscription duration
+    let endDate = document.getElementById('modal-end-date').value;
+    
+    // Validate required fields
+    if (!memberId || !subscriptionId || !paymentId || !startDate) {
+        showToast('Please fill in all required fields', false);
+        return;
+    }
+    
+    // Check for overlapping subscription
+    const overlapCheck = await checkOverlappingSubscription(memberId, startDate, endDate);
+    
+    if (overlapCheck.hasOverlappingSubscription) {
+        // Show error with details about the overlapping subscription
+        showToast(overlapCheck.message, false);
+        
+        // Highlight the start date and end date fields to indicate the error
+        const startDateInput = document.getElementById('modal-start-date');
+        const endDateInput = document.getElementById('modal-end-date');
+        
+        startDateInput.classList.add('border-red-500');
+        endDateInput.classList.add('border-red-500');
+        
+        setTimeout(() => {
+            startDateInput.classList.remove('border-red-500');
+            endDateInput.classList.remove('border-red-500');
+        }, 3000);
+        
+        return;
+    }
+    
+    // Continue with transaction creation if no overlap
+    // ...existing form submission code...
+});
+
+// Also update the renewal form submission handler to use the same check
+document.getElementById('renewal-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Get form data
+    const memberId = document.getElementById('renewal-member-id').value;
+    const subscriptionId = document.getElementById('renewal-subscription').value;
+    const previousSubId = document.getElementById('renewal-previous-sub-id').value;
+    const paymentId = document.getElementById('renewal-payment').value;
+    const startDate = document.getElementById('renewal-start-date').value;
+    
+    // Calculate end date based on subscription duration
+    let endDate = document.getElementById('renewal-end-date').value;
+    
+    // Validate required fields
+    if (!memberId || !subscriptionId || !paymentId || !startDate) {
+        showToast('Please fill in all required fields', false);
+        return;
+    }
+    
+    // Check for overlapping subscription, but exclude the one being renewed
+    const overlapCheck = await checkOverlappingSubscription(
+        memberId, 
+        startDate, 
+        endDate, 
+        true, // renewal mode
+        previousSubId // subscription being renewed
+    );
+    
+    if (overlapCheck.hasOverlappingSubscription) {
+        // Show error with details about the overlapping subscription
+        showToast(overlapCheck.message, false);
+        return;
+    }
+    
+    // Continue with renewal if no overlap
+    // ...existing renewal code...
+});
+
+// ...existing code...
+</script>
