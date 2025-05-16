@@ -9,6 +9,11 @@ $action = $_POST['action'] ?? '';
 $response = ['success' => false, 'message' => 'Invalid action'];
 
 try {
+    // Ensure IS_ACTIVE is properly set from POST data
+    if (isset($_POST['IS_ACTIVE'])) {
+        $_POST['IS_ACTIVE'] = filter_var($_POST['IS_ACTIVE'], FILTER_VALIDATE_BOOLEAN);
+    }
+    
     switch ($action) {
         case 'get_programs':
             $response = getAllPrograms();

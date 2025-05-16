@@ -7,8 +7,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
     $role = $_POST['role'] ?? '';
-     // First check if it's the default admin
-     if ($username === 'admin' && $password === 'admin123' && $role === 'ADMINISTRATOR') {
+
+    // First check if it's the default admin
+    if ($username === 'admin' && $password === 'admin123' && $role === 'ADMINISTRATOR') {
         $_SESSION['user_id'] = 'ADMIN';
         $_SESSION['username'] = 'admin';
         $_SESSION['role'] = 'administrator';
@@ -25,7 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Debug logging
     error_log("Login attempt - Username: $username, Role: $role");
-    error_log("Raw POST data: " . print_r($_POST, true));
 
     if (empty($username) || empty($password) || empty($role)) {
         $response = [
@@ -36,8 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $conn = getConnection();
             
-            // Debug query and parameters
-            error_log("SQL Query params - Username: $username, Role: $role");
+            // Debug logging
+            error_log("Using stored procedure to find user");
             
             $stmt = $conn->prepare("CALL sp_GetUsers()");
             $stmt->execute();
@@ -52,22 +52,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             // Debug user data
-            error_log("User data found: " . print_r($found_user, true));
+            error_log("User lookup result: " . ($found_user ? "User found" : "User not found"));
+            if ($found_user) {
+                error_log("Found user data: " . print_r($found_user, true));
+                error_log("Stored password hash: " . $found_user['PASSWORD']);
+                error_log("Submitted role: " . $role);
+                error_log("User role in DB: " . $found_user['USER_TYPE']);
+            }
             
             if ($found_user) {
                 // Compare roles case-insensitively
                 $userRole = strtoupper($found_user['USER_TYPE']);
                 $submittedRole = strtoupper($role);
                 
-                error_log("Login - Username match found");
-                error_log("Login - Hash length check: " . strlen($found_user['PASSWORD']));
-                
-                // Try to verify password regardless of hash length
+                // Verify password
                 $passwordVerified = password_verify($password, $found_user['PASSWORD']);
-                error_log("Login - Password verify result: " . ($passwordVerified ? "true" : "false"));
+                error_log("Password verification result: " . ($passwordVerified ? "true" : "false"));
                 
                 if ($userRole === $submittedRole && $passwordVerified) {
-                    // Password verified successfully, proceed with login
                     $_SESSION['user_id'] = $found_user['USER_ID'];
                     $_SESSION['username'] = $found_user['USERNAME'];
                     $_SESSION['role'] = strtolower($found_user['USER_TYPE']);
@@ -83,19 +85,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'redirect' => $redirect
                     ];
                 } else {
-                    error_log("Role or password mismatch - User Role: {$found_user['USER_TYPE']}, Submitted Role: $role");
                     $response = [
                         'success' => false,
-                        'message' => 'Invalid username, password, or role'
+                        'message' => $userRole !== $submittedRole ? 'Invalid role selected' : 'Invalid password'
                     ];
                 }
             } else {
-                error_log("No user found with username: $username");
                 $response = [
                     'success' => false,
-                    'message' => 'Invalid username, password, or role'
+                    'message' => 'User not found'
                 ];
             }
+            
+            $stmt->close();
+            $conn->close();
+            
         } catch(Exception $e) {
             error_log("Login error: " . $e->getMessage());
             $response = [

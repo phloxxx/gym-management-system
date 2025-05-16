@@ -541,9 +541,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                     <i class="fas fa-at"></i>
                                 </div>
                                 <input type="text" id="username" name="USERNAME" 
-                                    class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" required>
+                                    class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
+                                    required
+                                    minlength="5"
+                                    oninput="this.setCustomValidity('')"
+                                    oninvalid="this.setCustomValidity('Username must be at least 5 characters long')">
                             </div>
-                            <p class="text-xs text-gray-500 mt-1.5 ml-1">Username must be unique and between 5-20 characters.</p>
+                            <p class="text-xs text-gray-500 mt-1.5 ml-1">Username must be at least 5 characters long.</p>
                         </div>
                         
                         <!-- Password (shown only for new users) -->
@@ -1328,12 +1332,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             
             function saveUser() {
-                // Form validation - only validate required fields for new users
-                if (!currentUserId) {
-                    if (!userForm.checkValidity()) {
-                        userForm.reportValidity();
-                        return;
+                // Form validation - validate all fields regardless of new or edit mode
+                const requiredFields = {
+                    'firstName': 'First Name',
+                    'lastName': 'Last Name',
+                    'username': 'Username',
+                    'userType': 'User Type'
+                };
+
+                const missingFields = [];
+                for (const [fieldId, fieldLabel] of Object.entries(requiredFields)) {
+                    const field = document.getElementById(fieldId);
+                    if (!field || !field.value.trim()) {
+                        missingFields.push(fieldLabel);
+                        // Add visual feedback
+                        field?.classList.add('border-red-500');
+                    } else {
+                        field?.classList.remove('border-red-500');
                     }
+                }
+
+                if (missingFields.length > 0) {
+                    showToast('Please fill in all required fields: ' + missingFields.join(', '), 'error');
+                    return;
+                }
+
+                // Additional username validation
+                const username = document.getElementById('username').value;
+                if (username.length < 5) {
+                    showToast('Username must be at least 5 characters long', 'error');
+                    document.getElementById('username').classList.add('border-red-500');
+                    return;
+                }
+
+                // Only validate password for new users
+                if (!currentUserId && (!document.getElementById('password').value || document.getElementById('password').value.trim() === '')) {
+                    showToast('Password is required for new users', 'error');
+                    document.getElementById('password').classList.add('border-red-500');
+                    return;
                 }
 
                 // Show loading state
@@ -1397,6 +1433,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 });
             }
             
+            // Add event listeners for input fields to remove error styling when user starts typing
+            document.querySelectorAll('#userForm input, #userForm select').forEach(input => {
+                input.addEventListener('input', function() {
+                    this.classList.remove('border-red-500');
+                });
+            });
+
             function deleteUser(userId) {
                 const deleteConfirmDialog = document.getElementById('deleteConfirmDialog');
                 const confirmDeleteBtn = document.getElementById('confirmDelete');

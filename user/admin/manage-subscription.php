@@ -288,7 +288,7 @@ if ($role === 'Administrator') $role = 'Administrator';
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
                                     <i class="fas fa-calendar-day"></i>
                                 </div>
-                                <input type="number" id="duration" name="DURATION" 
+                                <input type="number" id="duration" name="DURATION" min="1" 
                                     class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" required>
                             </div>
                             <p class="text-xs text-gray-500 mt-1">Example: 30, 90, 365</p>
@@ -301,7 +301,7 @@ if ($role === 'Administrator') $role = 'Administrator';
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary-light">
                                     <i class="fas fa-dollar-sign"></i>
                                 </div>
-                                <input type="number" id="price" name="PRICE" min="0" step="0.01"
+                                <input type="number" id="price" name="PRICE" min="0.01" step="0.01"
                                     class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" required>
                             </div>
                         </div>
@@ -438,6 +438,19 @@ if ($role === 'Administrator') $role = 'Administrator';
 
             // Save button click
             saveBtn.addEventListener('click', async () => {
+                const duration = parseFloat(document.getElementById('duration').value);
+                const price = parseFloat(document.getElementById('price').value);
+                
+                // Additional validation
+                if (duration < 1) {
+                    showToast('Duration must be at least 1 day', false);
+                    return;
+                }
+                if (price <= 0) {
+                    showToast('Price must be greater than 0', false);
+                    return;
+                }
+                
                 if (form.checkValidity()) {
                     const formData = new FormData(form);
                     const subscriptionId = document.getElementById('subscriptionId').value;
@@ -518,10 +531,22 @@ if ($role === 'Administrator') $role = 'Administrator';
                         document.getElementById('subName').value = sub.SUB_NAME;
                         document.getElementById('duration').value = sub.DURATION;
                         document.getElementById('price').value = sub.PRICE;
-                        document.getElementById('isActive').checked = sub.IS_ACTIVE == 1;
+                        
+                        // Update status toggle and text
+                        const statusToggle = document.getElementById('isActive');
+                        const statusText = document.getElementById('statusText');
+                        statusToggle.checked = sub.IS_ACTIVE == 1;
+                        
+                        // Update status text based on the actual status
+                        if (sub.IS_ACTIVE == 1) {
+                            statusText.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                            statusText.className = 'text-sm text-green-600 font-medium flex items-center';
+                        } else {
+                            statusText.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                            statusText.className = 'text-sm text-red-600 font-medium flex items-center';
+                        }
                         
                         // Re-enable status toggle for edit mode
-                        const statusToggle = document.getElementById('isActive');
                         const statusContainer = document.querySelector('.bg-gray-50.p-4.rounded-lg');
                         statusToggle.disabled = false;
                         statusContainer.classList.remove('opacity-60', 'cursor-not-allowed');

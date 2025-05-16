@@ -458,9 +458,13 @@ $role = ucfirst(strtolower($_SESSION['role']));
                                 <i class="fas fa-envelope"></i>
                             </div>
                             <input type="email" id="coachEmail" name="EMAIL" 
+                                pattern="[a-zA-Z0-9._%+-]+@gmail\.com$"
                                 class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
-                                placeholder="Enter email address" required>
+                                placeholder="Enter Gmail address"
+                                title="Please enter a valid Gmail address"
+                                required>
                         </div>
+                        <p class="mt-1 text-xs text-gray-500">Must be a valid Gmail address (@gmail.com)</p>
                     </div>
                     <div class="mb-4">
                         <label for="coachPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
@@ -469,9 +473,15 @@ $role = ucfirst(strtolower($_SESSION['role']));
                                 <i class="fas fa-phone"></i>
                             </div>
                             <input type="tel" id="coachPhone" name="PHONE_NUMBER" 
+                                pattern="\d{11}"
+                                maxlength="11"
                                 class="pl-10 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all duration-200" 
-                                placeholder="Enter phone number" required>
+                                placeholder="Enter 11-digit phone number"
+                                title="Please enter exactly 11 digits"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)"
+                                required>
                         </div>
+                        <p class="mt-1 text-xs text-gray-500">Must be exactly 11 digits</p>
                     </div>
 
                     <!-- Program Assignments Section -->
@@ -708,6 +718,16 @@ $role = ucfirst(strtolower($_SESSION['role']));
             document.getElementById('programStatus').checked = isActive;
             document.getElementById('programModalTitle').textContent = 'Edit Program';
             
+            // Update status text based on actual status
+            const statusLabel = document.getElementById('programStatusLabel');
+            if (isActive) {
+                statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                statusLabel.className = 'text-sm text-green-600 font-medium flex items-center';
+            } else {
+                statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                statusLabel.className = 'text-sm text-red-600 font-medium flex items-center';
+            }
+            
             // Re-enable status toggle for edit mode
             const statusToggle = document.getElementById('programStatus');
             const statusContainer = document.querySelector('#programModal .bg-gray-50.p-4.rounded-lg');
@@ -730,7 +750,20 @@ $role = ucfirst(strtolower($_SESSION['role']));
             document.getElementById('coachEmail').value = coach.EMAIL;
             document.getElementById('coachPhone').value = coach.PHONE_NUMBER;
             document.querySelector(`input[name="GENDER"][value="${coach.GENDER}"]`).checked = true;
-            document.getElementById('coachStatus').checked = coach.IS_ACTIVE == 1;
+            
+            // Set status and update status text
+            const isActive = coach.IS_ACTIVE == 1;
+            const statusToggle = document.getElementById('coachStatus');
+            const statusLabel = document.getElementById('coachStatusLabel');
+            
+            statusToggle.checked = isActive;
+            if (isActive) {
+                statusLabel.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Active';
+                statusLabel.className = 'text-sm text-green-600 font-medium flex items-center';
+            } else {
+                statusLabel.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Inactive';
+                statusLabel.className = 'text-sm text-red-600 font-medium flex items-center';
+            }
 
             // Reset and set program assignments
             document.querySelectorAll('input[name="PROGRAM_ASSIGNMENTS[]"]').forEach(checkbox => {
@@ -747,7 +780,6 @@ $role = ucfirst(strtolower($_SESSION['role']));
             }
 
             // Re-enable status toggle for edit mode
-            const statusToggle = document.getElementById('coachStatus');
             const statusContainer = document.querySelector('#coachModal .bg-white.bg-opacity-50');
             const helpText = statusContainer.querySelector('.status-help-text');
             
@@ -890,6 +922,23 @@ $role = ucfirst(strtolower($_SESSION['role']));
             document.getElementById('saveCoachButton').addEventListener('click', function(e) {
                 e.preventDefault();
                 const form = document.getElementById('coachForm');
+                const emailInput = document.getElementById('coachEmail');
+                const phoneInput = document.getElementById('coachPhone');
+
+                // Validate email format
+                if (!emailInput.value.match(/^[a-zA-Z0-9._%+-]+@gmail\.com$/)) {
+                    alert('Please enter a valid Gmail address (@gmail.com)');
+                    emailInput.focus();
+                    return;
+                }
+
+                // Validate phone number
+                if (!phoneInput.value.match(/^\d{11}$/)) {
+                    alert('Phone number must be exactly 11 digits');
+                    phoneInput.focus();
+                    return;
+                }
+
                 if (form.checkValidity()) {
                     const formData = new FormData(form);
                     const data = {

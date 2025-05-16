@@ -10,12 +10,11 @@ function getAllPaymentMethods() {
             throw new Exception("Database connection failed");
         }
 
-        error_log("Database connection established successfully");
-
-        $result = $conn->query("CALL sp_get_payment_methods()");
+        $sql = "SELECT PAYMENT_ID, PAY_METHOD, IS_ACTIVE FROM payment ORDER BY PAYMENT_ID";
+        $result = $conn->query($sql);
         
         if ($result === false) {
-            throw new Exception("Failed to execute stored procedure: " . $conn->error);
+            throw new Exception("Failed to fetch payment methods: " . $conn->error);
         }
 
         $methods = [];
@@ -27,7 +26,6 @@ function getAllPaymentMethods() {
             ];
         }
         
-        error_log("Retrieved " . count($methods) . " payment methods");
         return ['success' => true, 'data' => $methods];
 
     } catch (Exception $e) {
@@ -36,7 +34,6 @@ function getAllPaymentMethods() {
     } finally {
         if ($conn) {
             $conn->close();
-            error_log("Database connection closed");
         }
     }
 }
@@ -44,7 +41,7 @@ function getAllPaymentMethods() {
 function getPaymentMethodById($paymentId) {
     try {
         $conn = getConnection();
-        $stmt = $conn->prepare("CALL sp_get_payment_method_by_id(?)");
+        $stmt = $conn->prepare("SELECT PAYMENT_ID, PAY_METHOD, IS_ACTIVE FROM payment WHERE PAYMENT_ID = ?");
         $stmt->bind_param("i", $paymentId);
         
         if (!$stmt->execute()) {
@@ -68,19 +65,43 @@ function getPaymentMethodById($paymentId) {
 }
 
 function createPaymentMethod($payMethod, $isActive) {
+    $conn = null;
     try {
         $conn = getConnection();
-        $stmt = $conn->prepare("CALL sp_create_payment_method(?, ?)");
-        $stmt->bind_param("si", $payMethod, $isActive);
-        
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to create payment method: " . $conn->error);
+        $conn->begin_transaction();
+
+        // Check for duplicate payment method
+        $checkStmt = $conn->prepare("SELECT COUNT(*) as count FROM payment WHERE PAY_METHOD = ?");
+        if (!$checkStmt) {
+            throw new Exception("Failed to prepare duplicate check statement");
         }
         
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        $paymentId = $row['payment_id'];
+        $checkStmt->bind_param("s", $payMethod);
+        if (!$checkStmt->execute()) {
+            throw new Exception("Failed to check for duplicate payment method");
+        }
         
+        $result = $checkStmt->get_result();
+        $row = $result->fetch_assoc();
+        
+        if ($row['count'] > 0) {
+            throw new Exception("Payment method already exists");
+        }
+
+        // Create new payment method
+        $stmt = $conn->prepare("INSERT INTO payment (PAY_METHOD, IS_ACTIVE) VALUES (?, ?)");
+        if (!$stmt) {
+            throw new Exception("Failed to prepare insert statement");
+        }
+
+        $stmt->bind_param("si", $payMethod, $isActive);
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to create payment method");
+        }
+
+        $paymentId = $stmt->insert_id;
+        $conn->commit();
+
         return [
             'success' => true,
             'message' => 'Payment method created successfully',
@@ -90,22 +111,61 @@ function createPaymentMethod($payMethod, $isActive) {
                 'IS_ACTIVE' => (bool)$isActive
             ]
         ];
+
     } catch (Exception $e) {
+        if ($conn) {
+            $conn->rollback();
+        }
         error_log("Error creating payment method: " . $e->getMessage());
         return ['success' => false, 'message' => $e->getMessage()];
+    } finally {
+        if ($conn) {
+            $conn->close();
+        }
     }
 }
 
 function updatePaymentMethod($paymentId, $payMethod, $isActive) {
+    $conn = null;
     try {
         $conn = getConnection();
-        $stmt = $conn->prepare("CALL sp_update_payment_method(?, ?, ?)");
-        $stmt->bind_param("isi", $paymentId, $payMethod, $isActive);
-        
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to update payment method: " . $conn->error);
+        $conn->begin_transaction();
+
+        // Check for duplicate payment method
+        $checkStmt = $conn->prepare("SELECT COUNT(*) as count FROM payment WHERE PAY_METHOD = ? AND PAYMENT_ID != ?");
+        if (!$checkStmt) {
+            throw new Exception("Failed to prepare duplicate check statement");
         }
-        
+
+        $checkStmt->bind_param("si", $payMethod, $paymentId);
+        if (!$checkStmt->execute()) {
+            throw new Exception("Failed to check for duplicate payment method");
+        }
+
+        $result = $checkStmt->get_result();
+        $row = $result->fetch_assoc();
+
+        if ($row['count'] > 0) {
+            throw new Exception("Payment method already exists");
+        }
+
+        // Update payment method
+        $stmt = $conn->prepare("UPDATE payment SET PAY_METHOD = ?, IS_ACTIVE = ? WHERE PAYMENT_ID = ?");
+        if (!$stmt) {
+            throw new Exception("Failed to prepare update statement");
+        }
+
+        $stmt->bind_param("sii", $payMethod, $isActive, $paymentId);
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to update payment method");
+        }
+
+        if ($stmt->affected_rows === 0) {
+            throw new Exception("Payment method not found");
+        }
+
+        $conn->commit();
+
         return [
             'success' => true,
             'message' => 'Payment method updated successfully',
@@ -115,16 +175,24 @@ function updatePaymentMethod($paymentId, $payMethod, $isActive) {
                 'IS_ACTIVE' => (bool)$isActive
             ]
         ];
+
     } catch (Exception $e) {
+        if ($conn) {
+            $conn->rollback();
+        }
         error_log("Error updating payment method: " . $e->getMessage());
         return ['success' => false, 'message' => $e->getMessage()];
+    } finally {
+        if ($conn) {
+            $conn->close();
+        }
     }
 }
 
 function deletePaymentMethod($paymentId) {
     try {
         $conn = getConnection();
-        $stmt = $conn->prepare("CALL sp_delete_payment_method(?)");
+        $stmt = $conn->prepare("DELETE FROM payment WHERE PAYMENT_ID = ?");
         $stmt->bind_param("i", $paymentId);
         
         if (!$stmt->execute()) {

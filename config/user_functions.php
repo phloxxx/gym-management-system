@@ -10,8 +10,44 @@ function addUser($data) {
     try {
         $conn = getConnection();
         
-        error_log("Adding user - Password length: " . strlen($data['PASSWORD']));
-        error_log("User type received: " . $data['USER_TYPE']);
+        // Enhanced validation with more specific error messages
+        $requiredFields = [
+            'USER_FNAME' => 'First Name',
+            'USER_LNAME' => 'Last Name',
+            'USERNAME' => 'Username',
+            'PASSWORD' => 'Password',
+            'USER_TYPE' => 'User Type'
+        ];
+        
+        $missingFields = [];
+        foreach ($requiredFields as $field => $label) {
+            if (!isset($data[$field]) || trim($data[$field]) === '') {
+                $missingFields[] = $label;
+            }
+        }
+        
+        if (!empty($missingFields)) {
+            return [
+                'success' => false, 
+                'message' => 'Please fill in all required fields: ' . implode(', ', $missingFields)
+            ];
+        }
+        
+        // Password length validation
+        if (strlen($data['PASSWORD']) < 8 || strlen($data['PASSWORD']) > 15) {
+            return [
+                'success' => false,
+                'message' => 'Password must be between 8 and 15 characters long'
+            ];
+        }
+        
+        // Username length validation
+        if (strlen($data['USERNAME']) < 5) {
+            return [
+                'success' => false,
+                'message' => 'Username must be at least 5 characters long'
+            ];
+        }
         
         // Check username using stored procedure
         $stmt = $conn->prepare("CALL sp_check_username(?)");
@@ -23,17 +59,19 @@ function addUser($data) {
             return ['success' => false, 'message' => 'Username already exists'];
         }
         $stmt->close();
+        $conn->next_result();
+        
+        // Hash password
+        $hashedPassword = password_hash($data['PASSWORD'], PASSWORD_DEFAULT);
         
         // Convert user type
         $userType = strtoupper($data['USER_TYPE']);
         if ($userType === 'ADMIN') {
             $userType = 'ADMINISTRATOR';
-        }else if ($userType === 'STAFF') {
-            $userType = 'STAFF';
         }
         
-        $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
-        error_log("Final user type being set: " . $userType);
+        // Set default active status for new users
+        $isActive = 1;
         
         // Add user using stored procedure
         $stmt = $conn->prepare("CALL sp_add_user(?, ?, ?, ?, ?, ?)");
@@ -41,28 +79,92 @@ function addUser($data) {
             $data['USER_FNAME'],
             $data['USER_LNAME'],
             $data['USERNAME'],
-            $data['PASSWORD'],
+            $hashedPassword,
             $userType,
             $isActive
         );
         
-        $success = $stmt->execute();
-        
-        if ($success) {
+        if ($stmt->execute()) {
             return ['success' => true, 'message' => 'User added successfully'];
         } else {
-            error_log("Database error: " . $stmt->error);
             return ['success' => false, 'message' => 'Failed to add user: ' . $stmt->error];
         }
     } catch (Exception $e) {
         error_log("Error adding user: " . $e->getMessage());
-        return ['success' => false, 'message' => 'Database error occurred: ' . $e->getMessage()];
+        return ['success' => false, 'message' => 'Database error occurred'];
     }
 }
 
 function updateUser($data) {
     try {
         $conn = getConnection();
+        
+        // Strict validation - ensure data is properly set
+        if (!is_array($data)) {
+            return ['success' => false, 'message' => 'Invalid data format'];
+        }
+        
+        // Enhanced validation with data trimming
+        $requiredFields = [
+            'USER_ID' => 'User ID',
+            'USER_FNAME' => 'First Name',
+            'USER_LNAME' => 'Last Name',
+            'USERNAME' => 'Username',
+            'USER_TYPE' => 'User Type'
+        ];
+        
+        // Trim and validate all string inputs
+        foreach ($requiredFields as $field => $label) {
+            if (!isset($data[$field])) {
+                return ['success' => false, 'message' => "$label is required"];
+            }
+            
+            if (is_string($data[$field])) {
+                $data[$field] = trim($data[$field]);
+                if ($data[$field] === '') {
+                    return ['success' => false, 'message' => "$label cannot be empty"];
+                }
+                
+                // Additional validation for username
+                if ($field === 'USERNAME' && strlen($data[$field]) < 5) {
+                    return ['success' => false, 'message' => 'Username must be at least 5 characters long'];
+                }
+            }
+        }
+        
+        // Additional validation for username length
+        if (strlen($data['USERNAME']) < 5) {
+            return [
+                'success' => false,
+                'message' => 'Username must be at least 5 characters long'
+            ];
+        }
+        
+        // Username format validation
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $data['USERNAME'])) {
+            return [
+                'success' => false,
+                'message' => 'Username can only contain letters, numbers, underscores, and hyphens'
+            ];
+        }
+        
+        // Additional validation for user type
+        if (!in_array(strtoupper($data['USER_TYPE']), ['ADMIN', 'STAFF'])) {
+            return [
+                'success' => false,
+                'message' => 'Invalid user type. Must be either Admin or Staff'
+            ];
+        }
+        
+        // Validate new password if being changed
+        if (!empty($data['newPassword'])) {
+            if (strlen($data['newPassword']) < 8 || strlen($data['newPassword']) > 15) {
+                return [
+                    'success' => false,
+                    'message' => 'New password must be between 8 and 15 characters long'
+                ];
+            }
+        }
         
         // Check username using stored procedure
         $stmt = $conn->prepare("CALL sp_check_username(?)");
@@ -75,17 +177,26 @@ function updateUser($data) {
                 return ['success' => false, 'message' => 'Username already exists'];
             }
         }
+        $stmt->close();
+        $conn->next_result();
         
         // Convert user type
         $userType = strtoupper($data['USER_TYPE']);
-        if ($userType === 'ADMIN') $userType = 'ADMINISTRATOR';
+        if ($userType === 'ADMIN') {
+            $userType = 'ADMINISTRATOR';
+        }
         
+        // Handle password update
+        $password = '';
+        if (!empty($data['newPassword'])) {
+            $password = password_hash($data['newPassword'], PASSWORD_DEFAULT);
+        }
+        
+        // Set active status
+        $isActive = isset($data['IS_ACTIVE']) ? (int)$data['IS_ACTIVE'] : 0;
+        
+        // Update user using stored procedure
         $stmt = $conn->prepare("CALL sp_UpsertUser(?, ?, ?, ?, ?, ?, ?)");
-        $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
-        $password = !empty($data['PASSWORD']) ? 
-                   password_hash($data['PASSWORD'], PASSWORD_DEFAULT) : 
-                   '';
-        
         $stmt->bind_param("isssssi", 
             $data['USER_ID'],
             $data['USER_FNAME'],
@@ -99,10 +210,10 @@ function updateUser($data) {
         if ($stmt->execute()) {
             return ['success' => true, 'message' => 'User updated successfully'];
         } else {
-            return ['success' => false, 'message' => 'Failed to update user'];
+            return ['success' => false, 'message' => 'Failed to update user: ' . $stmt->error];
         }
     } catch (Exception $e) {
-        error_log("Database error in updateUser: " . $e->getMessage());
+        error_log("Error updating user: " . $e->getMessage());
         return ['success' => false, 'message' => 'Database error occurred'];
     }
 }
@@ -181,5 +292,3 @@ function getAllUsers() {
         return false;
     }
 }
-
-

@@ -35,6 +35,14 @@ function getSubscriptionById($id) {
 
 function addSubscription($subName, $duration, $price, $isActive) {
     try {
+        // Validate inputs
+        if ($duration < 1) {
+            return ['success' => false, 'message' => 'Duration must be at least 1 day'];
+        }
+        if ($price <= 0) {
+            return ['success' => false, 'message' => 'Price must be greater than 0'];
+        }
+
         $conn = getConnection();
         $stmt = $conn->prepare("CALL sp_AddSubscription(?, ?, ?, ?)");
         $stmt->bind_param("sidi", $subName, $duration, $price, $isActive);
@@ -51,6 +59,14 @@ function addSubscription($subName, $duration, $price, $isActive) {
 
 function updateSubscription($subId, $subName, $duration, $price, $isActive) {
     try {
+        // Validate inputs
+        if ($duration < 1) {
+            return ['success' => false, 'message' => 'Duration must be at least 1 day'];
+        }
+        if ($price <= 0) {
+            return ['success' => false, 'message' => 'Price must be greater than 0'];
+        }
+
         $conn = getConnection();
         $stmt = $conn->prepare("CALL sp_UpdateSubscription(?, ?, ?, ?, ?)");
         $stmt->bind_param("isidi", $subId, $subName, $duration, $price, $isActive);

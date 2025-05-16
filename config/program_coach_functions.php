@@ -51,18 +51,17 @@ function getAllCoaches() {
 
 function addProgram($data) {
     global $conn;
-    // Clear any previous results
     while ($conn->more_results()) {
         $conn->next_result();
     }
     
     $stmt = $conn->prepare("CALL sp_AddProgram(?, ?)");
-    $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
+    $isActive = (isset($data['IS_ACTIVE']) && ($data['IS_ACTIVE'] === '1' || $data['IS_ACTIVE'] === true || $data['IS_ACTIVE'] === 'true')) ? 1 : 0;
     $stmt->bind_param("si", $data['PROGRAM_NAME'], $isActive);
     
     if ($stmt->execute()) {
         $stmt->close();
-        $conn->next_result(); // Clear the result set
+        $conn->next_result();
         return ['success' => true, 'message' => 'Program added successfully'];
     }
     $error = $stmt->error;
@@ -73,7 +72,7 @@ function addProgram($data) {
 function editProgram($data) {
     global $conn;
     $stmt = $conn->prepare("CALL sp_EditProgram(?, ?, ?)");
-    $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
+    $isActive = (isset($data['IS_ACTIVE']) && ($data['IS_ACTIVE'] === '1' || $data['IS_ACTIVE'] === true || $data['IS_ACTIVE'] === 'true')) ? 1 : 0;
     $stmt->bind_param("isi", $data['PROGRAM_ID'], $data['PROGRAM_NAME'], $isActive);
     
     if ($stmt->execute()) {
@@ -103,13 +102,28 @@ function deleteProgram($id) {
     }
 }
 
+function validateCoachData($data) {
+    // Validate email
+    if (!preg_match('/^[a-zA-Z0-9._%+-]+@gmail\.com$/', $data['EMAIL'])) {
+        throw new Exception("Email must be a valid Gmail address (@gmail.com)");
+    }
+    
+    // Validate phone number
+    if (!preg_match('/^\d{11}$/', $data['PHONE_NUMBER'])) {
+        throw new Exception("Phone number must be exactly 11 digits");
+    }
+    
+    return true;
+}
+
 function addCoach($data) {
     global $conn;
     $conn->begin_transaction();
     
     try {
+        validateCoachData($data);
         $stmt = $conn->prepare("CALL sp_AddCoach(?, ?, ?, ?, ?, ?)");
-        $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
+        $isActive = (isset($data['IS_ACTIVE']) && ($data['IS_ACTIVE'] === '1' || $data['IS_ACTIVE'] === true || $data['IS_ACTIVE'] === 'true')) ? 1 : 0;
         $stmt->bind_param("sssssi", 
             $data['COACH_FNAME'], 
             $data['COACH_LNAME'], 
@@ -156,9 +170,10 @@ function editCoach($data) {
     $conn->begin_transaction();
     
     try {
+        validateCoachData($data);
         // Update coach's basic information using sp_EditCoach
         $stmt = $conn->prepare("CALL sp_EditCoach(?, ?, ?, ?, ?, ?, ?)");
-        $isActive = isset($data['IS_ACTIVE']) ? 1 : 0;
+        $isActive = (isset($data['IS_ACTIVE']) && ($data['IS_ACTIVE'] === '1' || $data['IS_ACTIVE'] === true || $data['IS_ACTIVE'] === 'true')) ? 1 : 0;
         $stmt->bind_param("isssssi", 
             $data['COACH_ID'],
             $data['COACH_FNAME'], 
