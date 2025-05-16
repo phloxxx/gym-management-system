@@ -69,6 +69,78 @@ function updateMemberStatus($memberId) {
     }
 }
 
+/**
+ * Updates all members' active status based on whether they have active subscriptions
+ * This can be run as a scheduled task or manually
+ *
+ * @return array Result with count of updated members
+ */
+function updateAllMembersStatus() {
+    $conn = getConnection();
+    $updatedCount = 0;
+    
+    try {
+        // Start transaction
+        $conn->begin_transaction();
+        
+        // First, get all members with active subscriptions
+        $activeMembersSql = "SELECT DISTINCT ms.MEMBER_ID 
+                            FROM member_subscription ms 
+                            WHERE ms.IS_ACTIVE = 1 
+                            AND CURRENT_DATE() <= ms.END_DATE";
+        
+        $activeMembersResult = $conn->query($activeMembersSql);
+        $activeMembers = [];
+        
+        while ($row = $activeMembersResult->fetch_assoc()) {
+            $activeMembers[] = $row['MEMBER_ID'];
+        }
+        
+        // Update all members to inactive first
+        $inactiveUpdateSql = "UPDATE member SET IS_ACTIVE = 0";
+        $conn->query($inactiveUpdateSql);
+        
+        // Then set members with active subscriptions to active
+        if (!empty($activeMembers)) {
+            $placeholders = implode(',', array_fill(0, count($activeMembers), '?'));
+            $activeUpdateSql = "UPDATE member SET IS_ACTIVE = 1 WHERE MEMBER_ID IN ($placeholders)";
+            
+            $stmt = $conn->prepare($activeUpdateSql);
+            
+            // Create parameter binding
+            $types = str_repeat('i', count($activeMembers));
+            $stmt->bind_param($types, ...$activeMembers);
+            
+            $stmt->execute();
+            $updatedCount = $stmt->affected_rows;
+        }
+        
+        // Commit changes
+        $conn->commit();
+        
+        return [
+            'success' => true,
+            'updated_count' => $updatedCount,
+            'total_active' => count($activeMembers)
+        ];
+        
+    } catch (Exception $e) {
+        if ($conn) {
+            $conn->rollback();
+        }
+        error_log("Error updating members status: " . $e->getMessage());
+        
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
+    } finally {
+        if ($conn) {
+            $conn->close();
+        }
+    }
+}
+
 // Handle direct API calls to this endpoint
 if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
     header('Content-Type: application/json');
@@ -106,4 +178,10 @@ if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
     
     echo json_encode($result);
 }
-?> 
+
+// If this file is executed directly, run the update
+if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
+    header('Content-Type: application/json');
+    echo json_encode(updateAllMembersStatus());
+}
+?>

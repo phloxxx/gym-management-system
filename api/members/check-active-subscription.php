@@ -39,4 +39,4 @@ try {
         'status' => 'error',
         'message' => $e->getMessage()
     ]);
-} 
+}

@@ -12,6 +12,10 @@ $role = ucfirst(strtolower($_SESSION['role'] ?? 'Administrator'));
 
 require_once '../../config/db_connection.php';
 require_once '../../functions/transaction-functions.php';
+require_once '../../functions/update-member-status.php';
+
+// Update the members table status based on subscriptions
+updateAllMembersStatus();
 
 // Get program data
 function getActivePrograms() {
@@ -2946,6 +2950,35 @@ $comorbidities = getActiveComorbidities();
                 editMember(memberId);
             }
         }); */
+
+        // Set min date for start date to today
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get today's date in YYYY-MM-DD format
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayFormatted = `${year}-${month}-${day}`;
+            
+            // Set default value and min attribute for start date inputs
+            const startDateInputs = document.querySelectorAll('input[type="date"][id="startDate"], input[type="date"][id="modal-start-date"]');
+            startDateInputs.forEach(input => {
+                input.value = todayFormatted;
+                input.min = todayFormatted;
+            });
+            
+            // Also set these values whenever the modal is opened
+            const addMemberBtn = document.getElementById('addMemberBtn');
+            if (addMemberBtn) {
+                addMemberBtn.addEventListener('click', function() {
+                    const startDate = document.getElementById('startDate');
+                    if (startDate) {
+                        startDate.value = todayFormatted;
+                        startDate.min = todayFormatted;
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>

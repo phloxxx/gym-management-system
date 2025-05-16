@@ -3987,6 +3987,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     renewButton.addEventListener('click', function() {
                                         const memberId = this.getAttribute('data-member-id');
                                         const subId = this.getAttribute('data-sub-id');
+                                        const row = this.closest('tr');
                                         const memberName = row.querySelector('td:nth-child(1) .text-sm.font-medium').textContent;
                                         const subscriptionName = row.querySelector('td:nth-child(2) .text-sm').textContent;
                                         
@@ -4052,3 +4053,87 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </body>
 </html>
+<script>
+// Set min date for start date to today
+document.addEventListener('DOMContentLoaded', function() {
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayFormatted = `${year}-${month}-${day}`;
+    
+    // Set default value and min attribute for start date input
+    const startDateInput = document.getElementById('modal-start-date');
+    if (startDateInput) {
+        startDateInput.value = todayFormatted;
+        startDateInput.min = todayFormatted;
+    }
+    
+    // Update whenever the transaction modal is opened
+    const transactionButtons = document.querySelectorAll('.add-transaction-btn, .renew-subscription-btn');
+    transactionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            setTimeout(() => {
+                const modalStartDate = document.getElementById('modal-start-date');
+                if (modalStartDate) {
+                    modalStartDate.value = todayFormatted;
+                    modalStartDate.min = todayFormatted;
+                }
+            }, 100);
+        });
+    });
+});
+</script>
+<script>
+// ...existing code...
+
+<script>
+// ...existing code...
+
+// Ensure date inputs don't allow past dates - enhanced version
+function restrictPastDates() {
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayFormatted = `${year}-${month}-${day}`;
+    
+    // Apply to all date inputs, especially focusing on the modal-start-date
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    dateInputs.forEach(input => {
+        input.setAttribute('min', todayFormatted);
+        
+        // Set default to today for start date inputs
+        if (input.id === 'modal-start-date') {
+            input.value = todayFormatted;
+        }
+        
+        // Add event listener to prevent past date selection
+        input.addEventListener('input', function(e) {
+            const selectedDate = this.value;
+            if (selectedDate < todayFormatted) {
+                alert("Please select today or a future date.");
+                this.value = todayFormatted;
+            }
+        });
+    });
+}
+
+// Call this function on page load
+document.addEventListener('DOMContentLoaded', function() {
+    restrictPastDates();
+    
+    // Also call it when any modal is opened that contains date inputs
+    const modalButtons = document.querySelectorAll('[data-modal-target], .add-transaction-btn, .renew-subscription-btn');
+    modalButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Use setTimeout to ensure the modal is fully opened
+            setTimeout(restrictPastDates, 100);
+        });
+    });
+});
+
+// ...existing code...
+</script>
